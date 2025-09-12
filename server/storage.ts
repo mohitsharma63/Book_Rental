@@ -1,14 +1,18 @@
 import { type User, type InsertUser, type Book, type InsertBook, type Rental, type InsertRental, type Wishlist, type InsertWishlist } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { DatabaseStorage } from "./database-storage";
+import { eq, desc } from "drizzle-orm";
+
 
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<User>): Promise<User>;
-  
+
   // Book methods
   getAllBooks(): Promise<Book[]>;
   getBook(id: string): Promise<Book | undefined>;
@@ -17,7 +21,7 @@ export interface IStorage {
   createBook(book: InsertBook): Promise<Book>;
   updateBook(id: string, book: Partial<Book>): Promise<Book>;
   deleteBook(id: string): Promise<boolean>;
-  
+
   // Rental methods
   getAllRentals(): Promise<Rental[]>;
   getRental(id: string): Promise<Rental | undefined>;
@@ -25,7 +29,7 @@ export interface IStorage {
   getRentalsByBook(bookId: string): Promise<Rental[]>;
   createRental(rental: InsertRental): Promise<Rental>;
   updateRental(id: string, rental: Partial<Rental>): Promise<Rental>;
-  
+
   // Wishlist methods
   getWishlistByUser(userId: string): Promise<Wishlist[]>;
   addToWishlist(wishlist: InsertWishlist): Promise<Wishlist>;
@@ -237,6 +241,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.email === email);
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { 
@@ -254,7 +262,7 @@ export class MemStorage implements IStorage {
   async updateUser(id: string, updateData: Partial<User>): Promise<User> {
     const user = this.users.get(id);
     if (!user) throw new Error("User not found");
-    
+
     const updatedUser = { ...user, ...updateData };
     this.users.set(id, updatedUser);
     return updatedUser;
@@ -306,7 +314,7 @@ export class MemStorage implements IStorage {
   async updateBook(id: string, updateData: Partial<Book>): Promise<Book> {
     const book = this.books.get(id);
     if (!book) throw new Error("Book not found");
-    
+
     const updatedBook = { ...book, ...updateData };
     this.books.set(id, updatedBook);
     return updatedBook;
@@ -350,7 +358,7 @@ export class MemStorage implements IStorage {
   async updateRental(id: string, updateData: Partial<Rental>): Promise<Rental> {
     const rental = this.rentals.get(id);
     if (!rental) throw new Error("Rental not found");
-    
+
     const updatedRental = { ...rental, ...updateData };
     this.rentals.set(id, updatedRental);
     return updatedRental;
@@ -376,14 +384,12 @@ export class MemStorage implements IStorage {
     const wishlistItem = Array.from(this.wishlist.values()).find(
       wish => wish.userId === userId && wish.bookId === bookId
     );
-    
+
     if (wishlistItem) {
       return this.wishlist.delete(wishlistItem.id);
     }
     return false;
   }
 }
-
-import { DatabaseStorage } from "./database-storage";
 
 export const storage = new DatabaseStorage();

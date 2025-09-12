@@ -108,8 +108,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Users routes
   app.get("/api/users", async (req, res) => {
     try {
-      // For demo purposes, return limited user data
-      res.json([]);
+      const users = await storage.getAllUsers();
+      // Remove passwords from response for security
+      const safeUsers = users.map(({ password, ...user }) => user);
+      res.json(safeUsers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
     }
