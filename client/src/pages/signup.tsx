@@ -59,12 +59,13 @@ export default function Signup() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          username: formData.email, // Use email as username
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
           phone: formData.phone || null,
-          address: formData.address || null,
+          address: null, // Not collected in form
           role: formData.email === "admin@bookwise.com" ? "admin" : "user"
         }),
       });

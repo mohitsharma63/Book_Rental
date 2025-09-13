@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,85 +10,113 @@ import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Book, Rental } from "@/lib/types";
-import { BookIcon, Users, Clock, AlertTriangle, Search, Filter, Plus, TrendingUp, MessageCircle, CheckCircle } from "lucide-react";
+import { BookIcon, Users, Clock, AlertTriangle, Search, Filter, Plus, TrendingUp, MessageCircle, CheckCircle, X } from "lucide-react";
 import { AdminSidebar } from "@/components/admin-sidebar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [showAddBookDialog, setShowAddBookDialog] = useState(false);
+  const [bookFormData, setBookFormData] = useState({
+    title: "",
+    author: "",
+    isbn: "",
+    category: "",
+    description: "",
+    imageUrl: "",
+    pricePerWeek: "",
+    totalCopies: "1",
+    publishedYear: "",
+    pages: "",
+    publisher: "",
+    language: "English",
+    condition: "New",
+    format: "Paperback"
+  });
 
-  // Static data for admin dashboard
-  const staticBooks = [
-    { id: "book1", title: "The Great Gatsby", author: "F. Scott Fitzgerald", category: "Fiction", pricePerWeek: "3.99", availableCopies: 2, imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book2", title: "Gone Girl", author: "Gillian Flynn", category: "Mystery", pricePerWeek: "4.99", availableCopies: 1, imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book3", title: "Dune", author: "Frank Herbert", category: "Sci-Fi", pricePerWeek: "5.99", availableCopies: 2, imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book4", title: "Pride and Prejudice", author: "Jane Austen", category: "Romance", pricePerWeek: "3.99", availableCopies: 1, imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book5", title: "To Kill a Mockingbird", author: "Harper Lee", category: "Fiction", pricePerWeek: "4.50", availableCopies: 3, imageUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book6", title: "Atomic Habits", author: "James Clear", category: "Self-Help", pricePerWeek: "6.99", availableCopies: 1, imageUrl: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book7", title: "The Psychology of Money", author: "Morgan Housel", category: "Finance", pricePerWeek: "12.99", availableCopies: 8, imageUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book8", title: "The Silent Patient", author: "Alex Michaelides", category: "Thriller", pricePerWeek: "11.99", availableCopies: 3, imageUrl: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book9", title: "Where the Crawdads Sing", author: "Delia Owens", category: "Fiction", pricePerWeek: "4.99", availableCopies: 0, imageUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book10", title: "The Seven Husbands of Evelyn Hugo", author: "Taylor Jenkins Reid", category: "Romance", pricePerWeek: "4.49", availableCopies: 1, imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book11", title: "Educated", author: "Tara Westover", category: "Biography", pricePerWeek: "3.49", availableCopies: 1, imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book12", title: "The Midnight Library", author: "Matt Haig", category: "Fiction", pricePerWeek: "5.49", availableCopies: 2, imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book13", title: "Think Again", author: "Adam Grant", category: "Psychology", pricePerWeek: "7.99", availableCopies: 4, imageUrl: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book14", title: "The Thursday Murder Club", author: "Richard Osman", category: "Mystery", pricePerWeek: "6.49", availableCopies: 2, imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-    { id: "book15", title: "Klara and the Sun", author: "Kazuo Ishiguro", category: "Fiction", pricePerWeek: "8.99", availableCopies: 3, imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400" },
-  ];
+  const queryClient = useQueryClient();
 
-  const staticRentals = [
-    { id: "rental1", userId: "user1", bookId: "book1", status: "active", dueDate: "2024-12-22", rentalDate: "2024-12-15" },
-    { id: "rental2", userId: "user2", bookId: "book3", status: "overdue", dueDate: "2024-12-17", rentalDate: "2024-12-10" },
-    { id: "rental3", userId: "user3", bookId: "book4", status: "active", dueDate: "2024-12-25", rentalDate: "2024-12-18" },
-    { id: "rental4", userId: "user1", bookId: "book6", status: "active", dueDate: "2024-12-24", rentalDate: "2024-12-17" },
-    { id: "rental5", userId: "user4", bookId: "book2", status: "overdue", dueDate: "2024-12-16", rentalDate: "2024-12-09" },
-    { id: "rental6", userId: "user5", bookId: "book8", status: "active", dueDate: "2024-12-26", rentalDate: "2024-12-19" },
-    { id: "rental7", userId: "user2", bookId: "book10", status: "active", dueDate: "2024-12-23", rentalDate: "2024-12-16" },
-    { id: "rental8", userId: "user6", bookId: "book5", status: "overdue", dueDate: "2024-12-18", rentalDate: "2024-12-11" },
-    { id: "rental9", userId: "user3", bookId: "book12", status: "active", dueDate: "2024-12-27", rentalDate: "2024-12-20" },
-    { id: "rental10", userId: "user7", bookId: "book14", status: "active", dueDate: "2024-12-28", rentalDate: "2024-12-21" },
-  ];
+  // API calls for dynamic data
+  const { data: books = [], isLoading: booksLoading } = useQuery({
+    queryKey: ['admin-books'],
+    queryFn: () => fetch('/api/books').then(res => res.json()),
+  });
 
-  // Use static data instead of API calls
-  const books = staticBooks;
-  const rentals = staticRentals;
+  // Mutation for adding new book
+  const addBookMutation = useMutation({
+    mutationFn: async (bookData: any) => {
+      const response = await fetch('/api/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...bookData,
+          pricePerWeek: parseFloat(bookData.pricePerWeek),
+          totalCopies: parseInt(bookData.totalCopies),
+          availableCopies: parseInt(bookData.totalCopies),
+          publishedYear: parseInt(bookData.publishedYear),
+          pages: parseInt(bookData.pages),
+          rating: "0"
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to add book');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-books'] });
+      setShowAddBookDialog(false);
+      setBookFormData({
+        title: "",
+        author: "",
+        isbn: "",
+        category: "",
+        description: "",
+        imageUrl: "",
+        pricePerWeek: "",
+        totalCopies: "1",
+        publishedYear: "",
+        pages: "",
+        publisher: "",
+        language: "English",
+        condition: "New",
+        format: "Paperback"
+      });
+    },
+  });
+
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: () => fetch('/api/users').then(res => res.json()),
+  });
+
+  const { data: rentals = [], isLoading: rentalsLoading } = useQuery({
+    queryKey: ['admin-rentals'],
+    queryFn: () => fetch('/api/rentals').then(res => res.json()),
+  });
 
   const stats = {
     totalBooks: books.length,
-    activeUsers: 456,
+    activeUsers: users.length,
     activeRentals: rentals.filter(r => r.status === "active").length,
     overdue: rentals.filter(r => r.status === "overdue").length,
   };
 
-  const mockUsers = [
-    {
-      id: "user1",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32",
-      status: "Active",
-      activeRentals: 3,
-      joinDate: "Jan 15, 2024",
-    },
-    {
-      id: "user2",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616c9e92e4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32",
-      status: "Active",
-      activeRentals: 1,
-      joinDate: "Feb 3, 2024",
-    },
-  ];
+  
 
-  const mockRentalData = rentals.map(rental => {
+  const rentalData = rentals.map(rental => {
     const book = books.find(b => b.id === rental.bookId);
-    const userNames = ["John Doe", "Jane Smith", "Alice Johnson", "Bob Wilson", "Sarah Davis", "Mike Brown", "Emma Taylor"];
+    const user = users.find(u => u.id === rental.userId);
     return {
       ...rental,
       bookTitle: book?.title || "Unknown Book",
-      userName: userNames[Math.floor(Math.random() * userNames.length)],
+      userName: user ? `${user.firstName} ${user.lastName}` : "Unknown User",
     };
   });
 
@@ -107,6 +135,17 @@ export default function Admin() {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleBookFormChange = (field: string, value: string) => {
+    setBookFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleAddBook = () => {
+    addBookMutation.mutate(bookFormData);
   };
 
   const renderDashboard = () => (
@@ -216,6 +255,14 @@ export default function Admin() {
   );
 
   const renderContent = () => {
+    if (booksLoading || usersLoading || rentalsLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading...</div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "dashboard":
         return renderDashboard();
@@ -237,10 +284,170 @@ export default function Admin() {
                   />
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 </div>
-                <Button data-testid="button-add-book">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Book
-                </Button>
+                <Dialog open={showAddBookDialog} onOpenChange={setShowAddBookDialog}>
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-book">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Book
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Add New Book</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Title *</Label>
+                        <Input
+                          id="title"
+                          value={bookFormData.title}
+                          onChange={(e) => handleBookFormChange("title", e.target.value)}
+                          placeholder="Enter book title"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="author">Author *</Label>
+                        <Input
+                          id="author"
+                          value={bookFormData.author}
+                          onChange={(e) => handleBookFormChange("author", e.target.value)}
+                          placeholder="Enter author name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="isbn">ISBN</Label>
+                        <Input
+                          id="isbn"
+                          value={bookFormData.isbn}
+                          onChange={(e) => handleBookFormChange("isbn", e.target.value)}
+                          placeholder="Enter ISBN"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Category *</Label>
+                        <Select value={bookFormData.category} onValueChange={(value) => handleBookFormChange("category", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fiction">Fiction</SelectItem>
+                            <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+                            <SelectItem value="Mystery">Mystery</SelectItem>
+                            <SelectItem value="Romance">Romance</SelectItem>
+                            <SelectItem value="Sci-Fi">Sci-Fi</SelectItem>
+                            <SelectItem value="Biography">Biography</SelectItem>
+                            <SelectItem value="Self-Help">Self-Help</SelectItem>
+                            <SelectItem value="Finance">Finance</SelectItem>
+                            <SelectItem value="Thriller">Thriller</SelectItem>
+                            <SelectItem value="History">History</SelectItem>
+                            <SelectItem value="Science">Science</SelectItem>
+                            <SelectItem value="Technology">Technology</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pricePerWeek">Price per Week *</Label>
+                        <Input
+                          id="pricePerWeek"
+                          type="number"
+                          step="0.01"
+                          value={bookFormData.pricePerWeek}
+                          onChange={(e) => handleBookFormChange("pricePerWeek", e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="totalCopies">Total Copies *</Label>
+                        <Input
+                          id="totalCopies"
+                          type="number"
+                          min="1"
+                          value={bookFormData.totalCopies}
+                          onChange={(e) => handleBookFormChange("totalCopies", e.target.value)}
+                          placeholder="1"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="publishedYear">Published Year</Label>
+                        <Input
+                          id="publishedYear"
+                          type="number"
+                          min="1000"
+                          max="2024"
+                          value={bookFormData.publishedYear}
+                          onChange={(e) => handleBookFormChange("publishedYear", e.target.value)}
+                          placeholder="2023"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pages">Pages</Label>
+                        <Input
+                          id="pages"
+                          type="number"
+                          min="1"
+                          value={bookFormData.pages}
+                          onChange={(e) => handleBookFormChange("pages", e.target.value)}
+                          placeholder="300"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="publisher">Publisher</Label>
+                        <Input
+                          id="publisher"
+                          value={bookFormData.publisher}
+                          onChange={(e) => handleBookFormChange("publisher", e.target.value)}
+                          placeholder="Enter publisher"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="language">Language</Label>
+                        <Select value={bookFormData.language} onValueChange={(value) => handleBookFormChange("language", value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="English">English</SelectItem>
+                            <SelectItem value="Spanish">Spanish</SelectItem>
+                            <SelectItem value="French">French</SelectItem>
+                            <SelectItem value="German">German</SelectItem>
+                            <SelectItem value="Italian">Italian</SelectItem>
+                            <SelectItem value="Portuguese">Portuguese</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="imageUrl">Image URL</Label>
+                        <Input
+                          id="imageUrl"
+                          value={bookFormData.imageUrl}
+                          onChange={(e) => handleBookFormChange("imageUrl", e.target.value)}
+                          placeholder="https://example.com/book-cover.jpg"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          value={bookFormData.description}
+                          onChange={(e) => handleBookFormChange("description", e.target.value)}
+                          placeholder="Enter book description"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" onClick={() => setShowAddBookDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleAddBook}
+                        disabled={!bookFormData.title || !bookFormData.author || !bookFormData.category || !bookFormData.pricePerWeek || addBookMutation.isPending}
+                      >
+                        {addBookMutation.isPending ? "Adding..." : "Add Book"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
             
@@ -330,28 +537,30 @@ export default function Admin() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockUsers.map((user) => (
+                      {users.map((user) => (
                         <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
                           <TableCell>
                             <div className="flex items-center">
-                              <img 
-                                src={user.avatar} 
-                                alt={`${user.name} avatar`}
-                                className="w-8 h-8 rounded-full mr-3"
-                              />
+                              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3">
+                                <span className="text-white text-sm font-medium">
+                                  {user.firstName?.[0]}{user.lastName?.[0]}
+                                </span>
+                              </div>
                               <div>
-                                <div className="text-sm font-medium text-foreground">{user.name}</div>
+                                <div className="text-sm font-medium text-foreground">
+                                  {user.firstName} {user.lastName}
+                                </div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(user.status)}>
-                              {user.status}
+                            <Badge className={getStatusColor("Active")}>
+                              Active
                             </Badge>
                           </TableCell>
-                          <TableCell>{user.activeRentals}</TableCell>
-                          <TableCell className="text-muted-foreground">{user.joinDate}</TableCell>
+                          <TableCell>{rentals.filter(r => r.userId === user.id && r.status === 'active').length}</TableCell>
+                          <TableCell className="text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
                               <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800" data-testid={`button-view-user-${user.id}`}>
@@ -405,7 +614,7 @@ export default function Admin() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockRentalData.slice(0, 10).map((rental) => (
+                      {rentalData.slice(0, 10).map((rental) => (
                         <TableRow key={rental.id} data-testid={`row-rental-${rental.id}`}>
                           <TableCell className="font-medium">#{rental.id.slice(0, 8)}</TableCell>
                           <TableCell>{rental.userName}</TableCell>

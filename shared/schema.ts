@@ -87,33 +87,18 @@ export const wishlistRelations = relations(wishlist, ({ one }) => ({
   }),
 }));
 
-// Schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertBookSchema = createInsertSchema(books).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertRentalSchema = createInsertSchema(rentals).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertWishlistSchema = createInsertSchema(wishlist).omit({
-  id: true,
-  createdAt: true,
-});
-
-// Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
+// Type exports
 export type User = typeof users.$inferSelect;
-export type InsertBook = z.infer<typeof insertBookSchema>;
+export type InsertUser = typeof users.$inferInsert;
 export type Book = typeof books.$inferSelect;
-export type InsertRental = z.infer<typeof insertRentalSchema>;
+export type InsertBook = typeof books.$inferInsert;
 export type Rental = typeof rentals.$inferSelect;
-export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
+export type InsertRental = typeof rentals.$inferInsert;
 export type Wishlist = typeof wishlist.$inferSelect;
+export type InsertWishlist = typeof wishlist.$inferInsert;
+
+// Zod schemas for validation
+export const insertUserSchema = createInsertSchema(users);
+export const insertBookSchema = createInsertSchema(books);
+export const insertRentalSchema = createInsertSchema(rentals);
+export const insertWishlistSchema = createInsertSchema(wishlist);

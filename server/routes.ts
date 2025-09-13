@@ -110,11 +110,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/books", async (req, res) => {
     try {
+      console.log("Received book data:", req.body);
       const bookData = insertBookSchema.parse(req.body);
+      console.log("Validated book data:", bookData);
       const book = await storage.createBook(bookData);
       res.status(201).json(book);
     } catch (error) {
-      res.status(400).json({ message: "Invalid book data" });
+      console.error("Book creation error:", error);
+      res.status(400).json({ message: "Invalid book data", error: error.message });
     }
   });
 
@@ -176,81 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Authentication routes
-  app.post("/api/auth/signup", async (req, res) => {
-    try {
-      const { username, email, password, firstName, lastName, phone, address } = req.body;
-      
-      // Validate required fields
-      if (!username || !email || !password || !firstName || !lastName) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists with this email" });
-      }
-
-      const existingUsername = await storage.getUserByUsername(username);
-      if (existingUsername) {
-        return res.status(400).json({ message: "Username already taken" });
-      }
-
-      // Create new user
-      const newUser = await storage.createUser({
-        username,
-        email,
-        password, // In production, hash this password
-        firstName,
-        lastName,
-        phone,
-        address,
-        isAdmin: false
-      });
-
-      // Remove password from response
-      const { password: _, ...userWithoutPassword } = newUser;
-      res.status(201).json({ 
-        message: "User created successfully", 
-        user: userWithoutPassword 
-      });
-    } catch (error) {
-      console.error("Signup error:", error);
-      res.status(400).json({ message: "Invalid user data" });
-    }
-  });
-
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // In production, compare hashed password
-      if (user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Remove password from response
-      const { password: _, ...userWithoutPassword } = user;
-      res.json({ 
-        message: "Login successful", 
-        user: userWithoutPassword 
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Login failed" });
-    }
-  });
+  
 
   // Users routes
   app.get("/api/users", async (req, res) => {
