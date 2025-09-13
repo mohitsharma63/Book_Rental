@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -28,31 +27,37 @@ export default function Login() {
     setError("");
 
     try {
-      // Static validation for demo
-      if (formData.email === "admin@bookwise.com" && formData.password === "admin123") {
-        // Simulate successful admin login
-        localStorage.setItem("user", JSON.stringify({
-          id: "1",
-          email: "admin@bookwise.com",
-          name: "Admin User",
-          isLoggedIn: true,
-          role: "admin"
-        }));
-        setLocation("/admin");
-      } else if (formData.email === "user@bookwise.com" && formData.password === "user123") {
-        localStorage.setItem("user", JSON.stringify({
-          id: "2",
-          email: "user@bookwise.com",
-          name: "John Doe",
-          isLoggedIn: true,
-          role: "user"
-        }));
-        setLocation("/dashboard");
-      } else {
-        setError("Invalid email or password");
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
       }
-    } catch (err) {
-      setError("Login failed. Please try again.");
+
+      // Store user data in localStorage
+      localStorage.setItem("user", JSON.stringify({
+        ...data.user,
+        isLoggedIn: true,
+      }));
+
+      // Redirect based on role
+      if (data.user.role === "admin") {
+        setLocation("/admin");
+      } else {
+        setLocation("/dashboard");
+      }
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -125,9 +130,9 @@ export default function Login() {
                 </div>
               )}
 
-              <Button 
-                type="submit" 
-                className="w-full h-11" 
+              <Button
+                type="submit"
+                className="w-full h-11"
                 disabled={isLoading}
               >
                 {isLoading ? "Signing in..." : "Sign In"}

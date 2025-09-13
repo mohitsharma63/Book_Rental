@@ -152,7 +152,7 @@ export function Header() {
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={currentUser.avatar} />
-                    <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{currentUser.name?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <span
                     className="text-sm font-medium hidden lg:inline"
@@ -249,7 +249,7 @@ export function Header() {
                     <div className="flex items-center space-x-2 pb-4 border-b">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={currentUser.avatar} />
-                        <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{currentUser.name?.charAt(0) || "U"}</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium">{currentUser.name}</p>

@@ -1,9 +1,80 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookSchema, insertRentalSchema, insertWishlistSchema } from "@shared/schema";
+import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Get user from database by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Remove password from response and add role
+      const { password: _, ...userWithoutPassword } = user;
+      const userResponse = {
+        ...userWithoutPassword,
+        role: user.isAdmin ? "admin" : "user"
+      };
+      
+      res.json({
+        user: userResponse,
+        message: "Login successful"
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed. Please try again." });
+    }
+  });
+
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      // Create proper user data structure
+      const userData = {
+        username: req.body.email, // Use email as username for now
+        email: req.body.email,
+        password: req.body.password,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        phone: req.body.phone || null,
+        address: req.body.address || null,
+        isAdmin: req.body.role === "admin" || req.body.email === "admin@bookwise.com"
+      };
+
+      // Validate with schema
+      const validatedData = insertUserSchema.parse(userData);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      const user = await storage.createUser(validatedData);
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json({
+        user: userWithoutPassword,
+        message: "Account created successfully"
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(400).json({ message: "Invalid user data" });
+    }
+  });
   
   // Books routes
   app.get("/api/books", async (req, res) => {

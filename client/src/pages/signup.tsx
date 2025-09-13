@@ -53,31 +53,47 @@ export default function Signup() {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone || null,
+          address: formData.address || null,
+          role: formData.email === "admin@bookwise.com" ? "admin" : "user"
+        }),
+      });
 
-      const newUser = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      // Store user data in localStorage
+      localStorage.setItem("user", JSON.stringify({
+        ...data.user,
         isLoggedIn: true,
-        role: formData.email === "admin@bookwise.com" ? "admin" : "user"
-      };
+      }));
 
-      localStorage.setItem("user", JSON.stringify(newUser));
       setSuccess(true);
 
       // Redirect based on role after success
       setTimeout(() => {
-        if (newUser.role === "admin") {
+        if (data.user.role === "admin") {
           setLocation("/admin");
         } else {
           setLocation("/dashboard");
         }
       }, 2000);
 
-    } catch (err) {
-      setError("Registration failed. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
