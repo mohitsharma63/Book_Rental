@@ -1,7 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Users table
-CREATE TABLE users (
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
@@ -10,12 +9,21 @@ CREATE TABLE users (
     last_name TEXT NOT NULL,
     phone TEXT,
     address TEXT,
-    is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT NOW()
+    is_admin BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Books table
-CREATE TABLE books (
+-- Create categories table
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create books table
+CREATE TABLE IF NOT EXISTS books (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     author TEXT NOT NULL,
@@ -29,40 +37,26 @@ CREATE TABLE books (
     published_year INTEGER,
     pages INTEGER,
     rating DECIMAL(3,2),
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Rentals table
-CREATE TABLE rentals (
+-- Create rentals table
+CREATE TABLE IF NOT EXISTS rentals (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR NOT NULL REFERENCES users(id),
-    book_id VARCHAR NOT NULL REFERENCES books(id),
-    rental_date TIMESTAMP DEFAULT NOW(),
+    user_id VARCHAR REFERENCES users(id) NOT NULL,
+    book_id VARCHAR REFERENCES books(id) NOT NULL,
+    rental_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     due_date TIMESTAMP NOT NULL,
     return_date TIMESTAMP,
-    status TEXT DEFAULT 'active', -- active, completed, overdue
+    status TEXT DEFAULT 'active',
     total_amount DECIMAL(8,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Wishlist table
-CREATE TABLE wishlist (
+-- Create wishlist table
+CREATE TABLE IF NOT EXISTS wishlist (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR NOT NULL REFERENCES users(id),
-    book_id VARCHAR NOT NULL REFERENCES books(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(user_id, book_id) -- Prevent duplicate wishlist entries
+    user_id VARCHAR REFERENCES users(id) NOT NULL,
+    book_id VARCHAR REFERENCES books(id) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Indexes for better performance
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_books_category ON books(category);
-CREATE INDEX idx_books_author ON books(author);
-CREATE INDEX idx_books_title ON books(title);
-CREATE INDEX idx_rentals_user_id ON rentals(user_id);
-CREATE INDEX idx_rentals_book_id ON rentals(book_id);
-CREATE INDEX idx_rentals_status ON rentals(status);
-CREATE INDEX idx_rentals_due_date ON rentals(due_date);
-CREATE INDEX idx_wishlist_user_id ON wishlist(user_id);
-CREATE INDEX idx_wishlist_book_id ON wishlist(book_id);

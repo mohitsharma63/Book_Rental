@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { AdminSidebar } from "@/components/admin-sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoriesManager } from "@/components/categories-manager";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -41,9 +41,28 @@ export default function Admin() {
   const queryClient = useQueryClient();
 
   // API calls for dynamic data
-  const { data: books = [], isLoading: booksLoading } = useQuery({
+  const { data: books = [], isLoading: booksLoading, error: booksError } = useQuery({
     queryKey: ['admin-books'],
-    queryFn: () => fetch('/api/books').then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/books');
+      if (!res.ok) {
+        throw new Error('Failed to fetch books');
+      }
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
+  // Fetch categories for dropdown
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+      return response.json();
+    },
   });
 
   // Mutation for adding new book
@@ -102,13 +121,13 @@ export default function Admin() {
   });
 
   const stats = {
-    totalBooks: books.length,
-    activeUsers: users.length,
-    activeRentals: rentals.filter(r => r.status === "active").length,
-    overdue: rentals.filter(r => r.status === "overdue").length,
+    totalBooks: Array.isArray(books) ? books.length : 0,
+    activeUsers: Array.isArray(users) ? users.length : 0,
+    activeRentals: Array.isArray(rentals) ? rentals.filter(r => r.status === "active").length : 0,
+    overdue: Array.isArray(rentals) ? rentals.filter(r => r.status === "overdue").length : 0,
   };
 
-  
+
 
   const rentalData = rentals.map(rental => {
     const book = books.find(b => b.id === rental.bookId);
@@ -165,7 +184,7 @@ export default function Admin() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -179,7 +198,7 @@ export default function Admin() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -193,7 +212,7 @@ export default function Admin() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -266,7 +285,7 @@ export default function Admin() {
     switch (activeTab) {
       case "dashboard":
         return renderDashboard();
-      
+
       case "books":
         return (
           <div>
@@ -330,18 +349,17 @@ export default function Admin() {
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Fiction">Fiction</SelectItem>
-                            <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-                            <SelectItem value="Mystery">Mystery</SelectItem>
-                            <SelectItem value="Romance">Romance</SelectItem>
-                            <SelectItem value="Sci-Fi">Sci-Fi</SelectItem>
-                            <SelectItem value="Biography">Biography</SelectItem>
-                            <SelectItem value="Self-Help">Self-Help</SelectItem>
-                            <SelectItem value="Finance">Finance</SelectItem>
-                            <SelectItem value="Thriller">Thriller</SelectItem>
-                            <SelectItem value="History">History</SelectItem>
-                            <SelectItem value="Science">Science</SelectItem>
-                            <SelectItem value="Technology">Technology</SelectItem>
+                            {categoriesLoading ? (
+                              <SelectItem value="" disabled>Loading categories...</SelectItem>
+                            ) : (
+                              categories
+                                .filter(cat => cat.isActive)
+                                .map((category) => (
+                                  <SelectItem key={category.id} value={category.name}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -450,7 +468,7 @@ export default function Admin() {
                 </Dialog>
               </div>
             </div>
-            
+
             <Card>
               <CardContent className="p-6">
                 <div className="overflow-x-auto">
@@ -465,7 +483,7 @@ export default function Admin() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {books.slice(0, 10).map((book) => (
+                      {(Array.isArray(books) ? books : []).slice(0, 10).map((book) => (
                         <TableRow key={book.id} data-testid={`row-book-${book.id}`}>
                           <TableCell>
                             <div className="flex items-center">
@@ -507,6 +525,9 @@ export default function Admin() {
           </div>
         );
 
+      case "categories":
+        return <CategoriesManager />;
+
       case "users":
         return (
           <div>
@@ -522,7 +543,7 @@ export default function Admin() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               </div>
             </div>
-            
+
             <Card>
               <CardContent className="p-6">
                 <div className="overflow-x-auto">
@@ -598,7 +619,7 @@ export default function Admin() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <Card>
               <CardContent className="p-6">
                 <div className="overflow-x-auto">
@@ -657,7 +678,7 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold">Analytics & Reports</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
                 <CardContent className="p-6">
@@ -673,7 +694,7 @@ export default function Admin() {
                   <p className="text-sm text-green-200 mt-2">↑ 15% from last month</p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <h4 className="font-semibold mb-2">Popular Genre</h4>
@@ -681,7 +702,7 @@ export default function Admin() {
                   <p className="text-sm text-muted-foreground">45% of all rentals</p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <h4 className="font-semibold mb-2">Average Rental Period</h4>
@@ -690,7 +711,7 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </div>
-            
+
             <Card>
               <CardContent className="p-6">
                 <h4 className="font-semibold mb-4">Rental Trends</h4>
@@ -798,7 +819,7 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -812,7 +833,7 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -826,7 +847,7 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -857,7 +878,7 @@ export default function Admin() {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     </div>
                   </div>
-                  
+
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -894,7 +915,7 @@ export default function Admin() {
                             </div>
                           </TableCell>
                         </TableRow>
-                        
+
                         <TableRow>
                           <TableCell>
                             <Badge className="bg-green-100 text-green-800">Responded</Badge>
@@ -917,7 +938,7 @@ export default function Admin() {
                             </div>
                           </TableCell>
                         </TableRow>
-                        
+
                         <TableRow>
                           <TableCell>
                             <Badge className="bg-red-100 text-red-800">Unread</Badge>
@@ -940,7 +961,7 @@ export default function Admin() {
                             </div>
                           </TableCell>
                         </TableRow>
-                        
+
                         <TableRow>
                           <TableCell>
                             <Badge className="bg-yellow-100 text-yellow-800">Read</Badge>
@@ -963,7 +984,7 @@ export default function Admin() {
                             </div>
                           </TableCell>
                         </TableRow>
-                        
+
                         <TableRow>
                           <TableCell>
                             <Badge className="bg-green-100 text-green-800">Responded</Badge>
@@ -1005,7 +1026,7 @@ export default function Admin() {
                     </p>
                     <Button variant="outline" size="sm">Use Template</Button>
                   </div>
-                  
+
                   <div className="p-4 border rounded-lg">
                     <h5 className="font-medium mb-2">Book Availability</h5>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -1013,7 +1034,7 @@ export default function Admin() {
                     </p>
                     <Button variant="outline" size="sm">Use Template</Button>
                   </div>
-                  
+
                   <div className="p-4 border rounded-lg">
                     <h5 className="font-medium mb-2">Billing Support</h5>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -1021,7 +1042,7 @@ export default function Admin() {
                     </p>
                     <Button variant="outline" size="sm">Use Template</Button>
                   </div>
-                  
+
                   <div className="p-4 border rounded-lg">
                     <h5 className="font-medium mb-2">General Support</h5>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -1044,7 +1065,7 @@ export default function Admin() {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Header */}

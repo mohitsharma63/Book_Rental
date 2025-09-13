@@ -10,7 +10,9 @@ import {
   LogOut,
   Menu,
   X,
-  MessageCircle
+  MessageCircle,
+  Tag,
+  FolderOpen
 } from "lucide-react";
 import {
   Sheet,
@@ -26,6 +28,7 @@ interface AdminSidebarProps {
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "books", label: "Books", icon: BookOpen },
+  { id: "categories", label: "Categories", icon: Tag },
   { id: "users", label: "Users", icon: Users },
   { id: "rentals", label: "Rentals", icon: Clock },
   { id: "analytics", label: "Analytics", icon: BarChart3 },

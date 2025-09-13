@@ -54,6 +54,14 @@ export const wishlist = pgTable("wishlist", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const categories = pgTable("categories", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   rentals: many(rentals),
@@ -87,6 +95,10 @@ export const wishlistRelations = relations(wishlist, ({ one }) => ({
   }),
 }));
 
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  books: many(books),
+}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -96,9 +108,12 @@ export type Rental = typeof rentals.$inferSelect;
 export type InsertRental = typeof rentals.$inferInsert;
 export type Wishlist = typeof wishlist.$inferSelect;
 export type InsertWishlist = typeof wishlist.$inferInsert;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const insertBookSchema = createInsertSchema(books);
 export const insertRentalSchema = createInsertSchema(rentals);
 export const insertWishlistSchema = createInsertSchema(wishlist);
+export const insertCategorySchema = createInsertSchema(categories);

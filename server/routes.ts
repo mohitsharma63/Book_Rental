@@ -4,19 +4,19 @@ import { storage } from "./storage";
 import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
-      
+
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Get user from database by email
       const user = await storage.getUserByEmail(email);
-      
+
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -27,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...userWithoutPassword,
         role: user.isAdmin ? "admin" : "user"
       };
-      
+
       res.json({
         user: userResponse,
         message: "Login successful"
@@ -54,16 +54,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate with schema
       const validatedData = insertUserSchema.parse(userData);
-      
+
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(validatedData.email);
-      
+
       if (existingUser) {
         return res.status(400).json({ message: "User with this email already exists" });
       }
 
       const user = await storage.createUser(validatedData);
-      
+
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
       res.status(201).json({
@@ -75,12 +75,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: "Invalid user data" });
     }
   });
-  
+
   // Books routes
   app.get("/api/books", async (req, res) => {
     try {
       const { search, category } = req.query;
-      
+
       let books;
       if (search) {
         books = await storage.searchBooks(search as string);
@@ -89,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         books = await storage.getAllBooks();
       }
-      
+
       res.json(books);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch books" });
@@ -146,14 +146,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/rentals", async (req, res) => {
     try {
       const { userId } = req.query;
-      
+
       let rentals;
       if (userId) {
         rentals = await storage.getRentalsByUser(userId as string);
       } else {
         rentals = await storage.getAllRentals();
       }
-      
+
       res.json(rentals);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch rentals" });
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+
 
   // Users routes
   app.get("/api/users", async (req, res) => {
@@ -236,6 +236,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Removed from wishlist" });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove from wishlist" });
+    }
+  });
+
+  // Contact routes
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, message } = req.body;
+
+      if (!name || !email || !message) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      // Here you would typically save to database or send email
+      // For now, we'll just return success
+      res.json({ 
+        message: "Message sent successfully",
+        data: { name, email, message }
+      });
+    } catch (error) {
+      console.error("Contact error:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  // Category routes
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Get categories error:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/categories", async (req, res) => {
+    try {
+      const { name, description, isActive = true } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Category name is required" });
+      }
+
+      const category = await storage.createCategory({
+        name,
+        description: description || "",
+        isActive,
+        createdAt: new Date()
+      });
+
+      res.json(category);
+    } catch (error) {
+      console.error("Create category error:", error);
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.put("/api/categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description, isActive } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Category name is required" });
+      }
+
+      const category = await storage.updateCategory(parseInt(id), {
+        name,
+        description: description || "",
+        isActive
+      });
+
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
+      res.json(category);
+    } catch (error) {
+      console.error("Update category error:", error);
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteCategory(parseInt(id));
+
+      if (!success) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
+      res.json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Delete category error:", error);
+      res.status(500).json({ error: "Failed to delete category" });
     }
   });
 
