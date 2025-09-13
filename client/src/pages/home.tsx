@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -193,7 +192,8 @@ export default function Home() {
     return true;
   });
 
-  const featuredBooks = filteredBooks.filter(book => book.featured).slice(0, 4);
+  const books = staticBooksData;
+  const featuredBooks = books.slice(0, 3);
 
   const categories = [
     { name: "Fiction", icon: WandSparkles, color: "from-blue-50 to-blue-100", iconColor: "text-blue-600", textColor: "text-blue-900", countColor: "text-blue-700", count: "4" },
@@ -252,13 +252,13 @@ export default function Home() {
           ))}
         </div>
       </section>
-      
+
       {/* Search Bar */}
       <SearchBar 
         onSearch={setSearchQuery}
         onCategoryFilter={setCategoryFilter}
       />
-      
+
       {/* Featured Books */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
@@ -273,7 +273,7 @@ export default function Home() {
             Trending Now
           </Badge>
         </div>
-        
+
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
@@ -319,7 +319,7 @@ export default function Home() {
                     </Badge>
                     <h4 className="font-semibold line-clamp-1 text-sm sm:text-base">{book.title}</h4>
                     <p className="text-xs sm:text-sm text-muted-foreground">{book.author}</p>
-                    
+
                     <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
@@ -331,7 +331,7 @@ export default function Home() {
                         {book.publishedYear}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-sm sm:text-lg font-bold">${book.pricePerWeek}<span className="text-xs sm:text-sm">/week</span></span>
                       <Link href={`/book/${book.id}`}>
@@ -347,7 +347,7 @@ export default function Home() {
             ))}
           </div>
         )}
-        
+
         <div className="text-center mt-8">
           <Link href="/catalog">
             <Button variant="outline" className="px-8">
@@ -356,7 +356,7 @@ export default function Home() {
           </Link>
         </div>
       </section>
-      
+
       {/* Popular Categories */}
       <section className="mb-8 sm:mb-12">
         <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" data-testid="text-categories-title">Popular Categories</h3>
@@ -387,7 +387,7 @@ export default function Home() {
             Join thousands of readers who have made BookWise their go-to platform for discovering and enjoying great books.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
           <div className="text-center">
             <div className="bg-blue-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -398,7 +398,7 @@ export default function Home() {
               Rent books at a fraction of the retail price. Starting from just $5/week.
             </p>
           </div>
-          
+
           <div className="text-center">
             <div className="bg-green-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <span className="text-xl sm:text-2xl">🚚</span>
@@ -408,7 +408,7 @@ export default function Home() {
               Get your books delivered within 24 hours. Free delivery on orders above $25.
             </p>
           </div>
-          
+
           <div className="text-center sm:col-span-2 md:col-span-1">
             <div className="bg-purple-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <span className="text-xl sm:text-2xl">📖</span>

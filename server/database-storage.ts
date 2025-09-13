@@ -45,9 +45,64 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // Book methods
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  // Book methods
+  async getAllBooks(): Promise<Book[]> {
+    return await db.select().from(books);
+  }
+
+  async getBook(id: string): Promise<Book | undefined> {
+    const [book] = await db.select().from(books).where(eq(books.id, id));
+    return book || undefined;
+  }
+
+  async getBooksByCategory(category: string): Promise<Book[]> {
+    return await db.select().from(books).where(eq(books.category, category));
+  }
+
+  async searchBooks(query: string): Promise<Book[]> {
+    return await db.select().from(books).where(
+      like(books.title, `%${query}%`)
+    );
+  }
+
+  async createBook(insertBook: InsertBook): Promise<Book> {
+    const [book] = await db
+      .insert(books)
+      .values(insertBook)
+      .returning();
+    return book;
+  }
+
+  async updateBook(id: string, updateData: Partial<Book>): Promise<Book> {
+    const [book] = await db
+      .update(books)
+      .set(updateData)
+      .where(eq(books.id, id))
+      .returning();
+    
+    if (!book) throw new Error("Book not found");
+    return book;
+  }
+
+  async deleteBook(id: string): Promise<boolean> {
+    const result = await db
+      .delete(books)
+      .where(eq(books.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Rental methods
+  async getAllRentals(): Promise<Rental[]> {
+    return await db.select().from(rentals);
+  }
+
+  async getRental(id: string): Promise<Rental | undefined> {
+    const [rental] = await db.select().from(rentals).where(eq(rentals.id, id));
+    return rental || undefined;
   }
 
   async getAllBooks(): Promise<Book[]> {

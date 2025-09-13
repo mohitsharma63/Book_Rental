@@ -1,7 +1,6 @@
 import { type User, type InsertUser, type Book, type InsertBook, type Rental, type InsertRental, type Wishlist, type InsertWishlist } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./database-storage";
-import { eq, desc } from "drizzle-orm";
 
 
 export interface IStorage {
@@ -213,4 +212,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
