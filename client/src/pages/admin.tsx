@@ -448,10 +448,23 @@ export default function Admin() {
   };
 
 
-  const handleViewUser = (userId: any) => {
-    const user = users.find(user => user.id === userId);
-    setSelectedUser(user);
-    setShowUserDialog(true);
+  const handleViewUser = (userId: string) => {
+    console.log('handleViewUser called with userId:', userId);
+    console.log('Current showUserDialog state:', showUserDialog);
+    console.log('All users:', users);
+
+    const user = users.find(u => u.id === userId);
+    console.log('Found user:', user);
+
+    if (user) {
+      console.log('Setting selectedUser and showUserDialog to true');
+      setSelectedUser(user);
+      setShowUserDialog(true);
+      console.log('States set - user:', user, 'dialog should be true');
+    } else {
+      console.error('User not found:', userId, 'in users array:', users.map(u => u.id));
+      alert('User not found with ID: ' + userId);
+    }
   };
 
   const handleSuspendUser = (userId: string) => {
@@ -990,112 +1003,7 @@ export default function Admin() {
                   </DialogContent>
                 </Dialog>
 
-                {/* User Details Dialog */}
-                <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>User Details</DialogTitle>
-                    </DialogHeader>
-                    {selectedUser && (
-                      <div className="space-y-6 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">First Name</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.firstName || 'N/A'}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Last Name</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.lastName || 'N/A'}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Email</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.email || 'N/A'}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Username</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.username || 'N/A'}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Phone</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.phone || 'N/A'}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Join Date</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">User Type</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              <Badge className={selectedUser.isAdmin ? "bg-purple-100 text-purple-800" : "bg-green-100 text-green-800"}>
-                                {selectedUser.isAdmin ? 'Admin' : 'Regular User'}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Active Rentals</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {Array.isArray(rentals) ? rentals.filter(r => r.userId === selectedUser.id && r.status === 'active').length : 0}
-                            </div>
-                          </div>
-                        </div>
-
-                        {selectedUser.address && (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Address</Label>
-                            <div className="p-2 bg-gray-50 rounded border">
-                              {selectedUser.address}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Recent Activity</Label>
-                          <div className="p-4 bg-gray-50 rounded border">
-                            <div className="text-sm text-gray-600">
-                              {Array.isArray(rentals) && rentals.filter(r => r.userId === selectedUser.id).length > 0
-                                ? `Total rentals: ${rentals.filter(r => r.userId === selectedUser.id).length}`
-                                : 'No rental history'
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => {
-                        setShowUserDialog(false);
-                        setSelectedUser(null);
-                      }}>
-                        Close
-                      </Button>
-                      {selectedUser && (
-                        <Button
-                          variant="destructive"
-                          onClick={() => {
-                            handleSuspendUser(selectedUser.id);
-                            setShowUserDialog(false);
-                            setSelectedUser(null);
-                          }}
-                          disabled={suspendUserMutation.isPending}
-                        >
-                          {suspendUserMutation.isPending ? "Suspending..." : "Suspend User"}
-                        </Button>
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                {/* User Details Dialog - This was moved outside the Card */}
               </div>
             </div>
 
@@ -1191,15 +1099,35 @@ export default function Admin() {
         return (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">User Management</h3>
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search users..."
-                  className="pl-10 pr-4 w-64"
-                  data-testid="input-search-users"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <div>
+                <h3 className="text-lg font-semibold">User Management</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Debug: Dialog State = {showUserDialog ? 'OPEN' : 'CLOSED'}, Selected User = {selectedUser?.id || 'NONE'}
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    console.log('Force opening dialog for first user');
+                    if (users.length > 0) {
+                      setSelectedUser(users[0]);
+                      setShowUserDialog(true);
+                    }
+                  }}
+                >
+                  Test Dialog
+                </Button>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search users..."
+                    className="pl-10 pr-4 w-64"
+                    data-testid="input-search-users"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                </div>
               </div>
             </div>
 
@@ -1255,7 +1183,12 @@ export default function Admin() {
                                   size="sm"
                                   className="text-blue-600 hover:text-blue-800"
                                   data-testid={`button-view-user-${user.id}`}
-                                  onClick={() => handleViewUser(user.id)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('View button clicked for user:', user.id, user);
+                                    handleViewUser(user.id);
+                                  }}
                                 >
                                   View
                                 </Button>
@@ -1622,18 +1555,124 @@ export default function Admin() {
                               <TableCell>{new Date(message.createdAt).toLocaleDateString()}</TableCell>
                               <TableCell>
                                 <div className="flex space-x-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600"
-                                    onClick={() => {
-                                      if (message.status === 'unread') {
-                                        updateMessageStatusMutation.mutate({ id: message.id, status: 'read' });
-                                      }
-                                    }}
-                                  >
-                                    View
-                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-blue-600"
+                                        onClick={() => {
+                                          if (message.status === 'unread') {
+                                            updateMessageStatusMutation.mutate({ id: message.id, status: 'read' });
+                                          }
+                                        }}
+                                      >
+                                        View
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>Message Details</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-4 py-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Name</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {message.name}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Email</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {message.email}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Phone</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {message.phone || 'Not provided'}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Category</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              <Badge variant="outline">
+                                                {message.category.charAt(0).toUpperCase() + message.category.slice(1)}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Date</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {new Date(message.createdAt).toLocaleString()}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-sm font-medium">Status</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              <Badge className={
+                                                message.status === 'unread' ? 'bg-red-100 text-red-800' :
+                                                  message.status === 'responded' ? 'bg-green-100 text-green-800' :
+                                                    'bg-yellow-100 text-yellow-800'
+                                              }>
+                                                {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <Label className="text-sm font-medium">Subject</Label>
+                                          <div className="p-3 bg-gray-50 rounded border">
+                                            {message.subject}
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <Label className="text-sm font-medium">Message</Label>
+                                          <div className="p-4 bg-gray-50 rounded border min-h-[100px] whitespace-pre-wrap">
+                                            {message.message}
+                                          </div>
+                                        </div>
+
+                                        {message.status === 'responded' && message.response && (
+                                          <div className="space-y-2 border-t pt-4">
+                                            <Label className="text-sm font-medium text-green-600">Admin Response</Label>
+                                            <div className="p-4 bg-green-50 rounded border whitespace-pre-wrap">
+                                              {message.response}
+                                            </div>
+                                            {message.respondedAt && (
+                                              <div className="text-xs text-gray-500">
+                                                Responded on: {new Date(message.respondedAt).toLocaleString()}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {message.status !== 'responded' && (
+                                          <div className="space-y-2 border-t pt-4">
+                                            <Label className="text-sm font-medium">Reply to this message</Label>
+                                            <Textarea
+                                              placeholder="Type your response here..."
+                                              rows={4}
+                                              className="resize-none"
+                                            />
+                                            <div className="flex justify-end">
+                                              <Button
+                                                onClick={() => {
+                                                  updateMessageStatusMutation.mutate({ id: message.id, status: 'responded' });
+                                                }}
+                                                disabled={updateMessageStatusMutation.isPending}
+                                              >
+                                                {updateMessageStatusMutation.isPending ? "Sending..." : "Send Reply"}
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
                                   {message.status !== 'responded' && (
                                     <Button
                                       variant="ghost"
@@ -1704,10 +1743,23 @@ export default function Admin() {
     }
   };
 
+  const handleTabChange = (newTab: string) => {
+    // Close all dialogs when changing tabs
+    setShowUserDialog(false);
+    setShowAddBookDialog(false);
+    setShowEditBookDialog(false);
+    setSelectedUser(null);
+    setEditingBook(null);
+    resetBookForm();
+
+    // Set the new active tab
+    setActiveTab(newTab);
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
@@ -1739,6 +1791,128 @@ export default function Admin() {
           {renderContent()}
         </div>
       </div>
+
+      {/* User Details Dialog - Moved outside to prevent z-index conflicts */}
+      {showUserDialog && (
+        <Dialog 
+          open={showUserDialog} 
+          onOpenChange={(open) => {
+            console.log('Dialog onOpenChange called with:', open);
+            setShowUserDialog(open);
+          }}
+        >
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+            </DialogHeader>
+            {selectedUser ? (
+              <div className="space-y-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">First Name</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.firstName || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Last Name</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.lastName || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Email</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.email || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Username</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.username || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Phone</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.phone || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Join Date</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">User Type</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      <Badge className={selectedUser.isAdmin ? "bg-purple-100 text-purple-800" : "bg-green-100 text-green-800"}>
+                        {selectedUser.isAdmin ? 'Admin' : 'Regular User'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Active Rentals</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {Array.isArray(rentals) ? rentals.filter(r => r.userId === selectedUser.id && r.status === 'active').length : 0}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedUser.address && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Address</Label>
+                    <div className="p-2 bg-gray-50 rounded border">
+                      {selectedUser.address}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Recent Activity</Label>
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <div className="text-sm text-gray-600">
+                      {Array.isArray(rentals) && rentals.filter(r => r.userId === selectedUser.id).length > 0
+                        ? `Total rentals: ${rentals.filter(r => r.userId === selectedUser.id).length}`
+                        : 'No rental history'
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-4">
+                <p className="text-center text-gray-500">No user selected</p>
+                <p className="text-center text-xs text-gray-400 mt-2">
+                  Debug: showUserDialog={showUserDialog.toString()}, selectedUser={selectedUser?.id || 'null'}
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => {
+                setShowUserDialog(false);
+                setSelectedUser(null);
+              }}>
+                Close
+              </Button>
+              {selectedUser && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    handleSuspendUser(selectedUser.id);
+                    setShowUserDialog(false);
+                    setSelectedUser(null);
+                  }}
+                  disabled={suspendUserMutation.isPending}
+                >
+                  {suspendUserMutation.isPending ? "Suspending..." : "Suspend User"}
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
