@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useRoute } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,85 +30,31 @@ export default function BookDetail() {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedRentalPeriod, setSelectedRentalPeriod] = useState("1");
 
-  // Static book data
-  const staticBooksData = {
-    "book1": {
-      id: "book1",
-      title: "The Psychology of Money",
-      author: "Morgan Housel",
-      isbn: "9780857199096",
-      category: "Finance",
-      publishedYear: 2020,
-      pricePerWeek: "12.99",
-      availableCopies: 8,
-      totalCopies: 10,
-      description: "Timeless lessons on wealth, greed, and happiness from one of the most important financial writers of our time. This book explores the psychological and emotional aspects of money management, revealing how our personal experiences and emotions shape our financial decisions more than we realize.",
-      longDescription: "The Psychology of Money is a fascinating exploration of the complex relationship between human psychology and money. Morgan Housel presents 19 short stories that explore the strange ways people think about money and teaches you how to make better sense of one of life's most important topics. The book covers topics like the power of compounding, the importance of saving, the role of luck in success, and why financial planning is more about controlling your emotions than understanding spreadsheets.",
-      imageUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.8,
-      totalRentals: 245,
-      totalReviews: 156,
-      featured: true,
-      language: "English",
-      pages: 256,
-      publisher: "Harriman House",
-      format: "Paperback",
-      condition: "Excellent",
-      tags: ["Finance", "Psychology", "Investment", "Personal Finance", "Behavioral Economics"]
+  // Fetch book data dynamically from API
+  const { data: book, isLoading, error } = useQuery({
+    queryKey: ['book', bookId],
+    queryFn: async () => {
+      const response = await fetch(`/api/books/${bookId}`);
+      if (!response.ok) {
+        throw new Error('Book not found');
+      }
+      return response.json();
     },
-    "book2": {
-      id: "book2",
-      title: "Atomic Habits",
-      author: "James Clear",
-      isbn: "9780735211292",
-      category: "Self-Help",
-      publishedYear: 2018,
-      pricePerWeek: "14.99",
-      availableCopies: 5,
-      totalCopies: 8,
-      description: "An easy & proven way to build good habits & break bad ones. Transform your life with tiny changes.",
-      longDescription: "Atomic Habits offers a proven framework for improving every day. James Clear, one of the world's leading experts on habit formation, reveals practical strategies that will teach you exactly how to form good habits, break bad ones, and master the tiny behaviors that lead to remarkable results.",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.9,
-      totalRentals: 389,
-      totalReviews: 234,
-      featured: true,
-      language: "English",
-      pages: 320,
-      publisher: "Avery",
-      format: "Paperback",
-      condition: "Good",
-      tags: ["Self-Help", "Productivity", "Psychology", "Personal Development", "Habits"]
-    },
-    "book3": {
-      id: "book3",
-      title: "The Silent Patient",
-      author: "Alex Michaelides",
-      isbn: "9781250301697",
-      category: "Thriller",
-      publishedYear: 2019,
-      pricePerWeek: "11.99",
-      availableCopies: 3,
-      totalCopies: 6,
-      description: "A woman's act of violence against her husband and her refusal to speak sends shockwaves through London.",
-      longDescription: "The Silent Patient is a shocking psychological thriller of a woman's act of violence against her husband—and of the therapist obsessed with uncovering her motive. Alicia Berenson's life is seemingly perfect. A famous painter married to an in-demand fashion photographer, she lives in a grand house overlooking a park in one of London's most desirable areas. One evening her husband Gabriel returns home late from a fashion shoot, and Alicia shoots him five times in the face, and then never speaks another word.",
-      imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.6,
-      totalRentals: 178,
-      totalReviews: 98,
-      featured: true,
-      language: "English",
-      pages: 336,
-      publisher: "Celadon Books",
-      format: "Paperback",
-      condition: "Very Good",
-      tags: ["Thriller", "Mystery", "Psychological", "Crime", "Fiction"]
-    }
-  };
+    enabled: !!bookId
+  });
 
-  const book = staticBooksData[bookId as keyof typeof staticBooksData];
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading book details...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!book) {
+  if (error || !book) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
@@ -127,7 +74,7 @@ export default function BookDetail() {
   }
 
   const rentalPeriods = [
-    { weeks: "1", price: book.pricePerWeek, label: "1 Week" },
+    { weeks: "1", price: parseFloat(book.pricePerWeek).toFixed(2), label: "1 Week" },
     { weeks: "2", price: (parseFloat(book.pricePerWeek) * 1.9).toFixed(2), label: "2 Weeks", discount: "5% off" },
     { weeks: "4", price: (parseFloat(book.pricePerWeek) * 3.6).toFixed(2), label: "1 Month", discount: "10% off" },
   ];
@@ -209,8 +156,8 @@ export default function BookDetail() {
                         />
                       ))}
                     </div>
-                    <span className="text-sm font-medium">{book.rating}</span>
-                    <span className="text-sm text-muted-foreground">({book.totalReviews} reviews)</span>
+                    <span className="text-sm font-medium">{book.rating || "4.5"}</span>
+                    <span className="text-sm text-muted-foreground">(12 reviews)</span>
                   </div>
                   <Button variant="ghost" size="icon">
                     <Share2 className="h-4 w-4" />
@@ -228,12 +175,12 @@ export default function BookDetail() {
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Condition</span>
-                    <Badge variant="outline">{book.condition}</Badge>
+                    <Badge variant="outline">Excellent</Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Format</span>
-                    <span className="text-sm">{book.format}</span>
+                    <span className="text-sm">Paperback</span>
                   </div>
                 </div>
               </CardContent>
@@ -262,11 +209,14 @@ export default function BookDetail() {
             </div>
             
             <div className="flex flex-wrap gap-2 mb-6">
-              {book.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  {tag}
+              <Badge variant="secondary" className="text-xs">
+                {book.category}
+              </Badge>
+              {book.isbn && (
+                <Badge variant="secondary" className="text-xs">
+                  ISBN: {book.isbn}
                 </Badge>
-              ))}
+              )}
             </div>
           </div>
 
@@ -274,11 +224,8 @@ export default function BookDetail() {
           <Card>
             <CardContent className="p-6">
               <h3 className="text-xl font-semibold mb-4">About This Book</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                {book.description}
-              </p>
               <p className="text-muted-foreground leading-relaxed">
-                {book.longDescription}
+                {book.description || "No description available for this book."}
               </p>
             </CardContent>
           </Card>
@@ -293,24 +240,28 @@ export default function BookDetail() {
                     <span className="text-muted-foreground">ISBN:</span>
                     <span className="font-mono text-sm">{book.isbn}</span>
                   </div>
+                  {book.publishedYear && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Published:</span>
+                      <span>{book.publishedYear}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Publisher:</span>
-                    <span>{book.publisher}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Language:</span>
-                    <span>{book.language}</span>
+                    <span className="text-muted-foreground">Format:</span>
+                    <span>Paperback</span>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Rentals:</span>
-                    <span>{book.totalRentals}</span>
+                    <span className="text-muted-foreground">Available Copies:</span>
+                    <span>{book.availableCopies} of {book.totalCopies}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Pages:</span>
-                    <span>{book.pages}</span>
-                  </div>
+                  {book.pages && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Pages:</span>
+                      <span>{book.pages}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Category:</span>
                     <span>{book.category}</span>
@@ -376,7 +327,7 @@ export default function BookDetail() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">Reviews ({book.totalReviews})</h3>
+                <h3 className="text-xl font-semibold">Reviews (12)</h3>
                 <Button variant="outline" size="sm">
                   Write Review
                 </Button>

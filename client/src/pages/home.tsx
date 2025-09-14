@@ -50,7 +50,8 @@ export default function Home() {
   });
 
   // Get featured books (first 3 or books marked as featured)
-  const featuredBooks = books.filter(book => book.featured).slice(0, 3) || books.slice(0, 3);
+  const featuredBooks = books.filter(book => book.featured).slice(0, 3);
+  const displayFeaturedBooks = featuredBooks.length > 0 ? featuredBooks : books.slice(0, 3);
 
   // Fetch categories dynamically from database
   const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
@@ -155,7 +156,43 @@ export default function Home() {
           ))}
         </div>
       </section>
-
+ <section className="mb-8 sm:mb-12">
+        <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" data-testid="text-categories-title">Popular Categories</h3>
+        
+        {categoriesLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gray-100 p-3 sm:p-6 rounded-lg text-center animate-pulse">
+                <div className="w-8 h-8 bg-gray-200 rounded-full mx-auto mb-2 sm:mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              </div>
+            ))}
+          </div>
+        ) : categories.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {categories.slice(0, 8).map((category) => {
+              const Icon = category.icon;
+              return (
+                <div 
+                  key={category.name}
+                  className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`}
+                  onClick={() => setCategoryFilter(category.name)}
+                  data-testid={`card-category-${category.name.toLowerCase()}`}
+                >
+                  <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
+                  <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
+                  <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No categories available at the moment.</p>
+          </div>
+        )}
+      </section>
       {/* Search Bar */}
       <SearchBar 
         onSearch={setSearchQuery}
@@ -169,7 +206,6 @@ export default function Home() {
             <h3 className="text-2xl font-bold mb-2" data-testid="text-featured-title">
               Featured Books
             </h3>
-            <p className="text-muted-foreground">Handpicked selections from our editors</p>
           </div>
           <Badge variant="secondary" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -195,7 +231,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {featuredBooks.map((book, index) => (
+            {displayFeaturedBooks.map((book, index) => (
               <Card key={book.id} className="book-card-hover overflow-hidden group">
                 <div className="relative">
                   <img 
@@ -261,43 +297,7 @@ export default function Home() {
       </section>
 
       {/* Popular Categories */}
-      <section className="mb-8 sm:mb-12">
-        <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" data-testid="text-categories-title">Popular Categories</h3>
-        
-        {categoriesLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-100 p-3 sm:p-6 rounded-lg text-center animate-pulse">
-                <div className="w-8 h-8 bg-gray-200 rounded-full mx-auto mb-2 sm:mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
-              </div>
-            ))}
-          </div>
-        ) : categories.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {categories.slice(0, 8).map((category) => {
-              const Icon = category.icon;
-              return (
-                <div 
-                  key={category.name}
-                  className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`}
-                  onClick={() => setCategoryFilter(category.name)}
-                  data-testid={`card-category-${category.name.toLowerCase()}`}
-                >
-                  <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
-                  <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
-                  <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No categories available at the moment.</p>
-          </div>
-        )}
-      </section>
+     
 
       {/* Why Choose BookWise */}
       <section className="mb-8 sm:mb-12 bg-muted/30 rounded-lg p-4 sm:p-6 lg:p-8">
