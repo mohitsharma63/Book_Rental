@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Book } from "@/lib/types";
-import { Heart } from "lucide-react";
+import { Heart, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 
 interface BookCardProps {
@@ -57,18 +57,26 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
             {getStatusText(book.availableCopies)}
           </Badge>
         </div>
-        <div className="flex gap-2 mt-3">
-          <Button 
-            className="flex-1" 
-            disabled={book.availableCopies === 0}
-            onClick={onRent}
-            data-testid={`button-rent-${book.id}`}
-          >
-            {book.availableCopies > 0 ? "Rent Now" : "Not Available"}
-          </Button>
-          <Button variant="outline" size="icon" onClick={onWishlist} data-testid={`button-wishlist-${book.id}`}>
-            <Heart className="h-4 w-4" />
-          </Button>
+        <div className="space-y-2 mt-3">
+          <div className="flex gap-2">
+            <Button 
+              className="flex-1" 
+              disabled={book.availableCopies === 0}
+              onClick={onRent}
+              data-testid={`button-rent-${book.id}`}
+            >
+              {book.availableCopies > 0 ? "Rent Now" : "Not Available"}
+            </Button>
+            <Button variant="outline" size="icon" onClick={onWishlist} data-testid={`button-wishlist-${book.id}`}>
+              <Heart className="h-4 w-4" />
+            </Button>
+          </div>
+          <Link href={`/book/${book.id}`} className="block w-full">
+            <Button variant="outline" className="w-full" size="sm">
+              <BookOpen className="h-4 w-4 mr-2" />
+              View Details
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>

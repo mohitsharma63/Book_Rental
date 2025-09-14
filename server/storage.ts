@@ -333,6 +333,7 @@ export class MemStorage implements IStorage {
   async createCategory(categoryData: {
     name: string;
     description: string;
+    imageUrl?: string;
     isActive: boolean;
     createdAt: string;
   }) {
@@ -347,6 +348,7 @@ export class MemStorage implements IStorage {
   async updateCategory(id: number, updates: {
     name: string;
     description: string;
+    imageUrl?: string;
     isActive: boolean;
   }) {
     const categoryIndex = this.categories.findIndex(c => c.id === id);

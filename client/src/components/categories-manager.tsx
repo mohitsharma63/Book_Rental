@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,6 +35,7 @@ interface Category {
   id: number;
   name: string;
   description: string;
+  imageUrl?: string;
   bookCount: number;
   isActive: boolean;
   createdAt: string;
@@ -47,6 +47,7 @@ export function CategoriesManager() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    imageUrl: "",
     isActive: true
   });
 
@@ -63,6 +64,7 @@ export function CategoriesManager() {
       const data = await response.json();
       return data.map((category: any) => ({
         ...category,
+        imageUrl: category.imageUrl || "",
         isActive: category.isActive ?? true,
         bookCount: category.bookCount || 0,
         createdAt: category.createdAt || new Date().toISOString()
@@ -106,7 +108,7 @@ export function CategoriesManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setIsDialogOpen(false);
-      setFormData({ name: "", description: "", isActive: true });
+      setFormData({ name: "", description: "", imageUrl: "", isActive: true });
     },
   });
 
@@ -129,7 +131,7 @@ export function CategoriesManager() {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setIsDialogOpen(false);
       setEditingCategory(null);
-      setFormData({ name: "", description: "", isActive: true });
+      setFormData({ name: "", description: "", imageUrl: "", isActive: true });
     },
   });
 
@@ -151,7 +153,7 @@ export function CategoriesManager() {
 
   const handleAddCategory = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "", isActive: true });
+    setFormData({ name: "", description: "", imageUrl: "", isActive: true });
     setIsDialogOpen(true);
   };
 
@@ -160,6 +162,7 @@ export function CategoriesManager() {
     setFormData({
       name: category.name,
       description: category.description,
+      imageUrl: category.imageUrl || "",
       isActive: category.isActive
     });
     setIsDialogOpen(true);
@@ -188,6 +191,7 @@ export function CategoriesManager() {
         id,
         name: category.name,
         description: category.description,
+        imageUrl: category.imageUrl,
         isActive: !category.isActive
       });
     }
@@ -260,6 +264,50 @@ export function CategoriesManager() {
                   placeholder="Category description"
                   rows={3}
                 />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="imageUrl" className="text-right">
+                  Image
+                </Label>
+                <div className="col-span-3 space-y-2">
+                  <Input
+                    id="imageFile"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const result = event.target?.result as string;
+                          setFormData({ ...formData, imageUrl: result });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  />
+                  <div className="text-sm text-muted-foreground">Or enter image URL:</div>
+                  <Input
+                    id="imageUrl"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://example.com/category-image.jpg"
+                  />
+                  {formData.imageUrl && (
+                    <div className="mt-2">
+                      <img
+                        src={formData.imageUrl}
+                        alt="Category image preview"
+                        className="w-20 h-20 object-cover rounded border"
+                        onError={(e) => {
+                          console.log('Image failed to load:', formData.imageUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -336,7 +384,7 @@ export function CategoriesManager() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Books</TableHead>
                 <TableHead>Status</TableHead>
@@ -348,9 +396,28 @@ export function CategoriesManager() {
               {categoriesWithCounts.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      {category.name}
+                    <div className="flex items-center gap-3">
+                      {category.imageUrl ? (
+                        <img
+                          src={category.imageUrl}
+                          alt={category.name}
+                          className="w-10 h-10 object-cover rounded border"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
+                          <Tag className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div style={{ display: category.imageUrl ? 'none' : 'flex' }} className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{category.name}</div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

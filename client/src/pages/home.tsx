@@ -38,10 +38,10 @@ export default function Home() {
 
   // Use dynamic books data
   const books = booksData;
-  
+
   // Filter books for display
   const filteredBooks = books.filter(book => {
-    if (searchQuery && !book.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
+    if (searchQuery && !book.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !book.author.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
@@ -99,7 +99,7 @@ export default function Home() {
     const icon = getIconForCategory(category.name);
     const colors = getColorForCategory(category.name);
     const bookCount = books.filter(book => book.category === category.name).length;
-    
+
     return {
       name: category.name,
       icon,
@@ -160,7 +160,7 @@ export default function Home() {
             Discover Your Next Great Read
           </h2>
           <p className="text-sm sm:text-base lg:text-lg mb-6 opacity-90 leading-relaxed" data-testid="text-hero-subtitle">
-            Browse thousands of books available for rent. From timeless classics to modern bestsellers, 
+            Browse thousands of books available for rent. From timeless classics to modern bestsellers,
             find your perfect read at unbeatable prices.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -190,9 +190,9 @@ export default function Home() {
           ))}
         </div>
       </section>
- <section className="mb-8 sm:mb-12">
+      <section className="mb-8 sm:mb-12">
         <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" data-testid="text-categories-title">Popular Categories</h3>
-        
+
         {categoriesLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[...Array(4)].map((_, i) => (
@@ -204,20 +204,20 @@ export default function Home() {
             ))}
           </div>
         ) : categories.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.slice(0, 8).map((category) => {
               const Icon = category.icon;
               return (
-                <div 
+                <Link
                   key={category.name}
-                  className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`}
-                  onClick={() => setCategoryFilter(category.name)}
-                  data-testid={`card-category-${category.name.toLowerCase()}`}
+                  href={`/catalog?category=${encodeURIComponent(category.name)}`}
                 >
-                  <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
-                  <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
-                  <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
-                </div>
+                  <div className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`} >
+                    <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
+                    <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
+                    <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
+                  </div>
+                </Link>
               );
             })}
           </div>
@@ -228,7 +228,7 @@ export default function Home() {
         )}
       </section>
       {/* Search Bar */}
-      <SearchBar 
+      <SearchBar
         onSearch={setSearchQuery}
         onCategoryFilter={setCategoryFilter}
       />
@@ -272,7 +272,7 @@ export default function Home() {
                     #{index + 1} Featured
                   </Badge>
                 </div>
-                <BookCard 
+                <BookCard
                   book={book}
                   onRent={() => handleRentNow(book)}
                   onWishlist={() => handleAddToWishlist(book)}
@@ -292,7 +292,7 @@ export default function Home() {
       </section>
 
       {/* Popular Categories */}
-     
+
 
       {/* Why Choose BookWise */}
       <section className="mb-8 sm:mb-12 bg-muted/30 rounded-lg p-4 sm:p-6 lg:p-8">

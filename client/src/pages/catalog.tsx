@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Book, User, Heart, ShoppingCart, Search, Filter, Grid3X3, List, Star } from "lucide-react";
+import { Book, User, Heart, ShoppingCart, Search, Filter, Grid3X3, List, Star, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { useStore } from "@/lib/store-context";
 import type { Book as BookType } from "@/lib/types";
+import React from "react";
+import { useLocation } from "wouter";
 
 export default function Catalog() {
   const { addToCart, addToWishlist } = useStore();
@@ -20,6 +22,16 @@ export default function Catalog() {
   const [availability, setAvailability] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("relevance");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [_, navigate] = useLocation();
+
+  // Get category from URL parameters
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryParam = urlParams.get('category');
+    if (categoryParam) {
+      setSelectedCategories([categoryParam]);
+    }
+  }, []);
 
   const { data: books = [], isLoading: booksLoading, error: booksError } = useQuery<BookType[]>({
     queryKey: ["/api/books"],
@@ -96,7 +108,8 @@ export default function Catalog() {
   // Calculate book counts for each category
   const categories = categoriesData.map(category => ({
     name: category.name,
-    count: displayBooks.filter(book => book.category === category.name).length
+    count: displayBooks.filter(book => book.category === category.name).length,
+    imageUrl: category.imageUrl // Added imageUrl
   }));
 
   // Calculate book counts for each author
@@ -203,6 +216,11 @@ export default function Catalog() {
     alert(`"${book.title}" has been added to your wishlist!`);
   };
 
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategories([categoryName]);
+    navigate(`/catalog?category=${categoryName}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="max-w-12xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -266,35 +284,63 @@ export default function Catalog() {
                   </div>
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     {categories.map((category) => (
-                      <div key={category.name} className="group">
-                        <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 cursor-pointer">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              id={category.name}
-                              checked={selectedCategories.includes(category.name)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedCategories([...selectedCategories, category.name]);
-                                } else {
-                                  setSelectedCategories(selectedCategories.filter(c => c !== category.name));
-                                }
-                              }}
-                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                            />
-                            <label
-                              htmlFor={category.name}
-                              className="text-sm font-medium leading-none cursor-pointer group-hover:text-primary transition-colors"
-                            >
-                              {category.name}
-                            </label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                              {category.count}
-                            </span>
+                        <div
+                          key={category.name}
+                          className="group cursor-pointer"
+                          onClick={() => {
+                            if (selectedCategories.includes(category.name)) {
+                              const newCategories = selectedCategories.filter(cat => cat !== category.name);
+                              setSelectedCategories(newCategories);
+                              if (newCategories.length > 0) {
+                                navigate(`/catalog?categories=${encodeURIComponent(newCategories.join(','))}`);
+                              } else {
+                                navigate("/catalog");
+                              }
+                            } else {
+                              handleCategoryClick(category.name);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group-hover:shadow-md">
+                            <div className="flex items-center space-x-3">
+                              <Checkbox
+                                id={category.name}
+                                checked={selectedCategories.includes(category.name)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    handleCategoryClick(category.name);
+                                  } else {
+                                    setSelectedCategories([]);
+                                    navigate("/catalog");
+                                  }
+                                }}
+                                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                onClick={(e) => e.stopPropagation()} // Prevent click event from bubbling to the parent div
+                              />
+                              {category.imageUrl && (
+                                <img
+                                  src={category.imageUrl}
+                                  alt={category.name}
+                                  className="w-8 h-8 object-cover rounded border"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <label
+                                htmlFor={category.name}
+                                className="text-sm font-medium leading-none cursor-pointer group-hover:text-primary transition-colors"
+                              >
+                                {category.name}
+                              </label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                                {category.count}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
                     ))}
                   </div>
                 </div>
@@ -399,6 +445,7 @@ export default function Catalog() {
                       setSelectedCategories([]);
                       setSelectedAuthors([]);
                       setAvailability([]);
+                      navigate("/catalog"); // Clear category from URL
                     }}
                   >
                     Clear All Filters
@@ -546,22 +593,30 @@ export default function Catalog() {
                             </div>
                           </div>
 
-                          <div className="flex gap-2 pt-2">
-                            <Button
-                              className="flex-1"
-                              disabled={book.status !== "available"}
-                              onClick={() => handleRentNow(book)}
-                            >
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              {book.status === "available" ? "Rent Now" : "Unavailable"}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleAddToWishlist(book)}
-                            >
-                              <Heart className="h-4 w-4" />
-                            </Button>
+                          <div className="space-y-2 mt-4">
+                            <div className="flex items-center justify-between">
+                              <Button
+                                className="flex-1 mr-2"
+                                onClick={() => handleRentNow(book)}
+                                disabled={book.availableCopies === 0}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                {book.availableCopies > 0 ? 'Rent Now' : 'Not Available'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleAddToWishlist(book)}
+                              >
+                                <Heart className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Link href={`/book/${book.id}`} className="block w-full">
+                              <Button variant="outline" className="w-full">
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                View Details
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       </CardContent>
@@ -633,15 +688,21 @@ export default function Catalog() {
                               </Badge>
                             </div>
 
-                            <div className="flex gap-3">
+                            <div className="flex items-center gap-3 mt-4">
                               <Button
-                                className="flex-1 max-w-xs"
-                                disabled={book.status !== "available"}
                                 onClick={() => handleRentNow(book)}
+                                disabled={book.availableCopies === 0}
+                                className="flex-1"
                               >
                                 <ShoppingCart className="h-4 w-4 mr-2" />
-                                {book.status === "available" ? "Rent Now" : "Unavailable"}
+                                {book.availableCopies > 0 ? 'Rent Now' : 'Not Available'}
                               </Button>
+                              <Link href={`/book/${book.id}`}>
+                                <Button variant="outline">
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Details
+                                </Button>
+                              </Link>
                               <Button
                                 variant="outline"
                                 size="icon"

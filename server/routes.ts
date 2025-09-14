@@ -416,7 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/categories", async (req, res) => {
     try {
-      const { name, description, isActive = true } = req.body;
+      const { name, description, imageUrl, isActive = true } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: "Category name is required" });
@@ -425,6 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = await storage.createCategory({
         name,
         description: description || "",
+        image_url: imageUrl || null,
         isActive,
         createdAt: new Date()
       });
@@ -439,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/categories/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, isActive } = req.body;
+      const { name, description, imageUrl, isActive } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: "Category name is required" });
@@ -448,6 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = await storage.updateCategory(parseInt(id), {
         name,
         description: description || "",
+        image_url: imageUrl || null,
         isActive
       });
 
