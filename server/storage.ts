@@ -1,3 +1,4 @@
+
 import type { 
   User, InsertUser, 
   Book, InsertBook, 
@@ -394,4 +395,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage: IStorage = new DatabaseStorage();
+// Export a single DatabaseStorage instance
+export const storage = new DatabaseStorage();

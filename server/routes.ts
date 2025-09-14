@@ -90,9 +90,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         books = await storage.getAllBooks();
       }
 
+      console.log("Books fetched:", books.length);
       res.json(books);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch books" });
+      console.error("Get books error:", error);
+      res.status(500).json({ message: "Failed to fetch books", details: error.message });
     }
   });
 
@@ -139,22 +141,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/books/:id", async (req, res) => {
     try {
-      const book = await storage.updateBook(req.params.id, req.body);
+      console.log("Updating book with ID:", req.params.id);
+      console.log("Update data:", req.body);
+
+      // Transform the data to match schema expectations
+      const transformedData = {
+        ...req.body,
+        pricePerWeek: parseFloat(req.body.pricePerWeek),
+        totalCopies: parseInt(req.body.totalCopies),
+        publishedYear: req.body.publishedYear ? parseInt(req.body.publishedYear) : null,
+        pages: req.body.pages ? parseInt(req.body.pages) : null,
+      };
+
+      const book = await storage.updateBook(req.params.id, transformedData);
+      console.log("Book updated successfully:", book.id);
       res.json(book);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update book" });
+      console.error("Update book error:", error);
+      res.status(500).json({ message: "Failed to update book", error: error.message });
     }
   });
 
   app.delete("/api/books/:id", async (req, res) => {
     try {
+      console.log("Deleting book with ID:", req.params.id);
       const success = await storage.deleteBook(req.params.id);
       if (!success) {
+        console.log("Book not found for deletion:", req.params.id);
         return res.status(404).json({ message: "Book not found" });
       }
+      console.log("Book deleted successfully:", req.params.id);
       res.json({ message: "Book deleted successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete book" });
+      console.error("Delete book error:", error);
+      res.status(500).json({ message: "Failed to delete book", error: error.message });
     }
   });
 
@@ -203,9 +223,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.getAllUsers();
       // Remove passwords from response for security
       const safeUsers = users.map(({ password, ...user }) => user);
+      console.log("Users fetched:", safeUsers.length);
       res.json(safeUsers);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch users" });
+      console.error("Get users error:", error);
+      res.status(500).json({ message: "Failed to fetch users", details: error.message });
     }
   });
 
@@ -220,6 +242,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.put("/api/users/:id/suspend", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { suspended } = req.body;
+
+      console.log('Suspending user:', id, 'suspended status:', suspended);
+
+      const user = await storage.updateUser(id, { 
+        suspended: suspended,
+        updatedAt: new Date()
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      res.json({
+        ...userWithoutPassword,
+        message: suspended ? "User suspended successfully" : "User unsuspended successfully"
+      });
+    } catch (error) {
+      console.error("Suspend user error:", error);
+      res.status(500).json({ message: "Failed to suspend user", error: error.message });
     }
   });
 
@@ -309,6 +359,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get contact statistics
+  app.get("/api/contacts/stats", async (req, res) => {
+    try {
+      const contacts = await storage.getAllContacts();
+      
+      const stats = {
+        total: contacts.length,
+        unread: contacts.filter(c => c.status === 'unread' || c.status === 'new').length,
+        read: contacts.filter(c => c.status === 'read').length,
+        responded: contacts.filter(c => c.status === 'responded').length,
+        avgResponseTime: '2.4h' // Static for now, can be calculated based on actual response times
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Get contact stats error:", error);
+      res.status(500).json({ error: "Failed to fetch contact stats" });
+    }
+  });
+
   // Update contact status
   app.put("/api/contacts/:id/status", async (req, res) => {
     try {
@@ -336,10 +406,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/categories", async (req, res) => {
     try {
       const categories = await storage.getCategories();
+      console.log("Categories fetched:", categories.length);
       res.json(categories);
     } catch (error) {
       console.error("Get categories error:", error);
-      res.status(500).json({ error: "Failed to fetch categories" });
+      res.status(500).json({ error: "Failed to fetch categories", details: error.message });
     }
   });
 

@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   address: text("address"),
   isAdmin: boolean("is_admin").default(false),
+  suspended: boolean("suspended").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -138,10 +139,6 @@ export const insertBookSchema = createInsertSchema(books, {
   isbn: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
-  publisher: z.string().optional().nullable(),
-  language: z.string().optional().nullable(),
-  condition: z.string().optional().nullable(),
-  format: z.string().optional().nullable(),
 });
 export const insertRentalSchema = createInsertSchema(rentals);
 export const insertWishlistSchema = createInsertSchema(wishlist);

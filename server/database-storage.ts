@@ -1,13 +1,24 @@
-import { eq, like, and, or } from "drizzle-orm";
+import { eq, like, or, desc, and } from "drizzle-orm";
 import { db } from "./db";
-import { users, books, rentals, wishlist, categories, contacts } from "@shared/schema";
-import type { 
-  User, InsertUser, 
-  Book, InsertBook, 
-  Rental, InsertRental, 
-  Wishlist, InsertWishlist,
-  Category, InsertCategory,
-  Contact, InsertContact
+import { 
+  books, 
+  users, 
+  rentals, 
+  wishlist, 
+  categories,
+  contacts,
+  type Book, 
+  type User, 
+  type Rental, 
+  type Wishlist,
+  type Category,
+  type Contact,
+  type InsertBook, 
+  type InsertUser, 
+  type InsertRental, 
+  type InsertWishlist,
+  type InsertCategory,
+  type InsertContact
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -85,19 +96,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateBook(id: string, updateData: Partial<Book>): Promise<Book> {
-    const [book] = await db
-      .update(books)
-      .set(updateData)
-      .where(eq(books.id, id))
-      .returning();
+    try {
+      console.log("DatabaseStorage: Updating book", id, "with data:", updateData);
+      
+      const [book] = await db
+        .update(books)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(books.id, id))
+        .returning();
 
-    if (!book) throw new Error("Book not found");
-    return book;
+      if (!book) {
+        console.log("DatabaseStorage: Book not found for update:", id);
+        throw new Error("Book not found");
+      }
+      
+      console.log("DatabaseStorage: Book updated successfully:", book.id);
+      return book;
+    } catch (error) {
+      console.error("DatabaseStorage: Error updating book:", error);
+      throw error;
+    }
   }
 
   async deleteBook(id: string): Promise<boolean> {
-    const result = await db.delete(books).where(eq(books.id, id));
-    return (result.rowCount || 0) > 0;
+    try {
+      console.log("DatabaseStorage: Deleting book with ID:", id);
+      
+      const result = await db.delete(books).where(eq(books.id, id));
+      const success = (result.rowCount || 0) > 0;
+      
+      console.log("DatabaseStorage: Delete result:", success, "rows affected:", result.rowCount);
+      return success;
+    } catch (error) {
+      console.error("DatabaseStorage: Error deleting book:", error);
+      throw error;
+    }
   }
 
   // Rental methods
@@ -173,41 +209,69 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
-  async updateCategory(id: number, updates: Partial<Category>): Promise<Category | null> {
-    const [category] = await db
-      .update(categories)
-      .set(updates)
-      .where(eq(categories.id, id))
-      .returning();
-
-    return category || null;
+  async updateCategory(id: number, data: Partial<Category>): Promise<Category | null> {
+    try {
+      const [category] = await db
+        .update(categories)
+        .set(data)
+        .where(eq(categories.id, id))
+        .returning();
+      return category || null;
+    } catch (error) {
+      console.error("Error updating category:", error);
+      throw error;
+    }
   }
 
   async deleteCategory(id: number): Promise<boolean> {
-    const result = await db.delete(categories).where(eq(categories.id, id));
-    return (result.rowCount || 0) > 0;
+    try {
+      const result = await db
+        .delete(categories)
+        .where(eq(categories.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      throw error;
+    }
   }
 
   // Contact methods
   async createContact(contactData: InsertContact): Promise<Contact> {
-    const [contact] = await db
-      .insert(contacts)
-      .values(contactData)
-      .returning();
-    return contact;
+    try {
+      const [contact] = await db
+        .insert(contacts)
+        .values(contactData)
+        .returning();
+      return contact;
+    } catch (error) {
+      console.error("Error creating contact:", error);
+      throw error;
+    }
   }
 
   async getAllContacts(): Promise<Contact[]> {
-    return await db.select().from(contacts);
+    try {
+      return await db
+        .select()
+        .from(contacts)
+        .orderBy(desc(contacts.createdAt));
+    } catch (error) {
+      console.error("Error getting all contacts:", error);
+      throw error;
+    }
   }
 
   async updateContactStatus(id: string, status: string): Promise<Contact | null> {
-    const [contact] = await db
-      .update(contacts)
-      .set({ status })
-      .where(eq(contacts.id, id))
-      .returning();
-
-    return contact || null;
+    try {
+      const [contact] = await db
+        .update(contacts)
+        .set({ status })
+        .where(eq(contacts.id, id))
+        .returning();
+      return contact || null;
+    } catch (error) {
+      console.error("Error updating contact status:", error);
+      throw error;
+    }
   }
 }
