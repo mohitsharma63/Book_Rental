@@ -1,12 +1,18 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, MapPin, Clock, MessageCircle, HelpCircle, User } from "lucide-react";
+
+// Define the structure for a category
+interface Category {
+  id: number;
+  name: string;
+}
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -16,15 +22,89 @@ export default function Contact() {
     category: "",
     message: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch categories from the API when the component mounts
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const response = await fetch("/api/categories"); // Assuming your API endpoint for categories
+        if (!response.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+        const data = await response.json();
+        setCategories(data);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        toast({
+          title: "Error",
+          description: "Could not load categories. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Form submitted:", formData);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          subject: formData.subject,
+          category: formData.category
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Message sent successfully!",
+          description: "We'll get back to you as soon as possible.",
+        });
+
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          category: "",
+          message: ""
+        });
+      } else {
+        throw new Error(data.error || "Failed to send message");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [
@@ -145,22 +225,21 @@ export default function Contact() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Category
-                    </label>
-                    <Select onValueChange={(value) => handleInputChange("category", value)}>
-                      <SelectTrigger data-testid="select-category">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">General Inquiry</SelectItem>
-                        <SelectItem value="support">Technical Support</SelectItem>
-                        <SelectItem value="billing">Billing Question</SelectItem>
-                        <SelectItem value="book-request">Book Request</SelectItem>
-                        <SelectItem value="feedback">Feedback</SelectItem>
-                        <SelectItem value="partnership">Partnership</SelectItem>
-                      </SelectContent>
-                    </Select>
+                   <label className="block text-sm font-medium mb-2">
+  Category
+</label>
+<Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
+  <SelectTrigger data-testid="select-category">
+    <SelectValue placeholder="Select a category" />
+  </SelectTrigger>
+  <SelectContent>
+    {categories.map((category) => (
+      <SelectItem key={category.id} value={category.name}>
+        {category.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
                   </div>
                 </div>
 
@@ -178,8 +257,14 @@ export default function Contact() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" data-testid="button-send-message">
-                  Send Message
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  size="lg" 
+                  data-testid="button-send-message"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
               </form>
             </CardContent>

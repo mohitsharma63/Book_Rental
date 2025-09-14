@@ -75,11 +75,11 @@ export default function Admin() {
         },
         body: JSON.stringify({
           ...bookData,
-          pricePerWeek: parseFloat(bookData.pricePerWeek),
+          pricePerWeek: bookData.pricePerWeek.toString(),
           totalCopies: parseInt(bookData.totalCopies),
           availableCopies: parseInt(bookData.totalCopies),
-          publishedYear: parseInt(bookData.publishedYear),
-          pages: parseInt(bookData.pages),
+          publishedYear: bookData.publishedYear ? parseInt(bookData.publishedYear) : null,
+          pages: bookData.pages ? parseInt(bookData.pages) : null,
           rating: "0"
         }),
       });
@@ -118,6 +118,49 @@ export default function Admin() {
   const { data: rentals = [], isLoading: rentalsLoading } = useQuery({
     queryKey: ['admin-rentals'],
     queryFn: () => fetch('/api/rentals').then(res => res.json()),
+  });
+
+  const { data: contactMessages = [], isLoading: contactMessagesLoading } = useQuery({
+    queryKey: ['contact-messages'],
+    queryFn: async () => {
+      const res = await fetch('/api/contact-messages');
+      if (!res.ok) {
+        throw new Error('Failed to fetch contact messages');
+      }
+      return res.json();
+    },
+  });
+
+  const { data: contactStats = {}, isLoading: contactStatsLoading } = useQuery({
+    queryKey: ['contact-stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/contact-stats');
+      if (!res.ok) {
+        throw new Error('Failed to fetch contact stats');
+      }
+      return res.json();
+    },
+  });
+
+  // Mutation for updating message status
+  const updateMessageStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await fetch(`/api/contact-messages/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update message status');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-stats'] });
+    },
   });
 
   const stats = {
@@ -274,7 +317,7 @@ export default function Admin() {
   );
 
   const renderContent = () => {
-    if (booksLoading || usersLoading || rentalsLoading) {
+    if (booksLoading || usersLoading || rentalsLoading || (activeTab === 'contact' && (contactMessagesLoading || contactStatsLoading))) {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Loading...</div>
@@ -434,13 +477,42 @@ export default function Admin() {
                         </Select>
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="imageUrl">Image URL</Label>
-                        <Input
-                          id="imageUrl"
-                          value={bookFormData.imageUrl}
-                          onChange={(e) => handleBookFormChange("imageUrl", e.target.value)}
-                          placeholder="https://example.com/book-cover.jpg"
-                        />
+                        <Label htmlFor="imageUrl">Book Cover Image</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="imageFile"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const result = event.target?.result as string;
+                                  handleBookFormChange("imageUrl", result);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                          />
+                          <div className="text-sm text-muted-foreground">Or enter image URL below:</div>
+                          <Input
+                            id="imageUrl"
+                            value={bookFormData.imageUrl}
+                            onChange={(e) => handleBookFormChange("imageUrl", e.target.value)}
+                            placeholder="https://example.com/book-cover.jpg"
+                          />
+                        </div>
+                        {bookFormData.imageUrl && (
+                          <div className="mt-2">
+                            <img 
+                              src={bookFormData.imageUrl} 
+                              alt="Book cover preview" 
+                              className="w-24 h-32 object-cover rounded border"
+                            />
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="description">Description</Label>
@@ -810,7 +882,7 @@ export default function Admin() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">24</p>
+                      <p className="text-2xl font-bold">{contactStats.total || 0}</p>
                       <p className="text-sm text-muted-foreground">Total Messages</p>
                     </div>
                     <div className="p-3 bg-blue-100 rounded-lg">
@@ -824,7 +896,7 @@ export default function Admin() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-orange-600">8</p>
+                      <p className="text-2xl font-bold text-orange-600">{contactStats.unread || 0}</p>
                       <p className="text-sm text-muted-foreground">Unread</p>
                     </div>
                     <div className="p-3 bg-orange-100 rounded-lg">
@@ -838,7 +910,7 @@ export default function Admin() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-green-600">12</p>
+                      <p className="text-2xl font-bold text-green-600">{contactStats.responded || 0}</p>
                       <p className="text-sm text-muted-foreground">Responded</p>
                     </div>
                     <div className="p-3 bg-green-100 rounded-lg">
@@ -852,7 +924,7 @@ export default function Admin() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">2.4h</p>
+                      <p className="text-2xl font-bold">{contactStats.avgResponseTime || '2.4h'}</p>
                       <p className="text-sm text-muted-foreground">Avg Response Time</p>
                     </div>
                     <div className="p-3 bg-purple-100 rounded-lg">
@@ -893,120 +965,65 @@ export default function Admin() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <Badge className="bg-red-100 text-red-800">Unread</Badge>
-                          </TableCell>
-                          <TableCell>John Smith</TableCell>
-                          <TableCell>john.smith@example.com</TableCell>
-                          <TableCell>Book not available</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">Support</Badge>
-                          </TableCell>
-                          <TableCell>Dec 20, 2024</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" className="text-blue-600">
-                                View
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-green-600">
-                                Reply
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell>
-                            <Badge className="bg-green-100 text-green-800">Responded</Badge>
-                          </TableCell>
-                          <TableCell>Sarah Johnson</TableCell>
-                          <TableCell>sarah.j@example.com</TableCell>
-                          <TableCell>Billing inquiry</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">Billing</Badge>
-                          </TableCell>
-                          <TableCell>Dec 19, 2024</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" className="text-blue-600">
-                                View
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-gray-600">
-                                Archive
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell>
-                            <Badge className="bg-red-100 text-red-800">Unread</Badge>
-                          </TableCell>
-                          <TableCell>Mike Brown</TableCell>
-                          <TableCell>mike.brown@example.com</TableCell>
-                          <TableCell>Partnership proposal</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">Partnership</Badge>
-                          </TableCell>
-                          <TableCell>Dec 18, 2024</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" className="text-blue-600">
-                                View
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-green-600">
-                                Reply
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell>
-                            <Badge className="bg-yellow-100 text-yellow-800">Read</Badge>
-                          </TableCell>
-                          <TableCell>Emma Davis</TableCell>
-                          <TableCell>emma.davis@example.com</TableCell>
-                          <TableCell>Feature request</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">Feedback</Badge>
-                          </TableCell>
-                          <TableCell>Dec 17, 2024</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" className="text-blue-600">
-                                View
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-green-600">
-                                Reply
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell>
-                            <Badge className="bg-green-100 text-green-800">Responded</Badge>
-                          </TableCell>
-                          <TableCell>Alex Wilson</TableCell>
-                          <TableCell>alex.w@example.com</TableCell>
-                          <TableCell>Book recommendation</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">General</Badge>
-                          </TableCell>
-                          <TableCell>Dec 16, 2024</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" className="text-blue-600">
-                                View
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-gray-600">
-                                Archive
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                        {contactMessagesLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center">Loading messages...</TableCell>
+                          </TableRow>
+                        ) : contactMessages.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center">No messages found</TableCell>
+                          </TableRow>
+                        ) : (
+                          contactMessages.map((message: any) => (
+                            <TableRow key={message.id}>
+                              <TableCell>
+                                <Badge className={
+                                  message.status === 'unread' ? 'bg-red-100 text-red-800' :
+                                  message.status === 'responded' ? 'bg-green-100 text-green-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }>
+                                  {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{message.name}</TableCell>
+                              <TableCell>{message.email}</TableCell>
+                              <TableCell>{message.subject}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {message.category.charAt(0).toUpperCase() + message.category.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(message.createdAt).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-blue-600"
+                                    onClick={() => {
+                                      if (message.status === 'unread') {
+                                        updateMessageStatusMutation.mutate({ id: message.id, status: 'read' });
+                                      }
+                                    }}
+                                  >
+                                    View
+                                  </Button>
+                                  {message.status !== 'responded' && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-green-600"
+                                      onClick={() => updateMessageStatusMutation.mutate({ id: message.id, status: 'responded' })}
+                                      disabled={updateMessageStatusMutation.isPending}
+                                    >
+                                      {message.status === 'unread' ? 'Reply' : 'Mark Replied'}
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   </div>

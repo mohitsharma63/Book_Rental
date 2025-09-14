@@ -111,9 +111,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/books", async (req, res) => {
     try {
       console.log("Received book data:", req.body);
+
+      // Transform the data to match schema expectations
+      const transformedData = {
+        ...req.body,
+        pricePerWeek: parseFloat(req.body.pricePerWeek),
+        publishedYear: req.body.publishedYear ? parseInt(req.body.publishedYear) : null,
+        pages: req.body.pages ? parseInt(req.body.pages) : null,
+      };
+
       const bookData = insertBookSchema.parse(req.body);
       console.log("Validated book data:", bookData);
-      const book = await storage.createBook(bookData);
+
+      // Create book with properly parsed numeric values
+      const bookToCreate = {
+        ...bookData,
+        pricePerWeek: parseFloat(bookData.pricePerWeek),
+      };
+
+      const book = await storage.createBook(bookToCreate);
       res.status(201).json(book);
     } catch (error) {
       console.error("Book creation error:", error);
@@ -242,21 +258,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Contact routes
   app.post("/api/contact", async (req, res) => {
     try {
-      const { name, email, message } = req.body;
+      const { name, email, message, subject, category } = req.body;
 
       if (!name || !email || !message) {
-        return res.status(400).json({ error: "All fields are required" });
+        return res.status(400).json({ error: "Name, email, and message are required" });
       }
 
-      // Here you would typically save to database or send email
-      // For now, we'll just return success
+      // Save to database
+      const contact = await storage.createContact({
+        name,
+        email,
+        subject: subject || null,
+        category: category || null,
+        message,
+        status: "new"
+      });
+
+      console.log("Contact form submission saved:", {
+        id: contact.id,
+        name: contact.name,
+        email: contact.email,
+        timestamp: contact.createdAt
+      });
+
       res.json({ 
         message: "Message sent successfully",
-        data: { name, email, message }
+        data: { 
+          id: contact.id,
+          name: contact.name, 
+          email: contact.email, 
+          subject: contact.subject, 
+          category: contact.category, 
+          message: contact.message 
+        }
       });
     } catch (error) {
       console.error("Contact error:", error);
       res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  // Get all contacts (for admin)
+  app.get("/api/contacts", async (req, res) => {
+    try {
+      const contacts = await storage.getAllContacts();
+      res.json(contacts);
+    } catch (error) {
+      console.error("Get contacts error:", error);
+      res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  // Update contact status
+  app.put("/api/contacts/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
+      const contact = await storage.updateContactStatus(id, status);
+
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      res.json(contact);
+    } catch (error) {
+      console.error("Update contact status error:", error);
+      res.status(500).json({ error: "Failed to update contact status" });
     }
   });
 

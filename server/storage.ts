@@ -3,7 +3,8 @@ import type {
   Book, InsertBook, 
   Rental, InsertRental, 
   Wishlist, InsertWishlist,
-  Category, InsertCategory
+  Category, InsertCategory,
+  Contact, InsertContact
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./database-storage";
@@ -45,6 +46,11 @@ export interface IStorage {
   createCategory(categoryData: InsertCategory): Promise<Category>;
   updateCategory(id: number, updates: Partial<Omit<Category, 'id' | 'createdAt'>>): Promise<Category | null>;
   deleteCategory(id: number): Promise<boolean>;
+
+  // Contact methods
+  createContact(contactData: InsertContact): Promise<Contact>;
+  getAllContacts(): Promise<Contact[]>;
+  updateContactStatus(id: string, status: string): Promise<Contact | null>;
 }
 
 export class MemStorage implements IStorage {
@@ -52,12 +58,14 @@ export class MemStorage implements IStorage {
   private books: Map<string, Book>;
   private rentals: Map<string, Rental>;
   private wishlist: Map<string, Wishlist>;
+  private contacts: Map<string, Contact>;
 
   constructor() {
     this.users = new Map();
     this.books = new Map();
     this.rentals = new Map();
     this.wishlist = new Map();
+    this.contacts = new Map();
   }
 
   // User methods
@@ -356,6 +364,33 @@ export class MemStorage implements IStorage {
 
     this.categories.splice(categoryIndex, 1);
     return true;
+  }
+
+  // Contact methods
+  async createContact(contactData: InsertContact): Promise<Contact> {
+    const id = randomUUID();
+    const contact: Contact = {
+      ...contactData,
+      id,
+      createdAt: new Date(),
+      status: contactData.status || "pending",
+    };
+    this.contacts.set(id, contact);
+    return contact;
+  }
+
+  async getAllContacts(): Promise<Contact[]> {
+    return Array.from(this.contacts.values());
+  }
+
+  async updateContactStatus(id: string, status: string): Promise<Contact | null> {
+    const contact = this.contacts.get(id);
+    if (!contact) {
+      return null;
+    }
+    const updatedContact = { ...contact, status };
+    this.contacts.set(id, updatedContact);
+    return updatedContact;
   }
 }
 

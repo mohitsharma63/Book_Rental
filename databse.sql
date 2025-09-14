@@ -1,4 +1,3 @@
-
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -58,5 +57,17 @@ CREATE TABLE IF NOT EXISTS wishlist (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id VARCHAR REFERENCES users(id) NOT NULL,
     book_id VARCHAR REFERENCES books(id) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create contacts table
+CREATE TABLE IF NOT EXISTS contacts (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    subject TEXT,
+    category TEXT,
+    message TEXT NOT NULL,
+    status TEXT DEFAULT 'new',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

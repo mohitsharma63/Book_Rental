@@ -1,9 +1,9 @@
-
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { nanoid } from "nanoid";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -48,9 +48,20 @@ export const rentals = pgTable("rentals", {
 });
 
 export const wishlist = pgTable("wishlist", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  bookId: varchar("book_id").references(() => books.id).notNull(),
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => nanoid()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  bookId: varchar("book_id").notNull().references(() => books.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const contacts = pgTable("contacts", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => nanoid()),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject"),
+  category: text("category"),
+  message: text("message").notNull(),
+  status: text("status").default("new"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -108,12 +119,31 @@ export type Rental = typeof rentals.$inferSelect;
 export type InsertRental = typeof rentals.$inferInsert;
 export type Wishlist = typeof wishlist.$inferSelect;
 export type InsertWishlist = typeof wishlist.$inferInsert;
+export type Contact = typeof contacts.$inferSelect;
+export type InsertContact = typeof contacts.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
-export const insertBookSchema = createInsertSchema(books);
+export const insertBookSchema = createInsertSchema(books, {
+  title: z.string().min(1, "Title is required"),
+  author: z.string().min(1, "Author is required"),
+  category: z.string().min(1, "Category is required"),
+  pricePerWeek: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Price must be a positive number"
+  }),
+  publishedYear: z.number().optional().nullable(),
+  pages: z.number().optional().nullable(),
+  isbn: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+  publisher: z.string().optional().nullable(),
+  language: z.string().optional().nullable(),
+  condition: z.string().optional().nullable(),
+  format: z.string().optional().nullable(),
+});
 export const insertRentalSchema = createInsertSchema(rentals);
 export const insertWishlistSchema = createInsertSchema(wishlist);
 export const insertCategorySchema = createInsertSchema(categories);
+export const insertContactSchema = createInsertSchema(contacts);
