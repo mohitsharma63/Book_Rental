@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, BookOpen, Check } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Signup() {
-  const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,6 +23,9 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const { signup } = useAuth();
+  const [, setLocation] = useLocation();
+
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -53,48 +56,26 @@ export default function Signup() {
     }
 
     try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: formData.email, // Use email as username
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone || null,
-          address: null, // Not collected in form
-          role: formData.email === "admin@bookwise.com" ? "admin" : "user"
-        }),
+      const success = await signup({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone || null,
+        address: null, // Not collected in form
+        password: formData.password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+      if (success) {
+        setSuccess(true);
+        console.log("Signup successful");
+        setTimeout(() => {
+          setLocation("/"); // Redirect to home page after 2 seconds
+        }, 2000);
+      } else {
+        setError("Signup failed. Please try again.");
       }
-
-      // Store user data in localStorage
-      localStorage.setItem("user", JSON.stringify({
-        ...data.user,
-        isLoggedIn: true,
-      }));
-
-      setSuccess(true);
-
-      // Redirect based on role after success
-      setTimeout(() => {
-        if (data.user.role === "admin") {
-          setLocation("/admin");
-        } else {
-          setLocation("/dashboard");
-        }
-      }, 2000);
-
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+    } catch (error) {
+      setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

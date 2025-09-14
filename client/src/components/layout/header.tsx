@@ -10,41 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Menu } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react"; // Import useContext
 import { useStore } from "@/lib/store-context";
+import { useAuth } from "@/lib/auth-context";
 
 export function Header() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { cartCount, wishlistCount } = useStore();
-  
-  // Login state management
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState({
-    name: "",
-    email: "",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"
-  });
 
-  // Check localStorage for user data on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        if (userData.isLoggedIn) {
-          setIsLoggedIn(true);
-          setCurrentUser({
-            name: userData.name,
-            email: userData.email,
-            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"
-          });
-        }
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-      }
-    }
-  }, [location]); // Re-check when location changes
+  // Use useAuth hook for login state and user data
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
 
   const isActive = (path: string) => location === path;
 
@@ -54,6 +31,9 @@ export function Header() {
     { href: "/about", label: "About", testId: "nav-about" },
     { href: "/contact", label: "Contact", testId: "nav-contact" },
   ];
+
+  // Removed the local useEffect for localStorage check, as AuthContext should handle this.
+  // The `user` object from AuthContext should already be populated.
 
   return (
     <header className="bg-card shadow-sm border-b border-border sticky top-0 z-50">
@@ -156,7 +136,7 @@ export function Header() {
             )}
 
             {/* Profile Menu - Show only when logged in */}
-            {isLoggedIn && (
+            {isLoggedIn && user && (
               <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -165,28 +145,28 @@ export function Header() {
                   data-testid="button-profile-menu"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={currentUser.avatar} />
-                    <AvatarFallback>{currentUser.name?.charAt(0) || "U"}</AvatarFallback>
+                    <AvatarImage src={user.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"} />
+                    <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <span
                     className="text-sm font-medium hidden lg:inline"
                     data-testid="text-username"
                   >
-                    {currentUser.name}
+                    {user.name}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{currentUser.name}</p>
+                    <p className="font-medium">{user.name}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {currentUser.email}
+                      {user.email}
                     </p>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                
+
                 {/* Mobile-only menu items */}
                 <div className="sm:hidden">
                   <Link href="/wishlist">
@@ -217,8 +197,8 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </div>
-                
-                <Link href={JSON.parse(localStorage.getItem("user") || "{}").role === "admin" ? "/admin" : "/dashboard"}>
+
+                <Link href={user.role === "admin" ? "/admin" : "/dashboard"}>
                   <DropdownMenuItem
                     className="cursor-pointer"
                     data-testid="menu-dashboard"
@@ -239,13 +219,7 @@ export function Header() {
                 <DropdownMenuItem 
                   className="cursor-pointer text-red-600 focus:text-red-600"
                   onClick={() => {
-                    localStorage.removeItem("user");
-                    setIsLoggedIn(false);
-                    setCurrentUser({
-                      name: "",
-                      email: "",
-                      avatar: ""
-                    });
+                    logout(); // Use logout from AuthContext
                   }}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -269,19 +243,19 @@ export function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col space-y-4 mt-6">
-                  {isLoggedIn && (
+                  {isLoggedIn && user && (
                     <div className="flex items-center space-x-2 pb-4 border-b">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={currentUser.avatar} />
-                        <AvatarFallback>{currentUser.name?.charAt(0) || "U"}</AvatarFallback>
+                        <AvatarImage src={user.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"} />
+                        <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{currentUser.name}</p>
-                        <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                        <p className="font-medium">{user.name}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Navigation Links */}
                   {navigationItems.map((item) => (
                     <Link key={item.href} href={item.href}>
@@ -296,7 +270,7 @@ export function Header() {
                       </Button>
                     </Link>
                   ))}
-                  
+
                   <div className="pt-4 border-t space-y-2">
                     <Link href="/wishlist">
                       <Button
@@ -334,7 +308,7 @@ export function Header() {
                           <Bell className="mr-2 h-4 w-4" />
                           Notifications
                         </Button>
-                        <Link href={JSON.parse(localStorage.getItem("user") || "{}").role === "admin" ? "/admin" : "/dashboard"}>
+                        <Link href={user.role === "admin" ? "/admin" : "/dashboard"}>
                           <Button
                             variant="ghost"
                             className="w-full justify-start"
@@ -364,13 +338,7 @@ export function Header() {
                           variant="ghost" 
                           className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
                           onClick={() => {
-                            localStorage.removeItem("user");
-                            setIsLoggedIn(false);
-                            setCurrentUser({
-                              name: "",
-                              email: "",
-                              avatar: ""
-                            });
+                            logout(); // Use logout from AuthContext
                             setIsOpen(false);
                           }}
                         >
@@ -380,7 +348,7 @@ export function Header() {
                       </>
                     )}
                   </div>
-                  
+
                   {!isLoggedIn && (
                     <div className="pt-4 border-t space-y-2">
                       <Link href="/login">

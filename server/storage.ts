@@ -15,6 +15,7 @@ import { DatabaseStorage } from "./database-storage";
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
@@ -24,6 +25,7 @@ export interface IStorage {
   // Book methods
   getAllBooks(): Promise<Book[]>;
   getBook(id: string): Promise<Book | undefined>;
+  getBookById(id: string): Promise<Book | undefined>;
   getBooksByCategory(category: string): Promise<Book[]>;
   searchBooks(query: string): Promise<Book[]>;
   createBook(insertBook: InsertBook): Promise<Book>;
@@ -80,6 +82,10 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.username === username);
   }
@@ -121,6 +127,10 @@ export class MemStorage implements IStorage {
   }
 
   async getBook(id: string): Promise<Book | undefined> {
+    return this.books.get(id);
+  }
+
+  async getBookById(id: string): Promise<Book | undefined> {
     return this.books.get(id);
   }
 

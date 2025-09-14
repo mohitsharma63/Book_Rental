@@ -5,16 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, BookOpen } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const { login } = useAuth();
+  const [, setLocation] = useLocation();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -27,37 +29,16 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const success = await login(formData.email, formData.password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      // Store user data in localStorage
-      localStorage.setItem("user", JSON.stringify({
-        ...data.user,
-        isLoggedIn: true,
-      }));
-
-      // Redirect based on role
-      if (data.user.role === "admin") {
-        setLocation("/admin");
+      if (success) {
+        console.log("Login successful");
+        setLocation("/"); // Redirect to home page
       } else {
-        setLocation("/dashboard");
+        setError("Invalid email or password");
       }
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (error) {
+      setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

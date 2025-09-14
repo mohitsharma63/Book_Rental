@@ -42,6 +42,11 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserById(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -71,6 +76,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBook(id: string): Promise<Book | undefined> {
+    const [book] = await db.select().from(books).where(eq(books.id, id));
+    return book || undefined;
+  }
+
+  async getBookById(id: string): Promise<Book | undefined> {
     const [book] = await db.select().from(books).where(eq(books.id, id));
     return book || undefined;
   }

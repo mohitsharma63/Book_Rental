@@ -16,6 +16,7 @@ import Wishlist from "./pages/wishlist";
 import Cart from "./pages/cart";
 import NotFound from "./pages/not-found";
 import { StoreProvider } from "./lib/store-context";
+import { AuthProvider } from "@/lib/auth-context";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,21 +49,23 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <StoreProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">
-              <Switch>
-                <Route path="/admin">
-                  <Router />
-                </Route>
-                <Route>
-                  <Router />
-                </Route>
-              </Switch>
-            </main>
-            <Footer />
-          </div>
-          <Toaster />
+          <AuthProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1">
+                <Switch>
+                  <Route path="/admin">
+                    <Router />
+                  </Route>
+                  <Route>
+                    <Router />
+                  </Route>
+                </Switch>
+              </main>
+              <Footer />
+            </div>
+            <Toaster />
+          </AuthProvider>
         </StoreProvider>
       </TooltipProvider>
     </QueryClientProvider>

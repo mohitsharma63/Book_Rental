@@ -363,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/contacts/stats", async (req, res) => {
     try {
       const contacts = await storage.getAllContacts();
-      
+
       const stats = {
         total: contacts.length,
         unread: contacts.filter(c => c.status === 'unread' || c.status === 'new').length,
@@ -371,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         responded: contacts.filter(c => c.status === 'responded').length,
         avgResponseTime: '2.4h' // Static for now, can be calculated based on actual response times
       };
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Get contact stats error:", error);
@@ -500,6 +500,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/reviews", async (req, res) => {
     try {
       const reviewData = insertReviewSchema.parse(req.body);
+
+      // Check if user exists
+      const user = await storage.getUser(reviewData.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if book exists
+      const book = await storage.getBook(reviewData.bookId);
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
       const review = await storage.createReview(reviewData);
       res.status(201).json(review);
     } catch (error) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import { Link } from "wouter";
 export default function BookDetail() {
   const [, params] = useRoute("/book/:id");
   const bookId = params?.id;
+  const { user, isAuthenticated } = useAuth();
 
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedRentalPeriod, setSelectedRentalPeriod] = useState("1");
@@ -69,11 +71,14 @@ export default function BookDetail() {
 const handleSubmitReview = async (e: React.FormEvent) => {
   e.preventDefault();
   
-  const mockUserId = "550e8400-e29b-41d4-a716-446655440000";
+  if (!isAuthenticated || !user) {
+    alert("Please login to submit a review");
+    return;
+  }
 
   // Log the review data before submission
   const reviewData = {
-    userId: mockUserId,
+    userId: user.id,
     bookId: bookId,
     rating: reviewRating,
     comment: reviewComment,
@@ -387,17 +392,25 @@ const handleSubmitReview = async (e: React.FormEvent) => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">Reviews ({displayReviews.length})</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowReviewForm(!showReviewForm)}
-                >
-                  {showReviewForm ? 'Cancel' : 'Write Review'}
-                </Button>
+                {isAuthenticated ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowReviewForm(!showReviewForm)}
+                  >
+                    {showReviewForm ? 'Cancel' : 'Write Review'}
+                  </Button>
+                ) : (
+                  <Link href="/login">
+                    <Button variant="outline" size="sm">
+                      Login to Review
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {/* Review Form */}
-              {showReviewForm && (
+              {showReviewForm && isAuthenticated && (
                 <Card className="mb-6">
                   <CardContent className="p-4">
                     <form onSubmit={handleSubmitReview} className="space-y-4">
