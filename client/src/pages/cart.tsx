@@ -41,8 +41,9 @@ export default function Cart() {
   };
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const durationMultiplier = item.rentalDuration === 7 ? 1 : item.rentalDuration === 14 ? 1.5 : 2;
-    return sum + (item.price * durationMultiplier * item.quantity);
+    const duration = item.rentalPeriod || item.rentalDuration || 1;
+    const durationMultiplier = duration === 1 ? 1 : duration === 2 ? 1.5 : 2;
+    return sum + ((item.price || item.pricePerWeek || 0) * durationMultiplier * item.quantity);
   }, 0);
 
   const deliveryFee = selectedDelivery === "express" ? 4.99 : selectedDelivery === "standard" ? 2.99 : 0;
@@ -132,16 +133,16 @@ export default function Cart() {
                             Rental Duration
                           </label>
                           <Select 
-                            value={item.rentalDuration.toString()}
+                            value={(item.rentalPeriod || item.rentalDuration || 1).toString()}
                             onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="7">1 Week (+$0)</SelectItem>
-                              <SelectItem value="14">2 Weeks (+50%)</SelectItem>
-                              <SelectItem value="21">3 Weeks (+100%)</SelectItem>
+                              <SelectItem value="1">1 Week (+$0)</SelectItem>
+                              <SelectItem value="2">2 Weeks (+50%)</SelectItem>
+                              <SelectItem value="3">3 Weeks (+100%)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -175,7 +176,7 @@ export default function Cart() {
                         <div className="text-right">
                           <div className="text-sm text-muted-foreground">Price</div>
                           <div className="font-semibold">
-                            ${(item.price * (item.rentalDuration === 7 ? 1 : item.rentalDuration === 14 ? 1.5 : 2) * item.quantity).toFixed(2)}
+                            ${((item.price || item.pricePerWeek || 0) * ((item.rentalPeriod || item.rentalDuration || 1) === 1 ? 1 : (item.rentalPeriod || item.rentalDuration || 1) === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
                           </div>
                         </div>
                       </div>

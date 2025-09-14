@@ -9,101 +9,101 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Book, User, Heart, ShoppingCart, Search, Filter, Grid3X3, List, Star } from "lucide-react";
 import { Link } from "wouter";
+import { useStore } from "@/lib/store-context";
 import type { Book as BookType } from "@/lib/types";
 
 export default function Catalog() {
+  const { addToCart, addToWishlist } = useStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("relevance");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const { data: books } = useQuery<BookType[]>({
+  const { data: books = [], isLoading: booksLoading, error: booksError } = useQuery<BookType[]>({
     queryKey: ["/api/books"],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/books');
+        if (!res.ok) {
+          console.warn('Books API failed:', res.status, res.statusText);
+          return [];
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data.map(book => ({
+          ...book,
+          price: parseFloat(book.pricePerWeek),
+          image: book.imageUrl || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
+          status: book.availableCopies > 0 ? "available" : "rented",
+          rating: parseFloat(book.rating) || 4.5,
+          reviews: Math.floor(Math.random() * 200) + 50 // Temporary until reviews are implemented
+        })) : [];
+      } catch (error) {
+        console.warn('Books API error:', error);
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  // Mock data for demonstration
-  const mockBooks = [
-    {
-      id: 1,
-      title: "The Psychology of Money",
-      author: "Morgan Housel",
-      category: "Finance",
-      price: 12.99,
-      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      status: "available",
-      rating: 4.8,
-      reviews: 128
-    },
-    {
-      id: 2,
-      title: "Atomic Habits",
-      author: "James Clear",
-      category: "Self-Help",
-      price: 14.99,
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      status: "available",
-      rating: 4.9,
-      reviews: 256
-    },
-    {
-      id: 3,
-      title: "The Silent Patient",
-      author: "Alex Michaelides",
-      category: "Thriller",
-      price: 11.99,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      status: "available",
-      rating: 4.6,
-      reviews: 89
-    },
-    {
-      id: 4,
-      title: "Klara and the Sun",
-      author: "Kazuo Ishiguro",
-      category: "Fiction",
-      price: 13.99,
-      image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      status: "available",
-      rating: 4.4,
-      reviews: 167
-    },
-    {
-      id: 5,
-      title: "Dune",
-      author: "Frank Herbert",
-      category: "Science Fiction",
-      price: 15.99,
-      image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      status: "rented",
-      rating: 4.7,
-      reviews: 342
-    },
-    {
-      id: 6,
-      title: "The Seven Husbands of Evelyn Hugo",
-      author: "Taylor Jenkins Reid",
-      category: "Romance",
-      price: 12.99,
-      image: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      status: "available",
-      rating: 4.8,
-      reviews: 198
-    }
-  ];
+  const displayBooks = books;
 
-  const displayBooks = books || mockBooks;
+  // Fetch categories from API
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) {
+          console.warn('Categories API failed:', response.status, response.statusText);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data.filter(cat => cat.isActive) : [];
+      } catch (error) {
+        console.warn('Categories API error:', error);
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-  const categories = [
-    { name: "Finance", count: 45 },
-    { name: "Self-Help", count: 67 },
-    { name: "Thriller", count: 32 },
-    { name: "Fiction", count: 89 },
-    { name: "Science Fiction", count: 28 },
-    { name: "Romance", count: 54 },
-    { name: "Mystery", count: 41 },
-    { name: "Biography", count: 23 }
-  ];
+  // Fetch authors from API
+  const { data: authorsData = [], isLoading: authorsLoading } = useQuery({
+    queryKey: ['authors'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/authors'); // Assuming an API endpoint for authors
+        if (!response.ok) {
+          console.warn('Authors API failed:', response.status, response.statusText);
+          return [];
+        }
+        const data = await response.json();
+        // Assuming the data is an array of author objects with a 'name' property
+        return Array.isArray(data) ? data.map(author => author.name) : [];
+      } catch (error) {
+        console.warn('Authors API error:', error);
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  // Calculate book counts for each category
+  const categories = categoriesData.map(category => ({
+    name: category.name,
+    count: displayBooks.filter(book => book.category === category.name).length
+  }));
+
+  // Calculate book counts for each author
+  const authors = authorsData.map(authorName => ({
+    name: authorName,
+    count: displayBooks.filter(book => book.author === authorName).length
+  }));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -136,6 +136,73 @@ export default function Catalog() {
     );
   };
 
+  const filteredBooks = displayBooks.filter(book => {
+    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          book.author.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategories = selectedCategories.length === 0 || selectedCategories.includes(book.category);
+    const matchesAuthors = selectedAuthors.length === 0 || selectedAuthors.includes(book.author);
+    const matchesAvailability = availability.length === 0 || availability.includes(book.status);
+    return matchesSearch && matchesCategories && matchesAuthors && matchesAvailability;
+  });
+
+  const sortedBooks = [...filteredBooks].sort((a, b) => {
+    if (sortBy === "price-low") {
+      return a.price - b.price;
+    } else if (sortBy === "price-high") {
+      return b.price - a.price;
+    } else if (sortBy === "rating") {
+      return b.rating - a.rating;
+    } else if (sortBy === "newest") {
+      // Assuming books have a 'createdAt' field or similar for sorting by newest
+      // For mock data, we'll just use the id as a proxy
+      return b.id - a.id;
+    } else if (sortBy === "alphabetical-az") {
+      return a.title.localeCompare(b.title);
+    } else if (sortBy === "alphabetical-za") {
+      return b.title.localeCompare(a.title);
+    } else if (sortBy === "author-az") {
+      return a.author.localeCompare(b.author);
+    } else if (sortBy === "author-za") {
+      return b.author.localeCompare(a.author);
+    }
+    return 0; // Default to relevance (or no specific sort)
+  });
+
+  const handleRentNow = (book: BookType) => {
+    if (book.availableCopies > 0) {
+      const cartItem = {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: book.imageUrl || book.image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
+        pricePerWeek: parseFloat(book.pricePerWeek || book.price),
+        price: parseFloat(book.pricePerWeek || book.price),
+        category: book.category,
+        availableCopies: book.availableCopies,
+        quantity: 1,
+        rentalPeriod: 1
+      };
+      addToCart(cartItem);
+      alert(`"${book.title}" has been added to your cart!`);
+    }
+  };
+
+  const handleAddToWishlist = (book: BookType) => {
+    const wishlistItem = {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      imageUrl: book.imageUrl || book.image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
+      price: parseFloat(book.pricePerWeek || book.price),
+      category: book.category,
+      rating: book.rating,
+      available: book.availableCopies > 0,
+      dateAdded: new Date().toISOString()
+    };
+    addToWishlist(wishlistItem);
+    alert(`"${book.title}" has been added to your wishlist!`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="max-w-12xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -165,7 +232,7 @@ export default function Catalog() {
                 </div>
                 <p className="text-sm text-muted-foreground">Find your perfect book faster</p>
               </div>
-              
+
               <CardContent className="p-6 space-y-6">
                 {/* Search */}
                 <div className="space-y-3">
@@ -234,28 +301,49 @@ export default function Catalog() {
 
                 <Separator className="bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-                {/* Price Range */}
+                {/* Authors */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    Price Range (per week)
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>$0</span>
-                      <span>$25+</span>
-                    </div>
-                    <div className="px-3">
-                      <div className="h-2 bg-gradient-to-r from-green-200 to-green-400 rounded-full relative">
-                        <div className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white border-2 border-green-500 rounded-full shadow-sm cursor-pointer"></div>
-                        <div className="absolute right-6 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white border-2 border-green-500 rounded-full shadow-sm cursor-pointer"></div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Authors
+                    </h3>
+                    <Badge variant="secondary" className="text-xs px-2 py-1">
+                      {selectedAuthors.length} selected
+                    </Badge>
+                  </div>
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {authors.map((author) => (
+                      <div key={author.name} className="group">
+                        <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 cursor-pointer">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              id={author.name}
+                              checked={selectedAuthors.includes(author.name)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedAuthors([...selectedAuthors, author.name]);
+                                } else {
+                                  setSelectedAuthors(selectedAuthors.filter(a => a !== author.name));
+                                }
+                              }}
+                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <label
+                              htmlFor={author.name}
+                              className="text-sm font-medium leading-none cursor-pointer group-hover:text-primary transition-colors"
+                            >
+                              {author.name}
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                              {author.count}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Input placeholder="Min" className="w-20 h-8 text-xs" />
-                      <span className="text-muted-foreground">to</span>
-                      <Input placeholder="Max" className="w-20 h-8 text-xs" />
-                    </div>
+                    ))}
                   </div>
                 </div>
 
@@ -303,12 +391,13 @@ export default function Catalog() {
 
                 {/* Clear Filters */}
                 <div className="pt-4 border-t border-gray-100">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200"
                     onClick={() => {
                       setSearchQuery("");
                       setSelectedCategories([]);
+                      setSelectedAuthors([]);
                       setAvailability([]);
                     }}
                   >
@@ -319,7 +408,7 @@ export default function Catalog() {
             </Card>
 
             {/* Filter Summary */}
-            {(selectedCategories.length > 0 || availability.length > 0 || searchQuery) && (
+            {(selectedCategories.length > 0 || selectedAuthors.length > 0 || availability.length > 0 || searchQuery) && (
               <Card className="shadow-lg border-0 bg-gradient-to-r from-primary/5 to-blue-50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -335,6 +424,11 @@ export default function Catalog() {
                     {selectedCategories.map(cat => (
                       <Badge key={cat} variant="secondary" className="bg-blue-100 text-blue-800">
                         {cat}
+                      </Badge>
+                    ))}
+                    {selectedAuthors.map(author => (
+                      <Badge key={author} variant="secondary" className="bg-indigo-100 text-indigo-800">
+                        {author}
                       </Badge>
                     ))}
                     {availability.map(avail => (
@@ -354,8 +448,9 @@ export default function Catalog() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-muted-foreground">
-                  Showing <span className="font-semibold text-gray-900">{displayBooks.length}</span> books
+                  Showing <span className="font-semibold text-gray-900">{filteredBooks.length}</span> of {displayBooks.length} books
                 </span>
+                {booksLoading && <span className="text-sm text-muted-foreground">Loading...</span>}
               </div>
 
               <div className="flex items-center gap-4">
@@ -369,7 +464,14 @@ export default function Catalog() {
                   >
                     <Grid3X3 className="h-4 w-4" />
                   </Button>
-                 
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                    className="h-8 px-3"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
                 </div>
 
                 {/* Sort */}
@@ -385,80 +487,198 @@ export default function Catalog() {
                       <SelectItem value="price-high">Price: High to Low</SelectItem>
                       <SelectItem value="rating">Highest Rated</SelectItem>
                       <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="alphabetical-az">Title: A to Z</SelectItem>
+                      <SelectItem value="alphabetical-za">Title: Z to A</SelectItem>
+                      <SelectItem value="author-az">Author: A to Z</SelectItem>
+                      <SelectItem value="author-za">Author: Z to A</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
 
-            {/* Books Grid */}
-            <div className={`grid gap-6 ${
-              viewMode === "grid" 
-                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
-                : "grid-cols-1"
-            }`}>
-              {displayBooks.map((book) => (
-                <Card key={book.id} className="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white">
-                  <div className="relative">
-                    <div className="aspect-[3/4] overflow-hidden">
-                      <img
-                        src={book.image}
-                        alt={book.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="absolute top-3 left-3">
-                      {getStatusBadge(book.status)}
-                    </div>
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <CardContent className="p-5">
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                          {book.title}
-                        </h3>
-                        <p className="text-muted-foreground text-sm">by {book.author}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        {renderStars(book.rating)}
-                        <span className="text-xs text-muted-foreground">({book.reviews} reviews)</span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-xs">
-                          {book.category}
-                        </Badge>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-primary">
-                            ${book.price}<span className="text-sm font-normal text-muted-foreground">/week</span>
-                          </div>
+            {/* Books Display */}
+            {viewMode === "grid" ? (
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {sortedBooks.length > 0 ? (
+                  sortedBooks.map((book) => (
+                    <Card key={book.id} className="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white">
+                      <div className="relative">
+                        <div className="aspect-[3/4] overflow-hidden">
+                          <img
+                            src={book.imageUrl || book.image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400"}
+                            alt={book.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="absolute top-3 left-3">
+                          {getStatusBadge(book.status)}
+                        </div>
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
+                            <Heart className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
-                      <div className="flex gap-2 pt-2">
-                        <Button 
-                          className="flex-1" 
-                          disabled={book.status !== "available"}
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          {book.status === "available" ? "Rent Now" : "Unavailable"}
-                        </Button>
-                        <Button variant="outline" size="icon">
-                          <Heart className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <CardContent className="p-5">
+                        <div className="space-y-3">
+                          <div>
+                            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                              {book.title}
+                            </h3>
+                            <p className="text-muted-foreground text-sm">by {book.author}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            {renderStars(book.rating)}
+                            <span className="text-sm text-muted-foreground">({book.reviews} reviews)</span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">
+                              {book.category}
+                            </Badge>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-primary">
+                                ${parseFloat(book.pricePerWeek || book.price).toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/week</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              className="flex-1"
+                              disabled={book.status !== "available"}
+                              onClick={() => handleRentNow(book)}
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              {book.status === "available" ? "Rent Now" : "Unavailable"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleAddToWishlist(book)}
+                            >
+                              <Heart className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <div className="text-6xl mb-4">📚</div>
+                    <h3 className="text-xl font-semibold mb-2">No books found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {searchQuery || selectedCategories.length > 0 || selectedAuthors.length > 0 || availability.length > 0
+                        ? "Try adjusting your filters to see more results"
+                        : "No books are currently available"}
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategories([]);
+                        setSelectedAuthors([]);
+                        setAvailability([]);
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sortedBooks.length > 0 ? (
+                  sortedBooks.map((book) => (
+                    <Card key={book.id} className="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white">
+                      <CardContent className="p-6">
+                        <div className="flex gap-6">
+                          <div className="relative flex-shrink-0">
+                            <div className="w-24 h-32 overflow-hidden rounded-lg">
+                              <img
+                                src={book.imageUrl || book.image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400"}
+                                alt={book.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                            <div className="absolute -top-2 -right-2">
+                              {getStatusBadge(book.status)}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="font-semibold text-xl group-hover:text-primary transition-colors">
+                                  {book.title}
+                                </h3>
+                                <p className="text-muted-foreground">by {book.author}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-primary">
+                                  ${parseFloat(book.pricePerWeek || book.price).toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/week</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 mb-3">
+                              {renderStars(book.rating)}
+                              <span className="text-sm text-muted-foreground">({book.reviews} reviews)</span>
+                              <Badge variant="outline" className="text-xs">
+                                {book.category}
+                              </Badge>
+                            </div>
+
+                            <div className="flex gap-3">
+                              <Button
+                                className="flex-1 max-w-xs"
+                                disabled={book.status !== "available"}
+                                onClick={() => handleRentNow(book)}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                {book.status === "available" ? "Rent Now" : "Unavailable"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleAddToWishlist(book)}
+                              >
+                                <Heart className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">📚</div>
+                    <h3 className="text-xl font-semibold mb-2">No books found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {searchQuery || selectedCategories.length > 0 || selectedAuthors.length > 0 || availability.length > 0
+                        ? "Try adjusting your filters to see more results"
+                        : "No books are currently available"}
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategories([]);
+                        setSelectedAuthors([]);
+                        setAvailability([]);
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Load More */}
             <div className="flex justify-center mt-12">

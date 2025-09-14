@@ -8,10 +8,12 @@ import { SearchBar } from "@/components/search-bar";
 import { Book } from "@/lib/types";
 import { WandSparkles, Heart, Search as SearchIcon, Rocket, Star, TrendingUp, Clock, Users } from "lucide-react";
 import { Link } from "wouter";
+import { useStore } from "@/lib/store-context";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const { addToWishlist, addToCart } = useStore();
 
   // Fetch books dynamically from database
   const { data: booksData = [], isLoading } = useQuery({
@@ -112,6 +114,38 @@ export default function Home() {
     { label: "Cities Served", value: "50+", icon: "🏙️", color: "text-purple-600" },
     { label: "Years of Service", value: "5+", icon: "⏰", color: "text-orange-600" },
   ];
+
+  const handleAddToWishlist = (book: Book) => {
+    const wishlistItem = {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      imageUrl: book.imageUrl || "/placeholder-book.jpg",
+      price: parseFloat(book.pricePerWeek),
+      available: book.availableCopies > 0,
+      rating: book.rating || 4.5,
+      category: book.category,
+      dateAdded: new Date().toISOString()
+    };
+    addToWishlist(wishlistItem);
+  };
+
+  const handleRentNow = (book: Book) => {
+    if (book.availableCopies > 0) {
+      const cartItem = {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: book.imageUrl || "/placeholder-book.jpg",
+        pricePerWeek: parseFloat(book.pricePerWeek),
+        category: book.category,
+        availableCopies: book.availableCopies,
+        quantity: 1,
+        rentalPeriod: 1
+      };
+      addToCart(cartItem);
+    }
+  };
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -232,57 +266,18 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {displayFeaturedBooks.map((book, index) => (
-              <Card key={book.id} className="book-card-hover overflow-hidden group">
-                <div className="relative">
-                  <img 
-                    src={book.imageUrl} 
-                    alt={book.title}
-                    className="w-full h-48 sm:h-56 lg:h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
-                    <Badge className="bg-primary text-primary-foreground text-xs">
-                      #{index + 1} Featured
-                    </Badge>
-                  </div>
-                  <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
-                    <div className="flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
-                      <Star className="h-3 w-3 fill-current" />
-                      {book.rating || "4.5"}
-                    </div>
-                  </div>
+              <div key={book.id} className="relative">
+                <div className="absolute top-2 left-2 z-10">
+                  <Badge className="bg-primary text-primary-foreground text-xs">
+                    #{index + 1} Featured
+                  </Badge>
                 </div>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="space-y-2">
-                    <Badge variant="outline" className="text-xs">
-                      {book.category}
-                    </Badge>
-                    <h4 className="font-semibold line-clamp-1 text-sm sm:text-base">{book.title}</h4>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{book.author}</p>
-
-                    <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        <span className="hidden sm:inline">{book.totalRentals || "150"} rentals</span>
-                        <span className="sm:hidden">{book.totalRentals || "150"}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {book.publishedYear}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-sm sm:text-lg font-bold">${book.pricePerWeek}<span className="text-xs sm:text-sm">/week</span></span>
-                      <Link href={`/book/${book.id}`}>
-                        <Button size="sm" className="text-xs px-2 sm:px-3">
-                          <span className="hidden sm:inline">View Details</span>
-                          <span className="sm:hidden">View</span>
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <BookCard 
+                  book={book}
+                  onRent={() => handleRentNow(book)}
+                  onWishlist={() => handleAddToWishlist(book)}
+                />
+              </div>
             ))}
           </div>
         )}
