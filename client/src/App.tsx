@@ -6,7 +6,6 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import Home from "./pages/home";
 import Catalog from "./pages/catalog";
-import Dashboard from "./pages/dashboard";
 import Admin from "./pages/admin";
 import BookDetail from "./pages/book-detail";
 import Login from "./pages/login";
@@ -31,7 +30,6 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/catalog" component={Catalog} />
-      <Route path="/dashboard" component={Dashboard} />
       <Route path="/book/:id" component={BookDetail} />
       <Route path="/admin" component={Admin} />
       <Route path="/login" component={Login} />

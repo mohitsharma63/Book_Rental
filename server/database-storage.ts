@@ -1,24 +1,27 @@
 import { eq, like, or, desc, and } from "drizzle-orm";
 import { db } from "./db";
-import { 
-  books, 
-  users, 
-  rentals, 
-  wishlist, 
+import {
+  books,
+  users,
+  rentals,
+  wishlist,
   categories,
   contacts,
-  type Book, 
-  type User, 
-  type Rental, 
+  reviews,
+  type Book,
+  type User,
+  type Rental,
   type Wishlist,
   type Category,
   type Contact,
-  type InsertBook, 
-  type InsertUser, 
-  type InsertRental, 
+  type Review,
+  type InsertBook,
+  type InsertUser,
+  type InsertRental,
   type InsertWishlist,
   type InsertCategory,
-  type InsertContact
+  type InsertContact,
+  type InsertReview
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -98,7 +101,7 @@ export class DatabaseStorage implements IStorage {
   async updateBook(id: string, updateData: Partial<Book>): Promise<Book> {
     try {
       console.log("DatabaseStorage: Updating book", id, "with data:", updateData);
-      
+
       const [book] = await db
         .update(books)
         .set({
@@ -112,7 +115,7 @@ export class DatabaseStorage implements IStorage {
         console.log("DatabaseStorage: Book not found for update:", id);
         throw new Error("Book not found");
       }
-      
+
       console.log("DatabaseStorage: Book updated successfully:", book.id);
       return book;
     } catch (error) {
@@ -124,10 +127,10 @@ export class DatabaseStorage implements IStorage {
   async deleteBook(id: string): Promise<boolean> {
     try {
       console.log("DatabaseStorage: Deleting book with ID:", id);
-      
+
       const result = await db.delete(books).where(eq(books.id, id));
       const success = (result.rowCount || 0) > 0;
-      
+
       console.log("DatabaseStorage: Delete result:", success, "rows affected:", result.rowCount);
       return success;
     } catch (error) {
@@ -202,25 +205,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCategory(categoryData: InsertCategory): Promise<Category> {
+    console.log("DatabaseStorage: Creating category with data:", categoryData);
     const [category] = await db
       .insert(categories)
-      .values(categoryData)
+      .values({
+        name: categoryData.name,
+        description: categoryData.description || "",
+        imageUrl: categoryData.imageUrl,
+        isActive: categoryData.isActive !== false
+      })
       .returning();
+    console.log("DatabaseStorage: Category created:", category);
     return category;
   }
 
-  async updateCategory(id: number, data: Partial<Category>): Promise<Category | null> {
-    try {
-      const [category] = await db
-        .update(categories)
-        .set(data)
-        .where(eq(categories.id, id))
-        .returning();
-      return category || null;
-    } catch (error) {
-      console.error("Error updating category:", error);
-      throw error;
-    }
+  async updateCategory(id: number, updateData: Partial<Category>): Promise<Category | null> {
+    console.log("DatabaseStorage: Updating category", id, "with data:", updateData);
+    const [category] = await db
+      .update(categories)
+      .set({
+        name: updateData.name,
+        description: updateData.description,
+        imageUrl: updateData.imageUrl,
+        isActive: updateData.isActive
+      })
+      .where(eq(categories.id, id))
+      .returning();
+    console.log("DatabaseStorage: Category updated:", category);
+    return category;
   }
 
   async deleteCategory(id: number): Promise<boolean> {
@@ -271,6 +283,59 @@ export class DatabaseStorage implements IStorage {
       return contact || null;
     } catch (error) {
       console.error("Error updating contact status:", error);
+      throw error;
+    }
+  }
+
+  // Review methods
+  async getReviewsByBook(bookId: string): Promise<Review[]> {
+    try {
+      return await db
+        .select({
+          id: reviews.id,
+          userId: reviews.userId,
+          bookId: reviews.bookId,
+          rating: reviews.rating,
+          comment: reviews.comment,
+          createdAt: reviews.createdAt,
+          user: {
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email
+          }
+        })
+        .from(reviews)
+        .innerJoin(users, eq(reviews.userId, users.id))
+        .where(eq(reviews.bookId, bookId))
+        .orderBy(desc(reviews.createdAt));
+    } catch (error) {
+      console.error("Error getting reviews by book:", error);
+      throw error;
+    }
+  }
+
+  async createReview(insertReview: InsertReview): Promise<Review> {
+    try {
+      const [review] = await db
+        .insert(reviews)
+        .values(insertReview)
+        .returning();
+      return review;
+    } catch (error) {
+      console.error("Error creating review:", error);
+      throw error;
+    }
+  }
+
+  async getReviewsByUser(userId: string): Promise<Review[]> {
+    try {
+      return await db
+        .select()
+        .from(reviews)
+        .where(eq(reviews.userId, userId))
+        .orderBy(desc(reviews.createdAt));
+    } catch (error) {
+      console.error("Error getting reviews by user:", error);
       throw error;
     }
   }

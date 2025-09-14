@@ -75,6 +75,15 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  bookId: varchar("book_id").references(() => books.id).notNull(),
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   rentals: many(rentals),
@@ -112,6 +121,17 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
   books: many(books),
 }));
 
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  user: one(users, {
+    fields: [reviews.userId],
+    references: [users.id],
+  }),
+  book: one(books, {
+    fields: [reviews.bookId],
+    references: [books.id],
+  }),
+}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -125,6 +145,8 @@ export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = typeof contacts.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = typeof reviews.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
@@ -145,3 +167,7 @@ export const insertRentalSchema = createInsertSchema(rentals);
 export const insertWishlistSchema = createInsertSchema(wishlist);
 export const insertCategorySchema = createInsertSchema(categories);
 export const insertContactSchema = createInsertSchema(contacts);
+export const insertReviewSchema = createInsertSchema(reviews, {
+  rating: z.number().min(1, "Rating must be at least 1").max(5, "Rating must be at most 5"),
+  comment: z.string().min(1, "Comment is required").max(1000, "Comment must be less than 1000 characters")
+});

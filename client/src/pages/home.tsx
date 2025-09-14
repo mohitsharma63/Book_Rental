@@ -76,6 +76,9 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
 
+  // Use dynamic books data for category counts
+  const displayBooks = booksData;
+
   // Map categories to display format with icons and colors
   const getIconForCategory = (categoryName: string) => {
     const name = categoryName.toLowerCase();
@@ -95,16 +98,15 @@ export default function Home() {
     return { color: "from-gray-50 to-gray-100", iconColor: "text-gray-600", textColor: "text-gray-900", countColor: "text-gray-700" };
   };
 
+  // Map categories from API data to display format with icons and colors
   const categories = categoriesData.map(category => {
-    const icon = getIconForCategory(category.name);
     const colors = getColorForCategory(category.name);
-    const bookCount = books.filter(book => book.category === category.name).length;
-
     return {
       name: category.name,
-      icon,
-      ...colors,
-      count: bookCount.toString()
+      count: displayBooks.filter(book => book.category === category.name).length,
+      icon: getIconForCategory(category.name),
+      imageUrl: category.imageUrl, // Include imageUrl from database
+      ...colors
     };
   });
 
@@ -194,17 +196,17 @@ export default function Home() {
         <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" data-testid="text-categories-title">Popular Categories</h3>
 
         {categoriesLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-100 p-3 sm:p-6 rounded-lg text-center animate-pulse">
-                <div className="w-8 h-8 bg-gray-200 rounded-full mx-auto mb-2 sm:mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
+              <div key={i} className="bg-white rounded-xl shadow-md p-4 sm:p-6 text-center animate-pulse border border-gray-100">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-full mx-auto mb-3 sm:mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
                 <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
               </div>
             ))}
           </div>
         ) : categories.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {categories.slice(0, 8).map((category) => {
               const Icon = category.icon;
               return (
@@ -212,10 +214,42 @@ export default function Home() {
                   key={category.name}
                   href={`/catalog?category=${encodeURIComponent(category.name)}`}
                 >
-                  <div className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`} >
-                    <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
-                    <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
-                    <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
+                  <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group hover:-translate-y-1 border border-gray-100 overflow-hidden">
+                    <div className={`bg-gradient-to-br ${category.color} p-4 sm:p-6 text-center`}>
+                      <div className="relative">
+                        {category.imageUrl ? (
+                          <div className="w-40 h-40 center relative ">
+                            <img
+                              src={category.imageUrl}
+                              alt={category.name}
+                              className="w-full h-full rounded-full object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-300"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                const fallbackContainer = target.nextElementSibling as HTMLElement;
+                                if (fallbackContainer) {
+                                  target.style.display = 'none';
+                                  fallbackContainer.style.display = 'flex';
+                                }
+                              }}
+                            />
+                            <div className="hidden w-full h-full rounded-full bg-white/20 backdrop-blur-sm items-center justify-center">
+                              <Icon className={`${category.iconColor} group-hover:scale-110 transition-transform duration-300`} size={28} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                            <Icon className={`${category.iconColor} group-hover:scale-110 transition-transform duration-300`} size={28} />
+                          </div>
+                        )}
+                      </div>
+                      <h4 className={`font-bold ${category.textColor} mb-1 text-sm sm:text-base group-hover:scale-105 transition-transform duration-300`}>
+                        {category.name}
+                      </h4>
+                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 ${category.countColor}`}>
+                        <span className="text-xs sm:text-sm font-medium">{category.count}</span>
+                        <span className="text-xs">books</span>
+                      </div>
+                    </div>
                   </div>
                 </Link>
               );

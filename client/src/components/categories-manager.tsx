@@ -398,23 +398,26 @@ export function CategoriesManager() {
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       {category.imageUrl ? (
-                        <img
-                          src={category.imageUrl}
-                          alt={category.name}
-                          className="w-10 h-10 object-cover rounded border"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.nextElementSibling.style.display = 'flex';
-                          }}
-                        />
+                        <div className="relative">
+                          <img
+                            src={category.imageUrl}
+                            alt={category.name}
+                            className="w-10 h-10 object-cover rounded border"
+                            onError={(e) => {
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              e.currentTarget.style.display = 'none';
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div style={{ display: 'none' }} className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
+                            <Tag className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </div>
                       ) : (
                         <div className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
                           <Tag className="h-4 w-4 text-muted-foreground" />
                         </div>
                       )}
-                      <div style={{ display: category.imageUrl ? 'none' : 'flex' }} className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
-                        <Tag className="h-4 w-4 text-muted-foreground" />
-                      </div>
                       <div>
                         <div className="font-medium">{category.name}</div>
                       </div>

@@ -5,7 +5,8 @@ import type {
   Rental, InsertRental, 
   Wishlist, InsertWishlist,
   Category, InsertCategory,
-  Contact, InsertContact
+  Contact, InsertContact,
+  Review, InsertReview
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./database-storage";
@@ -36,6 +37,11 @@ export interface IStorage {
   getRentalsByBook(bookId: string): Promise<Rental[]>;
   createRental(insertRental: InsertRental): Promise<Rental>;
   updateRental(id: string, updateData: Partial<Rental>): Promise<Rental>;
+
+  // Review methods
+  getReviewsByBook(bookId: string): Promise<Review[]>;
+  createReview(insertReview: InsertReview): Promise<Review>;
+  getReviewsByUser(userId: string): Promise<Review[]>;
 
   // Wishlist methods
   getWishlistByUser(userId: string): Promise<Wishlist[]>;

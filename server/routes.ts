@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema } from "@shared/schema";
+import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -418,6 +418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name, description, imageUrl, isActive = true } = req.body;
 
+      console.log("Creating category with data:", { name, description, imageUrl, isActive });
+
       if (!name) {
         return res.status(400).json({ error: "Category name is required" });
       }
@@ -425,15 +427,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = await storage.createCategory({
         name,
         description: description || "",
-        image_url: imageUrl || null,
-        isActive,
-        createdAt: new Date()
+        imageUrl: imageUrl || null,
+        isActive
       });
 
+      console.log("Category created successfully:", category);
       res.json(category);
     } catch (error) {
       console.error("Create category error:", error);
-      res.status(500).json({ error: "Failed to create category" });
+      res.status(500).json({ error: "Failed to create category", details: error.message });
     }
   });
 
@@ -442,6 +444,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { name, description, imageUrl, isActive } = req.body;
 
+      console.log("Updating category with ID:", id, "and data:", { name, description, imageUrl, isActive });
+
       if (!name) {
         return res.status(400).json({ error: "Category name is required" });
       }
@@ -449,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = await storage.updateCategory(parseInt(id), {
         name,
         description: description || "",
-        image_url: imageUrl || null,
+        imageUrl: imageUrl || null,
         isActive
       });
 
@@ -457,10 +461,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Category not found" });
       }
 
+      console.log("Category updated successfully:", category);
       res.json(category);
     } catch (error) {
       console.error("Update category error:", error);
-      res.status(500).json({ error: "Failed to update category" });
+      res.status(500).json({ error: "Failed to update category", details: error.message });
     }
   });
 
@@ -477,6 +482,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete category error:", error);
       res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
+  // Review routes
+  app.get("/api/reviews/book/:bookId", async (req, res) => {
+    try {
+      const { bookId } = req.params;
+      const reviews = await storage.getReviewsByBook(bookId);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Get reviews error:", error);
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  app.post("/api/reviews", async (req, res) => {
+    try {
+      const reviewData = insertReviewSchema.parse(req.body);
+      const review = await storage.createReview(reviewData);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Create review error:", error);
+      res.status(400).json({ error: "Invalid review data" });
+    }
+  });
+
+  app.get("/api/reviews/user/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const reviews = await storage.getReviewsByUser(userId);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Get user reviews error:", error);
+      res.status(500).json({ error: "Failed to fetch user reviews" });
     }
   });
 

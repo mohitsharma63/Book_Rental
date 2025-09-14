@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -26,9 +25,12 @@ import { Link } from "wouter";
 export default function BookDetail() {
   const [, params] = useRoute("/book/:id");
   const bookId = params?.id;
-  
+
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedRentalPeriod, setSelectedRentalPeriod] = useState("1");
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
 
   // Fetch book data dynamically from API
   const { data: book, isLoading, error } = useQuery({
@@ -42,6 +44,87 @@ export default function BookDetail() {
     },
     enabled: !!bookId
   });
+
+  // Fetch reviews data
+  const { data: reviews = [], isLoading: reviewsLoading } = useQuery({
+    queryKey: ['reviews', bookId],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/reviews/book/${bookId}`);
+        if (!response.ok) {
+          console.warn('Reviews API failed:', response.status, response.statusText);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.warn('Reviews API error:', error);
+        return [];
+      }
+    },
+    enabled: !!bookId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+const handleSubmitReview = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  const mockUserId = "550e8400-e29b-41d4-a716-446655440000";
+
+  // Log the review data before submission
+  const reviewData = {
+    userId: mockUserId,
+    bookId: bookId,
+    rating: reviewRating,
+    comment: reviewComment,
+  };
+  
+  console.log("Review Data being submitted:", reviewData);
+
+  try {
+    const response = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(reviewData),
+    });
+
+    if (response.ok) {
+      setShowReviewForm(false);
+      setReviewComment("");
+      setReviewRating(5);
+      // Refetch or reload reviews after a successful submission
+      window.location.reload();
+    } else {
+      const errorData = await response.json();
+      console.error("Failed to submit review:", errorData);
+    }
+  } catch (error) {
+    console.error("Error submitting review:", error);
+  }
+};
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return "Today";
+    } else if (diffDays === 1) {
+      return "1 day ago";
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    } else {
+      const months = Math.floor(diffDays / 30);
+      return `${months} month${months > 1 ? 's' : ''} ago`;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -79,32 +162,8 @@ export default function BookDetail() {
     { weeks: "4", price: (parseFloat(book.pricePerWeek) * 3.6).toFixed(2), label: "1 Month", discount: "10% off" },
   ];
 
-  const reviews = [
-    {
-      id: 1,
-      user: "Sarah Johnson",
-      rating: 5,
-      comment: "Absolutely loved this book! Changed my perspective completely.",
-      date: "2 days ago",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"
-    },
-    {
-      id: 2,
-      user: "Mike Chen",
-      rating: 4,
-      comment: "Great read, very insightful and well-written.",
-      date: "1 week ago",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"
-    },
-    {
-      id: 3,
-      user: "Emma Davis",
-      rating: 5,
-      comment: "Couldn't put it down! Highly recommend to everyone.",
-      date: "2 weeks ago",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"
-    }
-  ];
+  // Use dynamic reviews data or fallback to empty array
+  const displayReviews = reviews.length > 0 ? reviews : [];
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -207,7 +266,7 @@ export default function BookDetail() {
                 <span>{book.pages} pages</span>
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-2 mb-6">
               <Badge variant="secondary" className="text-xs">
                 {book.category}
@@ -327,45 +386,121 @@ export default function BookDetail() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold">Reviews (12)</h3>
-                <Button variant="outline" size="sm">
-                  Write Review
+                <h3 className="text-xl font-semibold">Reviews ({displayReviews.length})</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowReviewForm(!showReviewForm)}
+                >
+                  {showReviewForm ? 'Cancel' : 'Write Review'}
                 </Button>
               </div>
 
-              <div className="space-y-6">
-                {reviews.map((review) => (
-                  <div key={review.id} className="flex gap-4">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={review.avatar} />
-                      <AvatarFallback>{review.user.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold">{review.user}</span>
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`h-3 w-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                            />
+              {/* Review Form */}
+              {showReviewForm && (
+                <Card className="mb-6">
+                  <CardContent className="p-4">
+                    <form onSubmit={handleSubmitReview} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Rating</label>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <button
+                              key={rating}
+                              type="button"
+                              onClick={() => setReviewRating(rating)}
+                              className="focus:outline-none"
+                            >
+                              <Star 
+                                className={`h-5 w-5 cursor-pointer transition-colors ${
+                                  rating <= reviewRating 
+                                    ? 'fill-yellow-400 text-yellow-400' 
+                                    : 'text-gray-300 hover:text-yellow-300'
+                                }`} 
+                              />
+                            </button>
                           ))}
                         </div>
-                        <span className="text-sm text-muted-foreground">{review.date}</span>
                       </div>
-                      <p className="text-muted-foreground">{review.comment}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Comment</label>
+                        <textarea
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          className="w-full min-h-[100px] p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="Share your thoughts about this book..."
+                          required
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="submit">Submit Review</Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setShowReviewForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
 
-              <Separator className="my-6" />
-              
-              <div className="text-center">
-                <Button variant="outline">
-                  Load More Reviews
-                </Button>
-              </div>
+              {reviewsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Loading reviews...</p>
+                </div>
+              ) : displayReviews.length > 0 ? (
+                <div className="space-y-6">
+                  {displayReviews.map((review) => (
+                    <div key={review.id} className="flex gap-4">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback>
+                          {review.user?.firstName?.charAt(0) || 'U'}
+                          {review.user?.lastName?.charAt(0) || ''}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold">
+                            {review.user?.firstName} {review.user?.lastName}
+                          </span>
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`h-3 w-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(review.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground">{review.comment}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No reviews yet. Be the first to review this book!</p>
+                </div>
+              )}
+
+              {displayReviews.length > 0 && (
+                <>
+                  <Separator className="my-6" />
+
+                  <div className="text-center">
+                    <Button variant="outline">
+                      Load More Reviews
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
