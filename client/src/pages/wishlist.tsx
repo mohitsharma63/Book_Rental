@@ -1,94 +1,21 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Trash2, ShoppingCart, Search, Filter, Grid, List, Star, Calendar } from "lucide-react";
+import { Heart, Search, Grid, List, Star, Calendar, Trash2 } from "lucide-react";
+import { useStore } from "@/lib/store-context";
+import { Link } from "wouter";
 
 export default function Wishlist() {
+  const { wishlistItems, removeFromWishlist } = useStore();
   const [viewMode, setViewMode] = useState("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date-added");
   const [filterAvailable, setFilterAvailable] = useState("all");
 
-  const staticWishlist = [
-    {
-      id: "wish1",
-      bookId: "book6",
-      title: "The Silent Patient",
-      author: "Alex Michaelides",
-      imageUrl: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      available: true,
-      price: 3.99,
-      rating: 4.5,
-      dateAdded: "2024-01-15",
-      category: "Thriller"
-    },
-    {
-      id: "wish2",
-      bookId: "book7",
-      title: "Where the Crawdads Sing",
-      author: "Delia Owens",
-      imageUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      available: false,
-      price: 4.99,
-      rating: 4.8,
-      dateAdded: "2024-01-10",
-      category: "Fiction"
-    },
-    {
-      id: "wish3",
-      bookId: "book8",
-      title: "The Seven Husbands of Evelyn Hugo",
-      author: "Taylor Jenkins Reid",
-      imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      available: true,
-      price: 4.49,
-      rating: 4.7,
-      dateAdded: "2024-01-08",
-      category: "Romance"
-    },
-    {
-      id: "wish4",
-      bookId: "book9",
-      title: "Educated",
-      author: "Tara Westover",
-      imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      available: true,
-      price: 3.49,
-      rating: 4.6,
-      dateAdded: "2024-01-05",
-      category: "Biography"
-    },
-    {
-      id: "wish5",
-      bookId: "book10",
-      title: "The Midnight Library",
-      author: "Matt Haig",
-      imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      available: false,
-      price: 3.99,
-      rating: 4.4,
-      dateAdded: "2024-01-03",
-      category: "Fiction"
-    },
-    {
-      id: "wish6",
-      bookId: "book11",
-      title: "Atomic Habits",
-      author: "James Clear",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      available: true,
-      price: 4.99,
-      rating: 4.9,
-      dateAdded: "2024-01-01",
-      category: "Self-Help"
-    }
-  ];
-
-  const filteredWishlist = staticWishlist.filter(item => {
+  const filteredWishlist = wishlistItems.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          item.author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesAvailability = filterAvailable === "all" || 
@@ -113,18 +40,18 @@ export default function Wishlist() {
     }
   });
 
-  const handleRemoveFromWishlist = (id: string) => {
-    console.log("Remove from wishlist:", id);
+  const handleRentNow = (id: string) => {
+    alert(`Rent Now clicked for book ID: ${id}`);
   };
 
-  const handleAddToCart = (id: string) => {
-    console.log("Add to cart:", id);
+  const handleRemoveFromWishlist = (id: string) => {
+    removeFromWishlist(id);
   };
 
   const stats = {
-    total: staticWishlist.length,
-    available: staticWishlist.filter(item => item.available).length,
-    unavailable: staticWishlist.filter(item => !item.available).length
+    total: wishlistItems.length,
+    available: wishlistItems.filter(item => item.available).length,
+    unavailable: wishlistItems.filter(item => !item.available).length
   };
 
   return (
@@ -216,9 +143,11 @@ export default function Wishlist() {
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Start adding books to your wishlist to keep track of what you want to read next!
           </p>
-          <Button size="lg" data-testid="browse-books">
-            Browse Books
-          </Button>
+          <Link href="/catalog">
+            <Button size="lg" data-testid="browse-books">
+              Browse Books
+            </Button>
+          </Link>
         </div>
       )}
 
@@ -257,6 +186,15 @@ export default function Wishlist() {
                   >
                     {item.available ? "Available" : "Unavailable"}
                   </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 left-2 bg-white/80 hover:bg-white"
+                    onClick={() => handleRemoveFromWishlist(item.id)}
+                    data-testid={`remove-wishlist-${item.id}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold mb-1 line-clamp-2">{item.title}</h3>
@@ -276,25 +214,16 @@ export default function Wishlist() {
                       <Button 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleAddToCart(item.id)}
-                        data-testid={`add-to-cart-${item.id}`}
+                        onClick={() => handleRentNow(item.id)}
+                        data-testid={`rent-now-${item.id}`}
                       >
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Rent
+                        Rent Now
                       </Button>
                     ) : (
                       <Button variant="secondary" size="sm" className="flex-1">
                         Notify Me
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFromWishlist(item.id)}
-                      data-testid={`remove-${item.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -325,15 +254,25 @@ export default function Wishlist() {
                         <h3 className="font-semibold text-lg">{item.title}</h3>
                         <p className="text-muted-foreground">{item.author}</p>
                       </div>
-                      <Badge
-                        className={`${
-                          item.available
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {item.available ? "Available" : "Unavailable"}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          className={`${
+                            item.available
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {item.available ? "Available" : "Unavailable"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveFromWishlist(item.id)}
+                          data-testid={`remove-wishlist-${item.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-center gap-4 mb-3">
                       <div className="flex items-center gap-1">
@@ -352,25 +291,16 @@ export default function Wishlist() {
                         {item.available ? (
                           <Button 
                             size="sm"
-                            onClick={() => handleAddToCart(item.id)}
-                            data-testid={`add-to-cart-${item.id}`}
+                            onClick={() => handleRentNow(item.id)}
+                            data-testid={`rent-now-${item.id}`}
                           >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Rent
+                            Rent Now
                           </Button>
                         ) : (
                           <Button variant="secondary" size="sm">
                             Notify Me
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveFromWishlist(item.id)}
-                          data-testid={`remove-${item.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
                   </div>

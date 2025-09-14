@@ -9,13 +9,14 @@ import Catalog from "./pages/catalog";
 import Dashboard from "./pages/dashboard";
 import Admin from "./pages/admin";
 import BookDetail from "./pages/book-detail";
-import Login from "@/pages/login";
-import Signup from "@/pages/signup";
+import Login from "./pages/login";
+import Signup from "./pages/signup";
 import About from "./pages/about";
 import Contact from "./pages/contact";
 import Wishlist from "./pages/wishlist";
 import Cart from "./pages/cart";
 import NotFound from "./pages/not-found";
+import { StoreProvider } from "./lib/store-context";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,19 +49,23 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <Switch>
-            <Route path="/admin">
-              <Router />
-            </Route>
-            <Route>
-              <Header />
-              <Router />
-              <Footer />
-            </Route>
-          </Switch>
-        </div>
-        <Toaster />
+        <StoreProvider>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">
+              <Switch>
+                <Route path="/admin">
+                  <Router />
+                </Route>
+                <Route>
+                  <Router />
+                </Route>
+              </Switch>
+            </main>
+            <Footer />
+          </div>
+          <Toaster />
+        </StoreProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

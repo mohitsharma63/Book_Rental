@@ -11,10 +11,12 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useStore } from "@/lib/store-context";
 
 export function Header() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { cartCount, wishlistCount } = useStore();
   
   // Login state management
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -94,6 +96,49 @@ export function Header() {
 
           {/* Right Side - Icons and Profile */}
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Action Icons - Always visible */}
+            <div className="hidden sm:flex items-center space-x-2">
+              <Link href="/wishlist">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  data-testid="button-wishlist"
+                >
+                  <Heart className="h-5 w-5" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                      {wishlistCount > 99 ? '99+' : wishlistCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              <Link href="/cart">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  data-testid="button-cart"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              {isLoggedIn && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+
             {/* Auth Buttons - Show when not logged in */}
             {!isLoggedIn && (
               <div className="hidden sm:flex items-center space-x-2">
@@ -107,37 +152,6 @@ export function Header() {
                     Sign Up
                   </Button>
                 </Link>
-              </div>
-            )}
-            
-            {/* Action Icons - Show when logged in */}
-            {isLoggedIn && (
-              <div className="hidden sm:flex items-center space-x-2">
-                <Link href="/wishlist">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    data-testid="button-wishlist"
-                  >
-                    <Heart className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/cart">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    data-testid="button-cart"
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  data-testid="button-notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                </Button>
               </div>
             )}
 
@@ -179,12 +193,22 @@ export function Header() {
                     <DropdownMenuItem className="cursor-pointer">
                       <Heart className="mr-2 h-4 w-4" />
                       Wishlist
+                      {wishlistCount > 0 && (
+                        <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
+                          {wishlistCount}
+                        </span>
+                      )}
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/cart">
                     <DropdownMenuItem className="cursor-pointer">
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       Cart
+                      {cartCount > 0 && (
+                        <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
+                          {cartCount}
+                        </span>
+                      )}
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuItem className="cursor-pointer">
@@ -273,77 +297,89 @@ export function Header() {
                     </Link>
                   ))}
                   
-                  {isLoggedIn && (
-                    <div className="pt-4 border-t space-y-2">
-                      <Link href="/wishlist">
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <Heart className="mr-2 h-4 w-4" />
-                          Wishlist
-                        </Button>
-                      </Link>
-                      <Link href="/cart">
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <ShoppingCart className="mr-2 h-4 w-4" />
-                          Cart
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" className="w-full justify-start">
-                        <Bell className="mr-2 h-4 w-4" />
-                        Notifications
-                      </Button>
-                      <Link href={JSON.parse(localStorage.getItem("user") || "{}").role === "admin" ? "/admin" : "/dashboard"}>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          Dashboard
-                        </Button>
-                      </Link>
-                      <Button 
-                        variant="ghost" 
+                  <div className="pt-4 border-t space-y-2">
+                    <Link href="/wishlist">
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start"
                         onClick={() => setIsOpen(false)}
                       >
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
+                        <Heart className="mr-2 h-4 w-4" />
+                        Wishlist
+                        {wishlistCount > 0 && (
+                          <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
+                            {wishlistCount}
+                          </span>
+                        )}
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                    </Link>
+                    <Link href="/cart">
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start"
                         onClick={() => setIsOpen(false)}
                       >
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Cart
+                        {cartCount > 0 && (
+                          <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
+                            {cartCount}
+                          </span>
+                        )}
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => {
-                          localStorage.removeItem("user");
-                          setIsLoggedIn(false);
-                          setCurrentUser({
-                            name: "",
-                            email: "",
-                            avatar: ""
-                          });
-                          setIsOpen(false);
-                        }}
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out
-                      </Button>
-                    </div>
-                  )}
+                    </Link>
+                    {isLoggedIn && (
+                      <>
+                        <Button variant="ghost" className="w-full justify-start">
+                          <Bell className="mr-2 h-4 w-4" />
+                          Notifications
+                        </Button>
+                        <Link href={JSON.parse(localStorage.getItem("user") || "{}").role === "admin" ? "/admin" : "/dashboard"}>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            Dashboard
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Profile
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Settings className="mr-2 h-4 w-4" />
+                          Settings
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => {
+                            localStorage.removeItem("user");
+                            setIsLoggedIn(false);
+                            setCurrentUser({
+                              name: "",
+                              email: "",
+                              avatar: ""
+                            });
+                            setIsOpen(false);
+                          }}
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Sign Out
+                        </Button>
+                      </>
+                    )}
+                  </div>
                   
                   {!isLoggedIn && (
                     <div className="pt-4 border-t space-y-2">

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +25,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { Link } from "wouter";
+import { useStore } from "@/lib/store-context";
 
 // Static data for demonstration
 const staticRentals = [
@@ -188,26 +188,27 @@ const staticBooks = [
   }
 ];
 
-const staticWishlist = [
-  {
-    id: "wish1",
-    bookId: "book8",
-    title: "The Seven Husbands of Evelyn Hugo",
-    author: "Taylor Jenkins Reid",
-    imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-    available: true,
-    dateAdded: "2024-01-10"
-  },
-  {
-    id: "wish2",
-    bookId: "book9",
-    title: "Educated",
-    author: "Tara Westover",
-    imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-    available: true,
-    dateAdded: "2024-01-05"
-  }
-];
+// Static wishlist data is removed and will be replaced by useStore()
+// const staticWishlist = [
+//   {
+//     id: "wish1",
+//     bookId: "book8",
+//     title: "The Seven Husbands of Evelyn Hugo",
+//     author: "Taylor Jenkins Reid",
+//     imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
+//     available: true,
+//     dateAdded: "2024-01-10"
+//   },
+//   {
+//     id: "wish2",
+//     bookId: "book9",
+//     title: "Educated",
+//     author: "Tara Westover",
+//     imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
+//     available: true,
+//     dateAdded: "2024-01-05"
+//   }
+// ];
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -226,6 +227,8 @@ export default function Dashboard() {
     new Date(b.rentalDate).getTime() - new Date(a.rentalDate).getTime()
   );
 
+  const { wishlistItems, removeFromWishlist } = useStore();
+
   const stats = {
     activeRentals: currentRentals.length,
     totalRentals: rentals?.length || 0,
@@ -236,7 +239,7 @@ export default function Dashboard() {
       tomorrow.setDate(tomorrow.getDate() + 1);
       return dueDate <= tomorrow;
     }).length,
-    wishlist: staticWishlist.length,
+    wishlist: wishlistItems.length,
     averageRating: rentalHistory.reduce((sum, rental) => sum + (rental.rating || 0), 0) / rentalHistory.filter(r => r.rating).length || 0,
     favoriteGenre: "Fiction"
   };
@@ -473,7 +476,7 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="bg-gradient-to-br from-emerald-500 via-green-600 to-green-700 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -487,7 +490,7 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="bg-gradient-to-br from-purple-500 via-violet-600 to-purple-700 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -501,7 +504,7 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="bg-gradient-to-br from-orange-500 via-amber-600 to-orange-700 text-white shadow-xl border-0 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -525,7 +528,7 @@ export default function Dashboard() {
                     {allHistory.slice(0, 5).map((rental) => {
                       const book = getRentalBook(rental.bookId);
                       if (!book) return null;
-                      
+
                       return (
                         <div key={rental.id} className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4 p-2 sm:p-3 bg-gray-50 rounded-lg">
                           <img 
@@ -566,16 +569,16 @@ export default function Dashboard() {
                   {currentRentals.length} Active
                 </Badge>
               </div>
-              
+
               <div className="space-y-4">
                 {currentRentals.map((rental) => {
                   const book = getRentalBook(rental.bookId);
                   if (!book) return null;
-                  
+
                   const daysUntilDue = getDaysUntilDue(rental.dueDate);
                   const isOverdue = daysUntilDue < 0;
                   const isDueSoon = daysUntilDue <= 1 && daysUntilDue >= 0;
-                  
+
                   return (
                     <Card key={rental.id} className="overflow-hidden">
                       <CardContent className="p-4 lg:p-6">
@@ -636,7 +639,7 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-              
+
               {currentRentals.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                   <BookIcon className="mx-auto h-12 w-12 lg:h-16 lg:w-16 mb-4 text-gray-300" />
@@ -659,12 +662,12 @@ export default function Dashboard() {
                   {allHistory.length} Total Records
                 </Badge>
               </div>
-              
+
               <div className="space-y-4">
                 {allHistory.map((rental) => {
                   const book = getRentalBook(rental.bookId);
                   if (!book) return null;
-                  
+
                   return (
                     <Card key={rental.id} className="overflow-hidden">
                       <CardContent className="p-4 lg:p-6">
@@ -730,12 +733,12 @@ export default function Dashboard() {
                   {rentalHistory.length} Completed
                 </Badge>
               </div>
-              
+
               <div className="space-y-4">
                 {rentalHistory.map((rental) => {
                   const book = getRentalBook(rental.bookId);
                   if (!book) return null;
-                  
+
                   return (
                     <Card key={rental.id} className="overflow-hidden">
                       <CardContent className="p-4 lg:p-6">
@@ -779,7 +782,7 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-              
+
               {rentalHistory.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                   <Clock className="mx-auto h-12 w-12 lg:h-16 lg:w-16 mb-4 text-gray-300" />
@@ -789,19 +792,19 @@ export default function Dashboard() {
               )}
             </div>
           )}
-          
+
           {/* Wishlist Tab */}
           {activeTab === "wishlist" && (
             <div>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h3 className="text-xl lg:text-2xl font-semibold">My Wishlist</h3>
                 <Badge className="bg-purple-100 text-purple-800">
-                  {staticWishlist.length} Items
+                  {wishlistItems.length} Items
                 </Badge>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                {staticWishlist.map((item) => (
+                {wishlistItems.slice(0, 3).map((item) => (
                   <Card key={item.id} className="overflow-hidden">
                     <CardContent className="p-4">
                       <img 
@@ -830,7 +833,7 @@ export default function Dashboard() {
                               Notify
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" data-testid={`button-remove-wishlist-${item.id}`}>
+                          <Button variant="ghost" size="sm" onClick={() => removeFromWishlist(item.id)} data-testid={`button-remove-wishlist-${item.id}`}>
                             <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
                           </Button>
                         </div>
@@ -839,8 +842,8 @@ export default function Dashboard() {
                   </Card>
                 ))}
               </div>
-              
-              {staticWishlist.length === 0 && (
+
+              {wishlistItems.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                   <Heart className="mx-auto h-12 w-12 lg:h-16 lg:w-16 mb-4 text-gray-300" />
                   <h3 className="text-base lg:text-lg font-medium mb-2">Your wishlist is empty</h3>
@@ -862,12 +865,12 @@ export default function Dashboard() {
                   {rentalHistory.filter(r => r.review).length} Reviews
                 </Badge>
               </div>
-              
+
               <div className="space-y-4">
                 {rentalHistory.filter(r => r.review).map((rental) => {
                   const book = getRentalBook(rental.bookId);
                   if (!book) return null;
-                  
+
                   return (
                     <Card key={rental.id} className="overflow-hidden">
                       <CardContent className="p-4 lg:p-6">
@@ -897,7 +900,7 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-              
+
               {rentalHistory.filter(r => r.review).length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                   <Star className="mx-auto h-12 w-12 lg:h-16 lg:w-16 mb-4 text-gray-300" />
@@ -907,7 +910,7 @@ export default function Dashboard() {
               )}
             </div>
           )}
-          
+
           {/* Profile Settings Tab */}
           {activeTab === "profile" && (
             <div className="max-w-2xl mx-auto">
@@ -923,17 +926,17 @@ export default function Dashboard() {
                     <Input defaultValue="Doe" data-testid="input-last-name" />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Email</label>
                   <Input type="email" defaultValue="john.doe@example.com" data-testid="input-email" />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Phone</label>
                   <Input type="tel" defaultValue="+1 (555) 123-4567" data-testid="input-phone" />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Address</label>
                   <Textarea 
@@ -942,7 +945,7 @@ export default function Dashboard() {
                     data-testid="textarea-address"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Reading Preferences</label>
                   <Textarea 
@@ -951,7 +954,7 @@ export default function Dashboard() {
                     data-testid="textarea-preferences"
                   />
                 </div>
-                
+
                 <div className="border-t pt-6">
                   <h4 className="font-medium mb-4">Account Information</h4>
                   <div className="text-sm text-gray-600 space-y-2">
@@ -961,7 +964,7 @@ export default function Dashboard() {
                     <p><strong>Average Rating Given:</strong> {stats.averageRating.toFixed(1)}/5</p>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
                   <Button type="submit" className="w-full sm:w-auto" data-testid="button-save-profile">
                     Save Changes

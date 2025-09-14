@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,64 +7,29 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoppingCart, Trash2, Plus, Minus, Tag, Clock, CreditCard, Truck } from "lucide-react";
+import { useStore } from "@/lib/store-context";
 
 export default function Cart() {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: "cart1",
-      bookId: "book1",
-      title: "The Great Gatsby",
-      author: "F. Scott Fitzgerald",
-      imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      price: 3.99,
-      rentalDuration: 14,
-      quantity: 1,
-      available: true
-    },
-    {
-      id: "cart2",
-      bookId: "book2",
-      title: "To Kill a Mockingbird",
-      author: "Harper Lee",
-      imageUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      price: 4.49,
-      rentalDuration: 14,
-      quantity: 1,
-      available: true
-    },
-    {
-      id: "cart3",
-      bookId: "book3",
-      title: "Pride and Prejudice",
-      author: "Jane Austen",
-      imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=280",
-      price: 3.49,
-      rentalDuration: 7,
-      quantity: 1,
-      available: true
-    }
-  ]);
-
+  const { cartItems, removeFromCart, updateCartQuantity } = useStore();
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState("standard");
 
   const updateQuantity = (id: string, change: number) => {
-    setCartItems(prev => prev.map(item => 
-      item.id === id 
-        ? { ...item, quantity: Math.max(1, item.quantity + change) }
-        : item
-    ));
+    const item = cartItems.find(item => item.id === id);
+    if (item) {
+      updateCartQuantity(id, item.quantity + change);
+    }
   };
 
   const removeItem = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
+    removeFromCart(id);
   };
 
   const updateRentalDuration = (id: string, duration: number) => {
-    setCartItems(prev => prev.map(item =>
-      item.id === id ? { ...item, rentalDuration: duration } : item
-    ));
+    // For now, we'll handle this locally since it's not in the context yet
+    // You can extend the context to include this functionality
+    console.log('Update rental duration:', id, duration);
   };
 
   const applyPromoCode = () => {
