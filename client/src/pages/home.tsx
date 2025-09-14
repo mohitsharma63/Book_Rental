@@ -13,175 +13,32 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
-  // Using static data instead of API
-  const isLoading = false;
+  // Fetch books dynamically from database
+  const { data: booksData = [], isLoading } = useQuery({
+    queryKey: ['books'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/books');
+        if (!response.ok) {
+          console.warn('Books API failed:', response.status, response.statusText);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.warn('Books API error:', error);
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-  // Comprehensive static book data
-  const staticBooksData = [
-    {
-      id: "book1",
-      title: "The Psychology of Money",
-      author: "Morgan Housel",
-      isbn: "9780857199096",
-      category: "Finance",
-      publishedYear: 2020,
-      pricePerWeek: "12.99",
-      availableCopies: 8,
-      totalCopies: 10,
-      description: "Timeless lessons on wealth, greed, and happiness from one of the most important financial writers of our time.",
-      imageUrl: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.8,
-      totalRentals: 245,
-      featured: true
-    },
-    {
-      id: "book2",
-      title: "Atomic Habits",
-      author: "James Clear",
-      isbn: "9780735211292",
-      category: "Self-Help",
-      publishedYear: 2018,
-      pricePerWeek: "14.99",
-      availableCopies: 5,
-      totalCopies: 8,
-      description: "An easy & proven way to build good habits & break bad ones. Transform your life with tiny changes.",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.9,
-      totalRentals: 389,
-      featured: true
-    },
-    {
-      id: "book3",
-      title: "The Silent Patient",
-      author: "Alex Michaelides",
-      isbn: "9781250301697",
-      category: "Thriller",
-      publishedYear: 2019,
-      pricePerWeek: "11.99",
-      availableCopies: 3,
-      totalCopies: 6,
-      description: "A woman's act of violence against her husband and her refusal to speak sends shockwaves through London.",
-      imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.6,
-      totalRentals: 178,
-      featured: true
-    },
-    {
-      id: "book4",
-      title: "Klara and the Sun",
-      author: "Kazuo Ishiguro",
-      isbn: "9780571364886",
-      category: "Fiction",
-      publishedYear: 2021,
-      pricePerWeek: "13.99",
-      availableCopies: 4,
-      totalCopies: 5,
-      description: "A magnificent new novel from Nobel Prize-winner Kazuo Ishiguro about love, loss, and what it means to be human.",
-      imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.7,
-      totalRentals: 156,
-      featured: true
-    },
-    {
-      id: "book5",
-      title: "The Great Gatsby",
-      author: "F. Scott Fitzgerald",
-      isbn: "9780743273565",
-      category: "Fiction",
-      publishedYear: 1925,
-      pricePerWeek: "9.99",
-      availableCopies: 6,
-      totalCopies: 8,
-      description: "A classic American novel set in the Jazz Age, exploring themes of wealth, love, and the American Dream.",
-      imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.4,
-      totalRentals: 567,
-      featured: false
-    },
-    {
-      id: "book6",
-      title: "To Kill a Mockingbird",
-      author: "Harper Lee",
-      isbn: "9780061120084",
-      category: "Fiction",
-      publishedYear: 1960,
-      pricePerWeek: "10.99",
-      availableCopies: 2,
-      totalCopies: 5,
-      description: "A gripping tale of racial injustice and childhood innocence in the American South.",
-      imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.8,
-      totalRentals: 432,
-      featured: false
-    },
-    {
-      id: "book7",
-      title: "1984",
-      author: "George Orwell",
-      isbn: "9780451524935",
-      category: "Dystopian Fiction",
-      publishedYear: 1949,
-      pricePerWeek: "11.99",
-      availableCopies: 4,
-      totalCopies: 6,
-      description: "A dystopian social science fiction novel exploring themes of totalitarianism and surveillance.",
-      imageUrl: "https://images.unsplash.com/photo-1495640388908-05fa85288e61?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.7,
-      totalRentals: 298,
-      featured: false
-    },
-    {
-      id: "book8",
-      title: "Pride and Prejudice",
-      author: "Jane Austen",
-      isbn: "9780141439518",
-      category: "Romance",
-      publishedYear: 1813,
-      pricePerWeek: "8.99",
-      availableCopies: 7,
-      totalCopies: 9,
-      description: "A romantic novel of manners following the relationship between Elizabeth Bennet and Mr. Darcy.",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.6,
-      totalRentals: 543,
-      featured: false
-    },
-    {
-      id: "book9",
-      title: "The Catcher in the Rye",
-      author: "J.D. Salinger",
-      isbn: "9780316769174",
-      category: "Coming-of-age Fiction",
-      publishedYear: 1951,
-      pricePerWeek: "10.99",
-      availableCopies: 3,
-      totalCopies: 4,
-      description: "A controversial novel about teenage rebellion and alienation in post-war America.",
-      imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.2,
-      totalRentals: 267,
-      featured: false
-    },
-    {
-      id: "book10",
-      title: "Dune",
-      author: "Frank Herbert",
-      isbn: "9780441172719",
-      category: "Sci-Fi",
-      publishedYear: 1965,
-      pricePerWeek: "15.99",
-      availableCopies: 2,
-      totalCopies: 4,
-      description: "An epic science fiction novel set in a distant future amidst a feudal interstellar society.",
-      imageUrl: "https://images.unsplash.com/photo-1495640388908-05fa85288e61?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      rating: 4.8,
-      totalRentals: 189,
-      featured: false
-    }
-  ];
-
+  // Use dynamic books data
+  const books = booksData;
+  
   // Filter books for display
-  const filteredBooks = staticBooksData.filter(book => {
+  const filteredBooks = books.filter(book => {
     if (searchQuery && !book.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
         !book.author.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
@@ -192,15 +49,61 @@ export default function Home() {
     return true;
   });
 
-  const books = staticBooksData;
-  const featuredBooks = books.slice(0, 3);
+  // Get featured books (first 3 or books marked as featured)
+  const featuredBooks = books.filter(book => book.featured).slice(0, 3) || books.slice(0, 3);
 
-  const categories = [
-    { name: "Fiction", icon: WandSparkles, color: "from-blue-50 to-blue-100", iconColor: "text-blue-600", textColor: "text-blue-900", countColor: "text-blue-700", count: "4" },
-    { name: "Romance", icon: Heart, color: "from-red-50 to-red-100", iconColor: "text-red-600", textColor: "text-red-900", countColor: "text-red-700", count: "1" },
-    { name: "Thriller", icon: SearchIcon, color: "from-purple-50 to-purple-100", iconColor: "text-purple-600", textColor: "text-purple-900", countColor: "text-purple-700", count: "1" },
-    { name: "Sci-Fi", icon: Rocket, color: "from-green-50 to-green-100", iconColor: "text-green-600", textColor: "text-green-900", countColor: "text-green-700", count: "1" },
-  ];
+  // Fetch categories dynamically from database
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) {
+          console.warn('Categories API failed:', response.status, response.statusText);
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data.filter(cat => cat.isActive) : [];
+      } catch (error) {
+        console.warn('Categories API error:', error);
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  // Map categories to display format with icons and colors
+  const getIconForCategory = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('fiction')) return WandSparkles;
+    if (name.includes('romance')) return Heart;
+    if (name.includes('thriller') || name.includes('mystery')) return SearchIcon;
+    if (name.includes('sci-fi') || name.includes('science')) return Rocket;
+    return WandSparkles; // default icon
+  };
+
+  const getColorForCategory = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('fiction')) return { color: "from-blue-50 to-blue-100", iconColor: "text-blue-600", textColor: "text-blue-900", countColor: "text-blue-700" };
+    if (name.includes('romance')) return { color: "from-red-50 to-red-100", iconColor: "text-red-600", textColor: "text-red-900", countColor: "text-red-700" };
+    if (name.includes('thriller') || name.includes('mystery')) return { color: "from-purple-50 to-purple-100", iconColor: "text-purple-600", textColor: "text-purple-900", countColor: "text-purple-700" };
+    if (name.includes('sci-fi') || name.includes('science')) return { color: "from-green-50 to-green-100", iconColor: "text-green-600", textColor: "text-green-900", countColor: "text-green-700" };
+    return { color: "from-gray-50 to-gray-100", iconColor: "text-gray-600", textColor: "text-gray-900", countColor: "text-gray-700" };
+  };
+
+  const categories = categoriesData.map(category => {
+    const icon = getIconForCategory(category.name);
+    const colors = getColorForCategory(category.name);
+    const bookCount = books.filter(book => book.category === category.name).length;
+    
+    return {
+      name: category.name,
+      icon,
+      ...colors,
+      count: bookCount.toString()
+    };
+  });
 
   const stats = [
     { label: "Books Available", value: "10,000+", icon: "📚", color: "text-blue-600" },
@@ -360,23 +263,40 @@ export default function Home() {
       {/* Popular Categories */}
       <section className="mb-8 sm:mb-12">
         <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6" data-testid="text-categories-title">Popular Categories</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          {categories.map((category) => {
-            const Icon = category.icon;
-            return (
-              <div 
-                key={category.name}
-                className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`}
-                onClick={() => setCategoryFilter(category.name)}
-                data-testid={`card-category-${category.name.toLowerCase()}`}
-              >
-                <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
-                <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
-                <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
+        
+        {categoriesLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gray-100 p-3 sm:p-6 rounded-lg text-center animate-pulse">
+                <div className="w-8 h-8 bg-gray-200 rounded-full mx-auto mb-2 sm:mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : categories.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {categories.slice(0, 8).map((category) => {
+              const Icon = category.icon;
+              return (
+                <div 
+                  key={category.name}
+                  className={`bg-gradient-to-br ${category.color} p-3 sm:p-6 rounded-lg text-center hover:shadow-md transition-all cursor-pointer group hover:scale-105`}
+                  onClick={() => setCategoryFilter(category.name)}
+                  data-testid={`card-category-${category.name.toLowerCase()}`}
+                >
+                  <Icon className={`text-2xl sm:text-3xl ${category.iconColor} mb-2 sm:mb-3 mx-auto group-hover:scale-110 transition-transform`} size={24} />
+                  <h4 className={`font-semibold ${category.textColor} mb-1 text-sm sm:text-base`}>{category.name}</h4>
+                  <p className={`text-xs sm:text-sm ${category.countColor}`}>{category.count} books</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No categories available at the moment.</p>
+          </div>
+        )}
       </section>
 
       {/* Why Choose BookWise */}
