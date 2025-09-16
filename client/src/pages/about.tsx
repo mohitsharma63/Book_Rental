@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,12 +57,12 @@ export default function About() {
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Hero Section */}
       <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
-        <Badge className="mb-4 text-xs sm:text-sm">About BookWise</Badge>
+        <Badge className="mb-4 text-xs sm:text-sm">About BookLoop</Badge>
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6" data-testid="about-title">
           Revolutionizing How You Read
         </h1>
         <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Founded in 2024, BookWise is more than just a book rental service. We're a community 
+          Founded in 2024, BookLoop is more than just a book rental service. We're a community 
           of book lovers dedicated to making reading accessible, affordable, and enjoyable for everyone.
         </p>
       </div>
@@ -110,7 +109,7 @@ export default function About() {
         <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">Our Values</h2>
           <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-            These core values guide everything we do at BookWise.
+            These core values guide everything we do at BookLoop.
           </p>
         </div>
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
@@ -156,7 +155,7 @@ export default function About() {
       <div className="bg-primary/5 rounded-lg p-4 sm:p-6 lg:p-8 text-center">
         <h2 className="text-xl sm:text-2xl font-bold mb-4">Ready to Start Reading?</h2>
         <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-2xl mx-auto px-4 sm:px-0">
-          Join thousands of readers who have already discovered their next favorite book with BookWise.
+          Join thousands of readers who have already discovered their next favorite book with BookLoop.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Button size="lg" className="w-full sm:w-auto">Browse Catalog</Button>

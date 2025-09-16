@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-
+import Logo from "@assets/logo-removebg-preview_1757943248494.png";
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,8 +51,14 @@ export default function Login() {
         <div className="text-center mb-8">
           <Link href="/">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <BookOpen className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-primary">BookWise</h1>
+              <Link href="/">
+                <img
+                  src={Logo}
+                  alt="BookLoop"
+                  className="h-20 w-auto cursor-pointer"
+                  data-testid="logo"
+                />
+              </Link>
             </div>
           </Link>
           <p className="text-muted-foreground">Welcome back! Please sign in to your account</p>
@@ -131,14 +137,7 @@ export default function Login() {
               </p>
             </div>
 
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</p>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p><strong>Admin:</strong> admin@bookwise.com / admin123</p>
-                <p><strong>User:</strong> user@bookwise.com / user123</p>
-              </div>
-            </div>
+           
           </CardContent>
         </Card>
 

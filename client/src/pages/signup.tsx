@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, BookOpen, Check } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-
+import Logo from "@assets/logo-removebg-preview_1757943248494.png";
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -92,7 +92,7 @@ export default function Signup() {
               </div>
               <h2 className="text-2xl font-semibold text-green-800">Account Created!</h2>
               <p className="text-muted-foreground">
-                Welcome to BookWise! You will be redirected to your dashboard shortly.
+                Welcome to BookLoop! You will be redirected to your dashboard shortly.
               </p>
             </div>
           </CardContent>
@@ -106,12 +106,16 @@ export default function Signup() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <BookOpen className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-primary">BookWise</h1>
+               <Link href="/">
+                <img
+                  src={Logo}
+                  alt="BookLoop"
+                  className="h-20 w-auto cursor-pointer"
+                  data-testid="logo"
+                />
+              </Link>
             </div>
-          </Link>
           <p className="text-muted-foreground">Create your account to get started</p>
         </div>
 
@@ -237,13 +241,17 @@ export default function Signup() {
                 />
                 <Label htmlFor="agreeToTerms" className="text-sm text-muted-foreground">
                   I agree to the{" "}
-                  <Button variant="link" className="p-0 h-auto text-primary">
-                    Terms of Service
-                  </Button>
+                  <Link href="/terms">
+                    <Button variant="link" className="p-0 h-auto text-primary">
+                      Terms of Service
+                    </Button>
+                  </Link>
                   {" "}and{" "}
-                  <Button variant="link" className="p-0 h-auto text-primary">
-                    Privacy Policy
-                  </Button>
+                  <Link href="/privacy">
+                    <Button variant="link" className="p-0 h-auto text-primary">
+                      Privacy Policy
+                    </Button>
+                  </Link>
                 </Label>
               </div>
 

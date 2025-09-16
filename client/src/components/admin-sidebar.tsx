@@ -136,7 +136,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <BookOpen className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-lg font-bold text-gray-900">BookWise</span>
+                <span className="text-lg font-bold text-gray-900">BookLoop</span>
               </div>
             )}
             <Button

@@ -12,8 +12,12 @@ import Login from "./pages/login";
 import Signup from "./pages/signup";
 import About from "./pages/about";
 import Contact from "./pages/contact";
+import Privacy from "./pages/privacy";
+import Terms from "./pages/terms";
 import Wishlist from "./pages/wishlist";
 import Cart from "./pages/cart";
+import Checkout from "@/pages/checkout";
+// import PaymentSuccess from "./pages/payment-success";
 import NotFound from "./pages/not-found";
 import { StoreProvider } from "./lib/store-context";
 import { AuthProvider } from "@/lib/auth-context";
@@ -37,8 +41,12 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/wishlist" component={Wishlist} />
       <Route path="/cart" component={Cart} />
+      <Route path="/checkout" component={Checkout} />
+      {/* <Route path="/payment-success" component={PaymentSuccess} /> */}
       <Route component={NotFound} />
     </Switch>
   );

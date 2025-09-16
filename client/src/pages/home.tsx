@@ -331,9 +331,9 @@ export default function Home() {
       {/* Why Choose BookWise */}
       <section className="mb-8 sm:mb-12 bg-muted/30 rounded-lg p-4 sm:p-6 lg:p-8">
         <div className="text-center mb-6 sm:mb-8">
-          <h3 className="text-xl sm:text-2xl font-bold mb-4">Why Choose BookWise?</h3>
+          <h3 className="text-xl sm:text-2xl font-bold mb-4">Why Choose BookLoop?</h3>
           <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto px-4 sm:px-0">
-            Join thousands of readers who have made BookWise their go-to platform for discovering and enjoying great books.
+            Join thousands of readers who have made BookLoop their go-to platform for discovering and enjoying great books.
           </p>
         </div>
 

@@ -13,7 +13,7 @@ import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Men
 import { useState, useEffect, useContext } from "react"; // Import useContext
 import { useStore } from "@/lib/store-context";
 import { useAuth } from "@/lib/auth-context";
-
+import Logo from "@assets/logo-removebg-preview_1757943248494.png";
 export function Header() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -43,12 +43,12 @@ export function Header() {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <Link href="/">
-                <h1
-                  className="text-xl sm:text-2xl font-bold text-primary cursor-pointer"
+                <img
+                  src={Logo}
+                  alt="BookLoop"
+                  className="h-20 w-auto cursor-pointer"
                   data-testid="logo"
-                >
-                  BookWise
-                </h1>
+                />
               </Link>
             </div>
           </div>

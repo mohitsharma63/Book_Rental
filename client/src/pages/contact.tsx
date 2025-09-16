@@ -111,14 +111,14 @@ export default function Contact() {
     {
       title: "Email Us",
       description: "Get in touch via email",
-      value: "support@bookwise.com",
+      value: "bookloop.ind@gmail.com",
       icon: Mail,
       color: "text-blue-600"
     },
     {
       title: "Call Us",
       description: "Speak with our team",
-      value: "+1 (555) 123-4567",
+      value: "+91 9652883765",
       icon: Phone,
       color: "text-green-600"
     },
@@ -313,8 +313,8 @@ export default function Contact() {
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Find quick answers to common questions about BookWise.
-          </p>
+          Find quick answers to common questions about BookLoop.
+        </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">

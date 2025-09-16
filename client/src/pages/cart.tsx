@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Trash2, Plus, Minus, Tag, Clock, CreditCard, Truck } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Tag, Clock, CreditCard, Truck, Shield, ArrowLeft } from "lucide-react";
 import { useStore } from "@/lib/store-context";
+import { Link } from "wouter";
 
 export default function Cart() {
   const { cartItems, removeFromCart, updateCartQuantity } = useStore();
@@ -27,8 +29,6 @@ export default function Cart() {
   };
 
   const updateRentalDuration = (id: string, duration: number) => {
-    // For now, we'll handle this locally since it's not in the context yet
-    // You can extend the context to include this functionality
     console.log('Update rental duration:', id, duration);
   };
 
@@ -56,258 +56,278 @@ export default function Cart() {
       name: "Store Pickup",
       price: 0,
       description: "Ready in 2 hours",
-      icon: "🏪"
+      icon: "🏪",
+      highlight: false
     },
     {
       id: "standard",
       name: "Standard Delivery",
       price: 2.99,
       description: "2-3 business days",
-      icon: "📦"
+      icon: "📦",
+      highlight: true
     },
     {
       id: "express",
       name: "Express Delivery",
       price: 4.99,
       description: "Next business day",
-      icon: "⚡"
+      icon: "⚡",
+      highlight: false
     }
   ];
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center gap-3 mb-8">
-        <ShoppingCart className="h-8 w-8" />
-        <h1 className="text-3xl font-bold" data-testid="cart-title">
-          Shopping Cart
-        </h1>
-        <Badge variant="secondary" className="ml-2">
-          {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
-        </Badge>
-      </div>
-
-      {cartItems.length === 0 ? (
-        <div className="text-center py-16">
-          <ShoppingCart className="mx-auto h-16 w-16 mb-6 text-muted-foreground" />
-          <h3 className="text-2xl font-semibold mb-4">Your cart is empty</h3>
-          <p className="text-muted-foreground mb-6">
-            Looks like you haven't added any books to your cart yet.
-          </p>
-          <Button size="lg" data-testid="browse-books">
-            Browse Books
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Link href="/catalog">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Continue Shopping
+              </Button>
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShoppingCart className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900" data-testid="cart-title">
+                  Shopping Cart
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex gap-4">
-                    <img
-                      src={item.imageUrl}
-                      alt={`${item.title} cover`}
-                      className="w-20 h-28 object-cover rounded"
-                    />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold">{item.title}</h3>
-                          <p className="text-sm text-muted-foreground">{item.author}</p>
+
+        {cartItems.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 max-w-md mx-auto">
+              <div className="p-4 bg-gray-50 rounded-xl mb-6 w-fit mx-auto">
+                <ShoppingCart className="h-12 w-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Your cart is empty</h3>
+              <p className="text-gray-500 mb-6">
+                Discover amazing books and start your reading journey today.
+              </p>
+              <Link href="/catalog">
+                <Button size="lg" className="px-8" data-testid="browse-books">
+                  Browse Books
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-12 gap-8">
+            {/* Cart Items */}
+            <div className="lg:col-span-8 space-y-4">
+              {cartItems.map((item) => (
+                <Card key={item.id} className="overflow-hidden border-0 shadow-sm bg-white/80 backdrop-blur">
+                  <CardContent className="p-6">
+                    <div className="flex gap-6">
+                      <div className="relative">
+                        <img
+                          src={item.imageUrl}
+                          alt={`${item.title} cover`}
+                          className="w-24 h-32 object-cover rounded-lg shadow-sm"
+                        />
+                        <div className="absolute -top-2 -right-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.id)}
+                            className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 text-red-600 rounded-full"
+                            data-testid={`remove-${item.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
-                          data-testid={`remove-${item.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                        {/* Rental Duration */}
+                      <div className="flex-1 space-y-4">
                         <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Rental Duration
-                          </label>
-                          <Select 
-                            value={(item.rentalPeriod || item.rentalDuration || 1).toString()}
-                            onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">1 Week (+$0)</SelectItem>
-                              <SelectItem value="2">2 Weeks (+50%)</SelectItem>
-                              <SelectItem value="3">3 Weeks (+100%)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <h3 className="font-semibold text-lg text-gray-900">{item.title}</h3>
+                          <p className="text-gray-600">{item.author}</p>
                         </div>
-
-                        {/* Quantity */}
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Quantity
-                          </label>
-                          <div className="flex items-center border rounded-md">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => updateQuantity(item.id, -1)}
-                              disabled={item.quantity === 1}
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {/* Rental Duration */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Rental Period
+                            </label>
+                            <Select 
+                              value={(item.rentalPeriod || item.rentalDuration || 1).toString()}
+                              onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
                             >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="px-4 py-2 font-medium">{item.quantity}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => updateQuantity(item.id, 1)}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                              <SelectTrigger className="bg-gray-50 border-gray-200">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 Week</SelectItem>
+                                <SelectItem value="2">2 Weeks (+50%)</SelectItem>
+                                <SelectItem value="3">3 Weeks (+100%)</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                        </div>
 
-                        {/* Price */}
-                        <div className="text-right">
-                          <div className="text-sm text-muted-foreground">Price</div>
-                          <div className="font-semibold">
-                            ${((item.price || item.pricePerWeek || 0) * ((item.rentalPeriod || item.rentalDuration || 1) === 1 ? 1 : (item.rentalPeriod || item.rentalDuration || 1) === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
+                          {/* Quantity */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Quantity
+                            </label>
+                            <div className="flex items-center bg-gray-50 rounded-lg p-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, -1)}
+                                disabled={item.quantity === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="px-4 py-2 font-medium min-w-[3rem] text-center">{item.quantity}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, 1)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Price */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Price</label>
+                            <div className="text-2xl font-bold text-primary">
+                              ${((item.price || item.pricePerWeek || 0) * ((item.rentalPeriod || item.rentalDuration || 1) === 1 ? 1 : (item.rentalPeriod || item.rentalDuration || 1) === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Delivery Options */}
+              
+            </div>
+
+            {/* Order Summary Sidebar */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Promo Code */}
+              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="p-2 bg-green-50 rounded-lg">
+                      <Tag className="h-5 w-5 text-green-600" />
+                    </div>
+                    Promo Code
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter promo code"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        className="bg-gray-50 border-gray-200"
+                        data-testid="promo-code-input"
+                      />
+                      <Button 
+                        onClick={applyPromoCode}
+                        variant="outline"
+                        data-testid="apply-promo"
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                    {appliedPromo && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-green-700">
+                          Code "{appliedPromo}" applied successfully!
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            ))}
 
-            {/* Delivery Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Truck className="h-5 w-5" />
-                  Delivery Options
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {deliveryOptions.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={option.id}
-                      checked={selectedDelivery === option.id}
-                      onCheckedChange={() => setSelectedDelivery(option.id)}
-                      data-testid={`delivery-${option.id}`}
-                    />
-                    <label htmlFor={option.id} className="flex-1 cursor-pointer">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{option.icon}</span>
-                          <div>
-                            <div className="font-medium">{option.name}</div>
-                            <div className="text-sm text-muted-foreground">{option.description}</div>
-                          </div>
-                        </div>
-                        <div className="font-medium">
-                          {option.price === 0 ? "Free" : `$${option.price}`}
-                        </div>
+              {/* Order Summary */}
+              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur sticky top-8">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl">Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal</span>
+                      <span className="font-medium">${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Delivery</span>
+                      <span className="font-medium">{deliveryFee === 0 ? "Free" : `$${deliveryFee.toFixed(2)}`}</span>
+                    </div>
+                    {promoDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount</span>
+                        <span className="font-medium">-${promoDiscount.toFixed(2)}</span>
                       </div>
-                    </label>
+                    )}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Order Summary */}
-          <div className="space-y-6">
-            {/* Promo Code */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
-                  Promo Code
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    data-testid="promo-code-input"
-                  />
-                  <Button 
-                    onClick={applyPromoCode}
-                    data-testid="apply-promo"
-                  >
-                    Apply
-                  </Button>
-                </div>
-                {appliedPromo && (
-                  <div className="mt-2 text-sm text-green-600">
-                    ✓ Promo code "{appliedPromo}" applied!
+                  
+                  <Separator />
+                  
+                  <div className="flex justify-between text-xl font-bold">
+                    <span>Total</span>
+                    <span className="text-primary">${total.toFixed(2)}</span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
 
-            {/* Order Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Delivery</span>
-                  <span>{deliveryFee === 0 ? "Free" : `$${deliveryFee.toFixed(2)}`}</span>
-                </div>
-                {promoDiscount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Promo Discount</span>
-                    <span>-${promoDiscount.toFixed(2)}</span>
+                  <Link href="/checkout">
+                    <Button className="w-full py-6 text-lg font-semibold" size="lg" data-testid="checkout-button">
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      Proceed to Checkout
+                    </Button>
+                  </Link>
+
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-2">
+                    <Clock className="h-4 w-4" />
+                    <span>Items reserved for 30 minutes</span>
                   </div>
-                )}
-                <Separator />
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
-                </div>
+                </CardContent>
+              </Card>
 
-                <Button className="w-full" size="lg" data-testid="checkout-button">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Proceed to Checkout
-                </Button>
-
-                <div className="text-center text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4 inline mr-1" />
-                  Items in cart are reserved for 30 minutes
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Security Notice */}
-            <div className="bg-muted p-4 rounded-lg text-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="font-medium">Secure Checkout</span>
-              </div>
-              <p className="text-muted-foreground">
-                Your payment information is encrypted and secure. 
-                We never store your credit card details.
-              </p>
+              {/* Security Notice */}
+              <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-green-50">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                      <Shield className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-1">Secure Checkout</h4>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        Your payment information is encrypted with bank-level security. 
+                        We never store your credit card details.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        </div>
-      )}
-    </main>
+        )}
+      </div>
+    </div>
   );
 }

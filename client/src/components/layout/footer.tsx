@@ -1,4 +1,3 @@
-
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ import {
   BookOpen,
   Heart
 } from "lucide-react";
-
+import Logo from "@assets/logo-removebg-preview_1757943248494.png";
 export function Footer() {
   return (
     <footer className="bg-muted/30 border-t">
@@ -24,8 +23,14 @@ export function Footer() {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <BookOpen className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">BookWise</span>
+             <Link href="/">
+                <img
+                  src={Logo}
+                  alt="BookLoop"
+                  className="h-20 w-auto cursor-pointer"
+                  data-testid="logo"
+                />
+              </Link>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm">
               Your trusted partner for affordable book rentals. Discover thousands of titles 
@@ -80,10 +85,10 @@ export function Footer() {
 
           {/* About Us */}
           <div className="space-y-4">
-            <h4 className="text-lg font-semibold">About BookWise</h4>
+            <h4 className="text-lg font-semibold">About BookLoop</h4>
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>
-                Founded in 2019, BookWise revolutionizes the way people access books. 
+                Founded in 2019, BookLoop revolutionizes the way people access books. 
                 We believe reading should be affordable and accessible to everyone.
               </p>
               <p>
@@ -113,7 +118,7 @@ export function Footer() {
             <div className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>support@bookwise.com</span>
+                <span>support@bookloop.com</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary" />
@@ -149,14 +154,18 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm text-muted-foreground">
-            <p>© 2024 BookWise. All rights reserved.</p>
+            <p>© 2024 BookLoop. All rights reserved.</p>
             <div className="flex space-x-4">
-              <Button variant="ghost" className="h-auto p-0 text-xs footer-link">
-                Privacy Policy
-              </Button>
-              <Button variant="ghost" className="h-auto p-0 text-xs footer-link">
-                Terms of Service
-              </Button>
+              <Link href="/privacy">
+                <Button variant="ghost" className="h-auto p-0 text-xs footer-link">
+                  Privacy Policy
+                </Button>
+              </Link>
+              <Link href="/terms">
+                <Button variant="ghost" className="h-auto p-0 text-xs footer-link">
+                  Terms of Service
+                </Button>
+              </Link>
               <Button variant="ghost" className="h-auto p-0 text-xs footer-link">
                 Cookie Policy
               </Button>
