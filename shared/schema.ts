@@ -84,6 +84,18 @@ export const reviews = pgTable("reviews", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const sliders = pgTable("sliders", {
+  id: serial("id").primaryKey(),
+  title: text("title"),
+  description: text("description"),
+  imageUrl: text("image_url").notNull(),
+  linkUrl: text("link_url"),
+  buttonText: text("button_text"),
+  order: integer("order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   rentals: many(rentals),
@@ -132,6 +144,10 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   }),
 }));
 
+export const slidersRelations = relations(sliders, ({ many }) => ({
+  // Add relations if needed in the future
+}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -147,6 +163,8 @@ export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = typeof reviews.$inferInsert;
+export type Slider = typeof sliders.$inferSelect;
+export type InsertSlider = typeof sliders.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
@@ -170,4 +188,10 @@ export const insertContactSchema = createInsertSchema(contacts);
 export const insertReviewSchema = createInsertSchema(reviews, {
   rating: z.number().min(1, "Rating must be at least 1").max(5, "Rating must be at most 5"),
   comment: z.string().min(1, "Comment is required").max(1000, "Comment must be less than 1000 characters")
+});
+export const insertSliderSchema = createInsertSchema(sliders, {
+  title: z.string().optional().nullable(),
+  imageUrl: z.string().url("Valid image URL is required"),
+  linkUrl: z.string().url().optional().nullable(),
+  order: z.number().optional().nullable(),
 });

@@ -1,4 +1,3 @@
-
 import type { 
   User, InsertUser, 
   Book, InsertBook, 
@@ -6,7 +5,8 @@ import type {
   Wishlist, InsertWishlist,
   Category, InsertCategory,
   Contact, InsertContact,
-  Review, InsertReview
+  Review, InsertReview,
+  Slider, InsertSlider
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./database-storage";
@@ -60,6 +60,12 @@ export interface IStorage {
   createContact(contactData: InsertContact): Promise<Contact>;
   getAllContacts(): Promise<Contact[]>;
   updateContactStatus(id: string, status: string): Promise<Contact | null>;
+
+  // Slider methods
+  getSliders(): Promise<Slider[]>;
+  createSlider(insertSlider: InsertSlider): Promise<Slider>;
+  updateSlider(id: string, updateData: Partial<Slider>): Promise<Slider | null>;
+  deleteSlider(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -68,6 +74,7 @@ export class MemStorage implements IStorage {
   private rentals: Map<string, Rental>;
   private wishlist: Map<string, Wishlist>;
   private contacts: Map<string, Contact>;
+  private sliders: Map<string, Slider>; // Added for slider storage
 
   constructor() {
     this.users = new Map();
@@ -75,6 +82,7 @@ export class MemStorage implements IStorage {
     this.rentals = new Map();
     this.wishlist = new Map();
     this.contacts = new Map();
+    this.sliders = new Map(); // Initialize slider storage
   }
 
   // User methods
@@ -410,6 +418,37 @@ export class MemStorage implements IStorage {
     const updatedContact = { ...contact, status };
     this.contacts.set(id, updatedContact);
     return updatedContact;
+  }
+
+  // Slider methods implementation
+  async getSliders(): Promise<Slider[]> {
+    return Array.from(this.sliders.values());
+  }
+
+  async createSlider(insertSlider: InsertSlider): Promise<Slider> {
+    const id = randomUUID();
+    const slider: Slider = {
+      ...insertSlider,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.sliders.set(id, slider);
+    return slider;
+  }
+
+  async updateSlider(id: string, updateData: Partial<Slider>): Promise<Slider | null> {
+    const slider = this.sliders.get(id);
+    if (!slider) {
+      return null;
+    }
+    const updatedSlider = { ...slider, ...updateData, updatedAt: new Date() };
+    this.sliders.set(id, updatedSlider);
+    return updatedSlider;
+  }
+
+  async deleteSlider(id: string): Promise<boolean> {
+    return this.sliders.delete(id);
   }
 }
 

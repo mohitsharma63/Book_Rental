@@ -12,7 +12,8 @@ import {
   X,
   MessageCircle,
   Tag,
-  FolderOpen
+  FolderOpen,
+  Image
 } from "lucide-react";
 import {
   Sheet,
@@ -29,6 +30,7 @@ const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "books", label: "Books", icon: BookOpen },
   { id: "categories", label: "Categories", icon: Tag },
+  { id: "sliders", label: "Sliders", icon: Image },
   { id: "users", label: "Users", icon: Users },
   { id: "rentals", label: "Rentals", icon: Clock },
   { id: "analytics", label: "Analytics", icon: BarChart3 },

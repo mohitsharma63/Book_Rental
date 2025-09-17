@@ -379,6 +379,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Slider routes
+  app.get("/api/sliders", async (req, res) => {
+    try {
+      const sliders = await storage.getSliders();
+      res.json(sliders);
+    } catch (error) {
+      console.error("Get sliders error:", error);
+      res.status(500).json({ error: "Failed to fetch sliders" });
+    }
+  });
+
+  app.get("/api/sliders/active", async (req, res) => {
+    try {
+      const sliders = await storage.getActiveSliders();
+      res.json(sliders);
+    } catch (error) {
+      console.error("Get active sliders error:", error);
+      res.status(500).json({ error: "Failed to fetch active sliders" });
+    }
+  });
+
+  app.post("/api/sliders", async (req, res) => {
+    try {
+      const sliderData = req.body;
+      const slider = await storage.createSlider(sliderData);
+      res.status(201).json(slider);
+    } catch (error) {
+      console.error("Create slider error:", error);
+      res.status(500).json({ error: "Failed to create slider" });
+    }
+  });
+
+  app.put("/api/sliders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const slider = await storage.updateSlider(id, updateData);
+      
+      if (!slider) {
+        return res.status(404).json({ error: "Slider not found" });
+      }
+      
+      res.json(slider);
+    } catch (error) {
+      console.error("Update slider error:", error);
+      res.status(500).json({ error: "Failed to update slider" });
+    }
+  });
+
+  app.delete("/api/sliders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteSlider(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Slider not found" });
+      }
+      
+      res.json({ success: true, message: "Slider deleted successfully" });
+    } catch (error) {
+      console.error("Delete slider error:", error);
+      res.status(500).json({ error: "Failed to delete slider" });
+    }
+  });
+
   // Update contact status
   app.put("/api/contacts/:id/status", async (req, res) => {
     try {

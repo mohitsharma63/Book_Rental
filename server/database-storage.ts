@@ -8,6 +8,7 @@ import {
   categories,
   contacts,
   reviews,
+  sliders,
   type Book,
   type User,
   type Rental,
@@ -15,13 +16,15 @@ import {
   type Category,
   type Contact,
   type Review,
+  type Slider,
   type InsertBook,
   type InsertUser,
   type InsertRental,
   type InsertWishlist,
   type InsertCategory,
   type InsertContact,
-  type InsertReview
+  type InsertReview,
+  type InsertSlider
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 
@@ -346,6 +349,97 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(reviews.createdAt));
     } catch (error) {
       console.error("Error getting reviews by user:", error);
+      throw error;
+    }
+  }
+
+  // Slider methods
+  async getSliders(): Promise<Slider[]> {
+    try {
+      console.log("DatabaseStorage: Getting sliders");
+      const result = await db
+        .select()
+        .from(sliders)
+        .orderBy(sliders.order, sliders.createdAt);
+      console.log("DatabaseStorage: Sliders retrieved:", result.length);
+      return result;
+    } catch (error) {
+      console.error("Error getting sliders:", error);
+      throw error;
+    }
+  }
+
+  async getActiveSliders(): Promise<Slider[]> {
+    try {
+      console.log("DatabaseStorage: Getting active sliders");
+      const result = await db
+        .select()
+        .from(sliders)
+        .where(eq(sliders.isActive, true))
+        .orderBy(sliders.order, sliders.createdAt);
+      console.log("DatabaseStorage: Active sliders retrieved:", result.length);
+      return result;
+    } catch (error) {
+      console.error("Error getting active sliders:", error);
+      throw error;
+    }
+  }
+
+  async createSlider(sliderData: InsertSlider): Promise<Slider> {
+    try {
+      console.log("DatabaseStorage: Creating slider with data:", sliderData);
+      const [slider] = await db
+        .insert(sliders)
+        .values({
+          title: sliderData.title,
+          description: sliderData.description || "",
+          imageUrl: sliderData.imageUrl,
+          linkUrl: sliderData.linkUrl,
+          buttonText: sliderData.buttonText,
+          order: sliderData.order || 0,
+          isActive: sliderData.isActive !== false
+        })
+        .returning();
+      console.log("DatabaseStorage: Slider created:", slider);
+      return slider;
+    } catch (error) {
+      console.error("Error creating slider:", error);
+      throw error;
+    }
+  }
+
+  async updateSlider(id: number, updateData: Partial<Slider>): Promise<Slider | null> {
+    try {
+      console.log("DatabaseStorage: Updating slider", id, "with data:", updateData);
+      const [slider] = await db
+        .update(sliders)
+        .set({
+          title: updateData.title,
+          description: updateData.description,
+          imageUrl: updateData.imageUrl,
+          linkUrl: updateData.linkUrl,
+          buttonText: updateData.buttonText,
+          order: updateData.order,
+          isActive: updateData.isActive
+        })
+        .where(eq(sliders.id, id))
+        .returning();
+      console.log("DatabaseStorage: Slider updated:", slider);
+      return slider;
+    } catch (error) {
+      console.error("Error updating slider:", error);
+      throw error;
+    }
+  }
+
+  async deleteSlider(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(sliders)
+        .where(eq(sliders.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting slider:", error);
       throw error;
     }
   }

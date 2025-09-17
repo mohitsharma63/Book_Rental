@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoriesManager } from "@/components/categories-manager";
+import { SliderManager } from "@/components/slider-manager";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -1094,6 +1095,9 @@ export default function Admin() {
 
       case "categories":
         return <CategoriesManager />;
+
+      case "sliders":
+        return <SliderManager />;
 
       case "users":
         return (

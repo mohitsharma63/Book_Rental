@@ -81,3 +81,18 @@ CREATE TABLE IF NOT EXISTS reviews (
     comment TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS sliders (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT NOT NULL,
+  link_url TEXT,
+  button_text TEXT,
+  "order" INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create index for ordering
+CREATE INDEX IF NOT EXISTS idx_sliders_order ON sliders ("order", created_at);
+CREATE INDEX IF NOT EXISTS idx_sliders_active ON sliders (is_active);
