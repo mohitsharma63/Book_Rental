@@ -133,12 +133,6 @@ export default function Home() {
     };
   });
 
-  const stats = [
-    { label: "Books Available", value: "10,000+", icon: "📚", color: "text-blue-600" },
-    { label: "Happy Readers", value: "25,000+", icon: "👥", color: "text-green-600" },
-    { label: "Cities Served", value: "50+", icon: "🏙️", color: "text-purple-600" },
-    { label: "Years of Service", value: "5+", icon: "⏰", color: "text-orange-600" },
-  ];
 
   const handleAddToWishlist = (book: Book) => {
     const wishlistItem = {
@@ -197,8 +191,7 @@ export default function Home() {
   }, [slidersData.length]);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Slider Section */}
+    <>
       {slidersLoading ? (
         <div className="gradient-hero rounded-lg p-4 sm:p-6 lg:p-8 mb-8 text-white relative overflow-hidden animate-pulse">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70"></div>
@@ -334,20 +327,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* Stats Section */}
-      <section className="mb-8 sm:mb-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-          {stats.map((stat, index) => (
-            <Card key={index} className="text-center hover:shadow-md transition-shadow">
-              <CardContent className="p-3 sm:p-6">
-                <div className="text-2xl sm:text-3xl mb-2">{stat.icon}</div>
-                <div className={`text-lg sm:text-2xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-xs sm:text-sm text-muted-foreground">{stat.label}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+    
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
       <section className="mb-8 sm:mb-12">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
@@ -472,6 +454,7 @@ export default function Home() {
               </div>
 
               {/* Navigation arrows for categories */}
+              
               {categories.length > 5 && (
                 <>
                   <Button
@@ -727,5 +710,6 @@ export default function Home() {
         </div>
       </section>
     </main>
+    </>
   );
 }
