@@ -327,7 +327,7 @@ export default function Home() {
         </div>
       )}
 
-    
+
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       <section className="mb-8 sm:mb-12">
@@ -387,7 +387,7 @@ export default function Home() {
                           <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group-hover:-translate-y-2 border border-gray-200/50 overflow-hidden backdrop-blur-sm hover:backdrop-blur-md relative">
                             {/* Subtle gradient overlay */}
                             <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                            
+
                             <div className="relative p-6 text-center">
                               {/* Category Image or Icon */}
                               <div className="relative mb-4">
@@ -454,7 +454,7 @@ export default function Home() {
               </div>
 
               {/* Navigation arrows for categories */}
-              
+
               {categories.length > 5 && (
                 <>
                   <Button
@@ -512,7 +512,7 @@ export default function Home() {
                       <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group-hover:-translate-y-2 border border-gray-200/50 overflow-hidden backdrop-blur-sm hover:backdrop-blur-md relative">
                         {/* Subtle gradient overlay */}
                         <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                        
+
                         <div className="relative p-6 text-center">
                           {/* Category Image or Icon */}
                           <div className="relative mb-4">
@@ -626,7 +626,7 @@ export default function Home() {
             {[...Array(4)].map((_, i) => (
               <div key={i} className="bg-card rounded-lg shadow-sm animate-pulse">
                 <div className="w-full h-64 bg-muted rounded-t-lg"></div>
-                <div className="p-4 space-y-3">
+                <div className="p-2 space-y-3">
                   <div className="h-4 bg-muted rounded w-3/4"></div>
                   <div className="h-3 bg-muted rounded w-1/2"></div>
                   <div className="flex justify-between">
@@ -638,7 +638,7 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mobile-grid-2">
             {displayFeaturedBooks.map((book, index) => (
               <div key={book.id} className="relative">
                 <div className="absolute top-2 left-2 z-10">

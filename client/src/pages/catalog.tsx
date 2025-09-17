@@ -137,11 +137,10 @@ export default function Catalog() {
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`h-4 w-4 ${
-              i < Math.floor(rating)
-                ? "fill-yellow-400 text-yellow-400"
-                : "fill-gray-200 text-gray-200"
-            }`}
+            className={`h-4 w-4 ${i < Math.floor(rating)
+              ? "fill-yellow-400 text-yellow-400"
+              : "fill-gray-200 text-gray-200"
+              }`}
           />
         ))}
         <span className="text-sm text-muted-foreground ml-1">{rating}</span>
@@ -151,7 +150,7 @@ export default function Catalog() {
 
   const filteredBooks = displayBooks.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          book.author.toLowerCase().includes(searchQuery.toLowerCase());
+      book.author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategories = selectedCategories.length === 0 || selectedCategories.includes(book.category);
     const matchesAuthors = selectedAuthors.length === 0 || selectedAuthors.includes(book.author);
     const matchesAvailability = availability.length === 0 || availability.includes(book.status);
@@ -284,63 +283,63 @@ export default function Catalog() {
                   </div>
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     {categories.map((category) => (
-                        <div
-                          key={category.name}
-                          className="group cursor-pointer"
-                          onClick={() => {
-                            if (selectedCategories.includes(category.name)) {
-                              const newCategories = selectedCategories.filter(cat => cat !== category.name);
-                              setSelectedCategories(newCategories);
-                              if (newCategories.length > 0) {
-                                navigate(`/catalog?categories=${encodeURIComponent(newCategories.join(','))}`);
-                              } else {
-                                navigate("/catalog");
-                              }
+                      <div
+                        key={category.name}
+                        className="group cursor-pointer"
+                        onClick={() => {
+                          if (selectedCategories.includes(category.name)) {
+                            const newCategories = selectedCategories.filter(cat => cat !== category.name);
+                            setSelectedCategories(newCategories);
+                            if (newCategories.length > 0) {
+                              navigate(`/catalog?categories=${encodeURIComponent(newCategories.join(','))}`);
                             } else {
-                              handleCategoryClick(category.name);
+                              navigate("/catalog");
                             }
-                          }}
-                        >
-                          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group-hover:shadow-md">
-                            <div className="flex items-center space-x-3">
-                              <Checkbox
-                                id={category.name}
-                                checked={selectedCategories.includes(category.name)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    handleCategoryClick(category.name);
-                                  } else {
-                                    setSelectedCategories([]);
-                                    navigate("/catalog");
-                                  }
+                          } else {
+                            handleCategoryClick(category.name);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group-hover:shadow-md">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              id={category.name}
+                              checked={selectedCategories.includes(category.name)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  handleCategoryClick(category.name);
+                                } else {
+                                  setSelectedCategories([]);
+                                  navigate("/catalog");
+                                }
+                              }}
+                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                              onClick={(e) => e.stopPropagation()} // Prevent click event from bubbling to the parent div
+                            />
+                            {category.imageUrl && (
+                              <img
+                                src={category.imageUrl}
+                                alt={category.name}
+                                className="w-8 h-8 object-cover rounded border"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
                                 }}
-                                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                onClick={(e) => e.stopPropagation()} // Prevent click event from bubbling to the parent div
                               />
-                              {category.imageUrl && (
-                                <img
-                                  src={category.imageUrl}
-                                  alt={category.name}
-                                  className="w-8 h-8 object-cover rounded border"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              <label
-                                htmlFor={category.name}
-                                className="text-sm font-medium leading-none cursor-pointer group-hover:text-primary transition-colors"
-                              >
-                                {category.name}
-                              </label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                                {category.count}
-                              </span>
-                            </div>
+                            )}
+                            <label
+                              htmlFor={category.name}
+                              className="text-sm font-medium leading-none cursor-pointer group-hover:text-primary transition-colors"
+                            >
+                              {category.name}
+                            </label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                              {category.count}
+                            </span>
                           </div>
                         </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -500,9 +499,9 @@ export default function Catalog() {
                 {booksLoading && <span className="text-sm text-muted-foreground">Loading...</span>}
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className=" gap-4">
                 {/* View Toggle */}
-                <div className="flex items-center border rounded-lg p-1 bg-white">
+                <div className=" ">
                   <Button
                     variant={viewMode === "grid" ? "default" : "ghost"}
                     size="sm"
@@ -511,18 +510,11 @@ export default function Catalog() {
                   >
                     <Grid3X3 className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="h-8 px-3"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
+                 
                 </div>
 
                 {/* Sort */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-3">
                   <span className="text-sm font-medium text-gray-700">Sort by:</span>
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="w-40 border-gray-200">
@@ -546,10 +538,10 @@ export default function Catalog() {
 
             {/* Books Display */}
             {viewMode === "grid" ? (
-              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mobile-grid-2">
                 {sortedBooks.length > 0 ? (
                   sortedBooks.map((book) => (
-                    <Card key={book.id} className="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white">
+                    <Card key={book.id} className="group mobile-card overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white">
                       <div className="relative">
                         <div className="aspect-[3/4] overflow-hidden">
                           <img
@@ -558,68 +550,65 @@ export default function Catalog() {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         </div>
-                        <div className="absolute top-3 left-3">
+                        <div className="absolute top-2 left-2">
                           {getStatusBadge(book.status)}
                         </div>
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
-                            <Heart className="h-4 w-4" />
+                        <div className="absolute top-2 right-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
+                          <Button size="sm" variant="secondary" className="h-7 w-7 p-0 bg-white/90 hover:bg-white">
+                            <Heart className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
 
-                      <CardContent className="p-5">
-                        <div className="space-y-3">
+                      <div className="p-2">
+                        <div className="space-y-2">
                           <div>
-                            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                            <h3 className="font-semibold text-sm sm:text-lg line-clamp-2 group-hover:text-primary transition-colors">
                               {book.title}
                             </h3>
-                            <p className="text-muted-foreground text-sm">by {book.author}</p>
+                            <p className="text-muted-foreground text-xs sm:text-sm">by {book.author}</p>
                           </div>
 
-                          <div className="flex items-center justify-between">
+                          <div className="">
                             {renderStars(book.rating)}
-                            <span className="text-sm text-muted-foreground">({book.reviews} reviews)</span>
+                            <span className="text-sm text-muted-foreground">({book.reviews})</span>
                           </div>
 
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-xs">
+                          <div className="">
+                            <Badge variant="outline" className="">
                               {book.category}
                             </Badge>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-primary">
-                                ${parseFloat(book.pricePerWeek || book.price).toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/week</span>
+                            <div className="">
+                              <div className="price">
+                                ${parseFloat(book.pricePerWeek || book.price).toFixed(2)}
+                                <span className="text-xs font-normal text-muted-foreground">/wk</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="space-y-2 mt-4">
-                            <div className="flex items-center justify-between">
-                              <Button
-                                className="flex-1 mr-2"
-                                onClick={() => handleRentNow(book)}
-                                disabled={book.availableCopies === 0}
-                              >
-                                <ShoppingCart className="h-4 w-4 mr-2" />
-                                {book.availableCopies > 0 ? 'Rent Now' : 'Not Available'}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleAddToWishlist(book)}
-                              >
-                                <Heart className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          <div className="space-y-2 pt-2">
+                            <Button
+                              className={`w-full font-medium transition-all duration-200 ${book.availableCopies > 0
+                                  ? "bg-green-600 hover:bg-green-700 text-white"
+                                  : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                                }`}
+                              disabled={book.availableCopies === 0}
+                              // onClick={onRent}
+                              data-testid={`button-rent-${book.id}`}
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              {book.availableCopies > 0 ? "Rent Now" : "Not Available"}
+                            </Button>
+
                             <Link href={`/book/${book.id}`} className="block w-full">
-                              <Button variant="outline" className="w-full">
+                              <Button variant="outline" className="w-full font-medium border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
                                 <BookOpen className="h-4 w-4 mr-2" />
                                 View Details
                               </Button>
                             </Link>
                           </div>
                         </div>
-                      </CardContent>
+                      </div>
                     </Card>
                   ))
                 ) : (

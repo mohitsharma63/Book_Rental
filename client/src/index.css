@@ -3,6 +3,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first responsive design utilities */
+@layer utilities {
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* Responsive breakpoints optimization for mobile */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Ensure cards maintain aspect ratio on mobile */
+@media (max-width: 768px) {
+  .book-card-container {
+    min-height: 400px;
+  }
+}
+
 :root {
   --background: hsl(35, 35%, 96%);
   --foreground: hsl(147, 40%, 18%);
@@ -150,31 +182,394 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-/* Mobile-specific adjustments */
+/* Enhanced book card styling */
+.book-card-enhanced {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.book-card-enhanced:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.15);
+  border-color: #cbd5e1;
+}
+
+.book-card-enhanced .book-image {
+  transition: transform 0.3s ease;
+}
+
+.book-card-enhanced:hover .book-image {
+  transform: scale(1.05);
+}
+
+/* Wishlist button animation */
+.wishlist-btn {
+  transition: all 0.2s ease;
+}
+
+.wishlist-btn:hover {
+  transform: scale(1.1);
+}
+
+.wishlist-btn.active {
+  color: #ef4444;
+}
+
+/* Price styling */
+.price-primary {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* Status badge improvements */
+.status-available { 
+  @apply bg-green-50 text-green-700 border border-green-200 shadow-sm;
+}
+
+.status-rented { 
+  @apply bg-red-50 text-red-700 border border-red-200 shadow-sm;
+}
+
+/* Category tag styling */
+.category-tag {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border: 1px solid #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.category-tag:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+}
+
+/* Button enhancements */
+.btn-rent {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-rent:hover {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-rent:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Star rating styling */
+.star-rating {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* Mobile-first responsive design */
 @media (max-width: 640px) {
+  /* Better touch experience */
   .book-card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.12);
   }
   
-  /* Reduce hover effects on mobile for better touch experience */
   .book-card-hover:active {
     transform: scale(0.98);
+    transition: transform 0.1s ease-out;
+  }
+  
+  /* Mobile two-column grid */
+  .mobile-books-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.875rem !important;
+    width: 100% !important;
+    padding: 0 0.75rem !important;
+  }
+  
+  /* Mobile book cards optimized for two columns */
+  .mobile-book-card {
+    width: 100% !important;
+    background: white !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #e5e7eb !important;
+    transition: all 0.3s ease !important;
+    min-height: 280px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .mobile-book-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  /* Mobile image container */
+  .mobile-book-image {
+    position: relative !important;
+    height: 140px !important;
+    overflow: hidden !important;
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0) !important;
+  }
+  
+  .mobile-book-image img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    transition: transform 0.3s ease !important;
+  }
+  
+  .mobile-book-card:hover .mobile-book-image img {
+    transform: scale(1.05) !important;
+  }
+  
+  /* Mobile card content */
+  .mobile-card-content {
+    padding: 0.875rem !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Mobile text styles */
+  .mobile-book-title {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    color: #111827 !important;
+    margin: 0 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    min-height: 2.1rem !important;
+  }
+  
+  .mobile-book-author {
+    font-size: 0.75rem !important;
+    color: #6b7280 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .mobile-book-category {
+    font-size: 0.65rem !important;
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    width: fit-content !important;
+  }
+  
+  .mobile-book-price {
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    color: hsl(var(--primary)) !important;
+    margin: 0.25rem 0 !important;
+  }
+  
+  .mobile-price-suffix {
+    font-size: 0.65rem !important;
+    font-weight: 400 !important;
+    color: #6b7280 !important;
+  }
+  
+  /* Mobile buttons */
+  .mobile-book-buttons {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    margin-top: auto !important;
+  }
+  
+  .mobile-rent-button {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 0.625rem 0.75rem !important;
+    height: auto !important;
+    border-radius: 10px !important;
+    background: hsl(var(--primary)) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+    min-height: 36px !important;
+  }
+  
+  .mobile-rent-button:hover {
+    background: hsl(var(--primary) / 0.9) !important;
+    transform: translateY(-1px) !important;
+  }
+  
+  .mobile-rent-button:disabled {
+    background: #9ca3af !important;
+    color: #d1d5db !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+  }
+  
+  .mobile-details-button {
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 0.75rem !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: hsl(var(--primary)) !important;
+    border: 1px solid hsl(var(--primary) / 0.3) !important;
+    min-height: 32px !important;
+  }
+  
+  /* Mobile status badges */
+  .mobile-status-badge {
+    position: absolute !important;
+    top: 0.5rem !important;
+    left: 0.5rem !important;
+    font-size: 0.65rem !important;
+    font-weight: 600 !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 6px !important;
+    z-index: 10 !important;
+  }
+  
+  .mobile-wishlist-button {
+    position: absolute !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+  }
+  
+  .mobile-wishlist-button svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  /* Container fixes */
+  .container, .max-w-7xl, .max-w-12xl {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* Better scrolling */
+  body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Mobile section spacing */
+  .mobile-section {
+    margin-bottom: 2rem !important;
+    padding: 0 0.75rem !important;
+  }
+  
+  .mobile-section-title {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 1rem !important;
+    color: #111827 !important;
+    text-align: center !important;
+  }
+  
+  /* Mobile hero section */
+  .mobile-hero {
+    padding: 1.5rem 1rem !important;
+    text-align: center !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .mobile-hero h1, .mobile-hero h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .mobile-hero p {
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  /* Mobile category grid */
+  .mobile-category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+    padding: 0 0.75rem !important;
+  }
+  
+  .mobile-category-card {
+    padding: 1rem !important;
+    text-align: center !important;
+    border-radius: 12px !important;
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .mobile-category-card h4 {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    margin: 0.5rem 0 0.25rem 0 !important;
+  }
+  
+  .mobile-category-card .count {
+    font-size: 0.75rem !important;
+    color: #6b7280 !important;
+  }
+  
+  /* Mobile search improvements */
+  .mobile-search {
+    padding: 1rem !important;
+    background: white !important;
+    border-radius: 12px !important;
+    margin: 1rem 0.75rem !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   }
 }
 
-/* Better touch targets for mobile */
+/* Enhanced mobile touch targets and UX */
 @media (max-width: 768px) {
+  /* Touch-friendly button sizes */
   button {
-    min-height: 44px; /* Apple's recommended touch target size */
+    min-height: 44px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
   }
   
-  /* Larger text for better readability on mobile */
+  /* Improved text readability */
   .text-xs {
     font-size: 0.75rem;
+    line-height: 1.4;
   }
   
-  /* Better spacing on mobile */
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  
+  /* Better spacing hierarchy */
   .space-y-1 > * + * {
     margin-top: 0.25rem;
   }
@@ -182,12 +577,67 @@
   .space-y-2 > * + * {
     margin-top: 0.5rem;
   }
+  
+  .space-y-3 > * + * {
+    margin-top: 0.75rem;
+  }
+  
+  /* Mobile-friendly forms */
+  input, textarea, select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+  }
+  
+  /* Better mobile navigation */
+  .mobile-nav-item {
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  /* Mobile-optimized modals */
+  .mobile-modal {
+    margin: 0 !important;
+    max-height: 90vh !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+  
+  /* Better mobile search */
+  .mobile-search-input {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+  }
 }
 
 /* Smooth scrolling for mobile */
 html {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+}
+
+/* Mobile grid fixes */
+@media (max-width: 640px) {
+  /* Force proper grid layout */
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Ensure cards fit properly */
+  .grid-cols-2 > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  
+  /* Better responsive behavior */
+  .container, .max-w-7xl, .max-w-12xl {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
 }
 
 /* Better focus states for accessibility */
