@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema } from "@shared/schema";
+import { requireAuth, requireAdmin, type AuthenticatedRequest } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -110,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/books", async (req, res) => {
+  app.post("/api/books", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       console.log("Received book data:", req.body);
 
@@ -139,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/books/:id", async (req, res) => {
+  app.put("/api/books/:id", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       console.log("Updating book with ID:", req.params.id);
       console.log("Update data:", req.body);
@@ -162,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/books/:id", async (req, res) => {
+  app.delete("/api/books/:id", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       console.log("Deleting book with ID:", req.params.id);
       const success = await storage.deleteBook(req.params.id);
@@ -218,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Users routes
-  app.get("/api/users", async (req, res) => {
+  app.get("/api/users", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const users = await storage.getAllUsers();
       // Remove passwords from response for security
@@ -245,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id/suspend", async (req, res) => {
+  app.put("/api/users/:id/suspend", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
       const { suspended } = req.body;
@@ -349,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all contacts (for admin)
-  app.get("/api/contacts", async (req, res) => {
+  app.get("/api/contacts", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const contacts = await storage.getAllContacts();
       res.json(contacts);
@@ -360,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get contact statistics
-  app.get("/api/contacts/stats", async (req, res) => {
+  app.get("/api/contacts/stats", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const contacts = await storage.getAllContacts();
 
@@ -400,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sliders", async (req, res) => {
+  app.post("/api/sliders", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const sliderData = req.body;
       const slider = await storage.createSlider(sliderData);
@@ -411,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/sliders/:id", async (req, res) => {
+  app.put("/api/sliders/:id", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
@@ -428,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/sliders/:id", async (req, res) => {
+  app.delete("/api/sliders/:id", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteSlider(id);
@@ -445,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update contact status
-  app.put("/api/contacts/:id/status", async (req, res) => {
+  app.put("/api/contacts/:id/status", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -479,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/categories", async (req, res) => {
+  app.post("/api/categories", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const { name, description, imageUrl, isActive = true } = req.body;
 
@@ -504,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/categories/:id", async (req, res) => {
+  app.put("/api/categories/:id", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
       const { name, description, imageUrl, isActive } = req.body;
@@ -534,7 +535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/categories/:id", async (req, res) => {
+  app.delete("/api/categories/:id", requireAdmin, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteCategory(parseInt(id));

@@ -611,9 +611,9 @@ export default function Home() {
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-2xl font-bold mb-2" data-testid="text-featured-title">
+            {/* <h3 className="text-2xl font-bold mb-2" data-testid="text-featured-title">
               Featured Books
-            </h3>
+            </h3> */}
           </div>
           <Badge variant="secondary" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -641,11 +641,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mobile-grid-2">
             {displayFeaturedBooks.map((book, index) => (
               <div key={book.id} className="relative">
-                <div className="absolute top-2 left-2 z-10">
-                  <Badge className="bg-primary text-primary-foreground text-xs">
-                    #{index + 1} Featured
-                  </Badge>
-                </div>
+              
                 <BookCard
                   book={book}
                   onRent={() => handleRentNow(book)}

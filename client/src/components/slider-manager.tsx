@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Plus, Edit, Trash2, Image } from "lucide-react";
 
 interface Slider {
@@ -28,6 +28,8 @@ export function SliderManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingSlider, setEditingSlider] = useState<Slider | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -127,6 +129,52 @@ export function SliderManager() {
       order: "0",
       isActive: true,
     });
+    setUploadProgress(0);
+    setIsUploading(false);
+  };
+
+  const handleImageUpload = (file: File) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    const reader = new FileReader();
+
+    // Simulate upload progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 95) {
+          clearInterval(progressInterval);
+          return 95; // Keep at 95% until file is actually processed
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 100);
+
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+
+      // Simulate final processing time
+      setTimeout(() => {
+        setFormData(prev => ({ ...prev, imageUrl: result }));
+        setUploadProgress(100);
+        clearInterval(progressInterval);
+
+        // Reset progress after showing completion
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadProgress(0);
+        }, 1000);
+      }, 500);
+    };
+
+    reader.onerror = () => {
+      clearInterval(progressInterval);
+      setIsUploading(false);
+      setUploadProgress(0);
+      alert('Error uploading image. Please try again.');
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleEdit = (slider: Slider) => {
@@ -182,24 +230,31 @@ export function SliderManager() {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  const result = event.target?.result as string;
-                  setFormData(prev => ({ ...prev, imageUrl: result }));
-                };
-                reader.readAsDataURL(file);
+                handleImageUpload(file);
               }
             }}
-            className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            disabled={isUploading}
+            className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50"
           />
-          <div className="text-sm text-muted-foreground">Or enter image URL below:</div>
-          <Input
-            id="imageUrl"
-            value={formData.imageUrl}
-            onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-            placeholder="https://example.com/image.jpg"
-          />
+
+          {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="space-y-2 mt-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Uploading image...</span>
+                <span className="text-muted-foreground">{Math.round(uploadProgress)}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+          )}
         </div>
+        <div className="text-sm text-muted-foreground">Or enter image URL below:</div>
+        <Input
+          id="imageUrl"
+          value={formData.imageUrl}
+          onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+          placeholder="https://example.com/image.jpg"
+        />
         {formData.imageUrl && (
           <div className="mt-2">
             <img
@@ -264,9 +319,9 @@ export function SliderManager() {
         </Button>
         <Button
           onClick={onSubmit}
-          disabled={!formData.imageUrl}
+          disabled={!formData.imageUrl || isUploading}
         >
-          {submitText}
+          {isUploading ? "Uploading..." : submitText}
         </Button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,17 +10,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Menu, MessageCircle } from "lucide-react";
-import { useState, useEffect, useContext } from "react"; // Import useContext
+import { Bell, User, Settings, LogOut, ShoppingCart, Heart, Menu, MessageCircle } from "lucide-react";
 import { useStore } from "@/lib/store-context";
 import { useAuth } from "@/lib/auth-context";
 import { ChatWidget } from "@/components/chat-widget";
 import Logo from "@assets/logo-removebg-preview_1757943248494.png";
+import { Badge } from "@/components/ui/badge";
+import { useNotifications } from "@/hooks/use-notifications";
+
 export function Header() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { cartCount, wishlistCount } = useStore();
+  const { notifications, unreadCount, markAsRead } = useNotifications(); // Use the useNotifications hook
 
   // Use useAuth hook for login state and user data
   const { user, logout } = useAuth();
@@ -120,13 +124,59 @@ export function Header() {
                 </Button>
               </Link>
               {isLoggedIn && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  data-testid="button-notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative"
+                      data-testid="button-notifications"
+                    >
+                      <Bell className="h-5 w-5" />
+                      {unreadCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center"
+                        >
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80">
+                    <div className="flex items-center justify-between p-2">
+                      <h3 className="text-sm font-semibold">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          className="h-auto p-0" 
+                          onClick={() => {
+                            notifications.forEach(notification => {
+                              if (!notification.read) {
+                                markAsRead(notification.id);
+                              }
+                            });
+                          }}
+                        >
+                          Mark all as read
+                        </Button>
+                      )}
+                    </div>
+                    <DropdownMenuSeparator />
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <DropdownMenuItem key={notification.id} className="flex flex-col items-start py-2 cursor-pointer hover:bg-accent/50">
+                          <div className="text-sm font-medium">{notification.title}</div>
+                          <div className="text-xs text-muted-foreground">{notification.description}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{notification.timestamp}</div>
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <DropdownMenuItem disabled className="text-center text-muted-foreground py-4">No new notifications</DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
 
@@ -209,10 +259,20 @@ export function Header() {
                       )}
                     </DropdownMenuItem>
                   </Link>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Bell className="mr-2 h-4 w-4" />
-                    Notifications
-                  </DropdownMenuItem>
+                  <Link href="/notifications">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                      {unreadCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="ml-auto h-5 w-5 p-0 text-xs flex items-center justify-center"
+                        >
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                 </div>
 
@@ -225,7 +285,7 @@ export function Header() {
                     Profile
                   </DropdownMenuItem>
                 </Link>
-              
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="cursor-pointer text-red-600 focus:text-red-600"
@@ -326,10 +386,20 @@ export function Header() {
                     </Link>
                     {isLoggedIn && (
                       <>
-                        <Button variant="ghost" className="w-full justify-start">
-                          <Bell className="mr-2 h-4 w-4" />
-                          Notifications
-                        </Button>
+                        <Link href="/notifications">
+                          <Button variant="ghost" className="w-full justify-start">
+                            <Bell className="mr-2 h-4 w-4" />
+                            Notifications
+                            {unreadCount > 0 && (
+                              <Badge 
+                                variant="destructive" 
+                                className="ml-auto h-5 w-5 p-0 text-xs flex items-center justify-center"
+                              >
+                                {unreadCount}
+                              </Badge>
+                            )}
+                          </Button>
+                        </Link>
                         <Link href={user.role === "admin" ? "/admin" : "/profile"}>
                           <Button
                             variant="ghost"

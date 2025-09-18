@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { RouteGuard } from "@/components/route-guard";
 import Home from "./pages/home";
 import Catalog from "./pages/catalog";
 import Admin from "./pages/admin";
@@ -37,17 +38,37 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/catalog" component={Catalog} />
       <Route path="/book/:id" component={BookDetail} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/profile" component={Profile} />
+      <Route path="/admin">
+        <RouteGuard requireAdmin={true}>
+          <Admin />
+        </RouteGuard>
+      </Route>
+      <Route path="/profile">
+        <RouteGuard requireAuth={true}>
+          <Profile />
+        </RouteGuard>
+      </Route>
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
-      <Route path="/wishlist" component={Wishlist} />
-      <Route path="/cart" component={Cart} />
-      <Route path="/checkout" component={Checkout} />
+      <Route path="/wishlist">
+        <RouteGuard requireAuth={true}>
+          <Wishlist />
+        </RouteGuard>
+      </Route>
+      <Route path="/cart">
+        <RouteGuard requireAuth={true}>
+          <Cart />
+        </RouteGuard>
+      </Route>
+      <Route path="/checkout">
+        <RouteGuard requireAuth={true}>
+          <Checkout />
+        </RouteGuard>
+      </Route>
       {/* <Route path="/payment-success" component={PaymentSuccess} /> */}
       <Route component={NotFound} />
     </Switch>
@@ -63,14 +84,7 @@ function App() {
             <div className="min-h-screen flex flex-col">
               <Header />
               <main className="flex-1">
-                <Switch>
-                  <Route path="/admin">
-                    <Router />
-                  </Route>
-                  <Route>
-                    <Router />
-                  </Route>
-                </Switch>
+                <Router />
               </main>
               <Footer />
             </div>
