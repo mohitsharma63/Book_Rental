@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,23 +41,112 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: ""
+  });
 
-  // Static user data
-  const userData = {
-    id: "user_123",
-    name: "Navin Kumar",
-    email: "navin@gmail.com",
-    phone: "+91 98765 43210",
-    address: "123 Book Street, Reading City, RC 12345",
-    joinDate: "January 15, 2024",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
-    membership: "Premium",
-    totalRentals: 47,
-    activeRentals: 3,
-    favoriteGenre: "Science Fiction",
-    totalSpent: "₹12,450",
-    readingStreak: 23
+  const queryClient = useQueryClient();
+
+  // Get current user ID from localStorage or context
+  const currentUserId = localStorage.getItem('userId') || 'user_123';
+
+  // Fetch user data
+  const { data: userData, isLoading: userLoading } = useQuery({
+    queryKey: ['user', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      const user = await response.json();
+
+      // Transform data to match the component's expected format
+      return {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phone: user.phone || "+91 98765 43210",
+        address: user.address || "123 Book Street, Reading City, RC 12345",
+        joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 15, 2024",
+        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
+        membership: user.isAdmin ? "Admin" : "Premium",
+        totalRentals: 47,
+        activeRentals: 3,
+        favoriteGenre: "Science Fiction",
+        totalSpent: "₹12,450",
+        readingStreak: 23,
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
+    },
+    enabled: !!currentUserId
+  });
+
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async (updateData: any) => {
+      const response = await fetch(`/api/users/${currentUserId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update user data');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', currentUserId] });
+      setIsEditing(false);
+    },
+  });
+
+  // Initialize form data when userData changes
+  useEffect(() => {
+    if (userData) {
+      setEditFormData({
+        firstName: userData.firstName || "",
+        lastName: userData.lastName || "",
+        email: userData.email || "",
+        phone: userData.phone || "",
+        address: userData.address || ""
+      });
+    }
+  }, [userData]);
+
+  const handleSaveChanges = () => {
+    updateUserMutation.mutate(editFormData);
   };
+
+  const handleFormChange = (field: string, value: string) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">User not found</div>
+        </div>
+      </div>
+    );
+  }
 
   // Static order data
   const orders = [
@@ -263,11 +352,16 @@ Thank you for choosing our book rental service!
               </div>
             </div>
             <Button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={isEditing ? handleSaveChanges : () => setIsEditing(!isEditing)}
               className="lg:self-start"
+              disabled={updateUserMutation.isPending}
             >
               <Edit3 className="h-4 w-4 mr-2" />
-              {isEditing ? "Save Changes" : "Edit Profile"}
+              {updateUserMutation.isPending
+                ? "Saving..."
+                : isEditing
+                ? "Save Changes"
+                : "Edit Profile"}
             </Button>
           </div>
         </div>
@@ -363,17 +457,38 @@ Thank you for choosing our book rental service!
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Full Name</Label>
+                        <Label>First Name</Label>
                         {isEditing ? (
-                          <Input defaultValue={userData.name} className="mt-1" />
+                          <Input
+                            value={editFormData.firstName}
+                            onChange={(e) => handleFormChange('firstName', e.target.value)}
+                            className="mt-1"
+                          />
                         ) : (
-                          <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{userData.name}</p>
+                          <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{userData.firstName}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        {isEditing ? (
+                          <Input
+                            value={editFormData.lastName}
+                            onChange={(e) => handleFormChange('lastName', e.target.value)}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{userData.lastName}</p>
                         )}
                       </div>
                       <div>
                         <Label>Email</Label>
                         {isEditing ? (
-                          <Input defaultValue={userData.email} className="mt-1" />
+                          <Input
+                            value={editFormData.email}
+                            onChange={(e) => handleFormChange('email', e.target.value)}
+                            className="mt-1"
+                            type="email"
+                          />
                         ) : (
                           <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{userData.email}</p>
                         )}
@@ -381,7 +496,11 @@ Thank you for choosing our book rental service!
                       <div>
                         <Label>Phone</Label>
                         {isEditing ? (
-                          <Input defaultValue={userData.phone} className="mt-1" />
+                          <Input
+                            value={editFormData.phone}
+                            onChange={(e) => handleFormChange('phone', e.target.value)}
+                            className="mt-1"
+                          />
                         ) : (
                           <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{userData.phone}</p>
                         )}
@@ -394,7 +513,11 @@ Thank you for choosing our book rental service!
                     <div>
                       <Label>Address</Label>
                       {isEditing ? (
-                        <Input defaultValue={userData.address} className="mt-1" />
+                        <Input
+                          value={editFormData.address}
+                          onChange={(e) => handleFormChange('address', e.target.value)}
+                          className="mt-1"
+                        />
                       ) : (
                         <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{userData.address}</p>
                       )}
@@ -471,9 +594,9 @@ Thank you for choosing our book rental service!
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-xl">{order.totalAmount}</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="mt-2"
                             onClick={() => handleViewDetails(order)}
                           >
@@ -527,8 +650,8 @@ Thank you for choosing our book rental service!
                             </div>
                           )}
                           <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleDownloadInvoice(order)}
                             >
@@ -677,7 +800,7 @@ Thank you for choosing our book rental service!
                 Order Details - {selectedOrder?.id}
               </DialogTitle>
             </DialogHeader>
-            
+
             {selectedOrder && (
               <div className="space-y-6 py-4">
                 {/* Order Summary */}
@@ -743,7 +866,7 @@ Thank you for choosing our book rental service!
                         <span>{getOrderProgress(selectedOrder.status)}% Complete</span>
                       </div>
                       <Progress value={getOrderProgress(selectedOrder.status)} className="h-2" />
-                      
+
                       {/* Progress Steps */}
                       <div className="flex justify-between text-xs text-gray-600 mt-4">
                         <div className="flex flex-col items-center">
@@ -805,14 +928,14 @@ Thank you for choosing our book rental service!
 
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4">
-                  <Button 
+                  <Button
                     onClick={() => handleDownloadInvoice(selectedOrder)}
                     className="flex-1"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download Invoice
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => setShowOrderDialog(false)}
                     className="flex-1"

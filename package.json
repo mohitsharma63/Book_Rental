@@ -4,11 +4,11 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "build": "npm run build:shared && vite build --outDir dist/client",
-    "build:shared": "tsc --project shared",
-    "dev": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5432/book_rental JWT_SECRET=your_jwt_secret_key tsx server/index.ts",
-    "preview": "vite preview",
-    "seed": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5432/book_rental tsx server/seed-database.ts"
+    "build": "tsc",
+    "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "start": "node dist/server/index.js",
+    "db:setup": "tsx server/init-database.ts",
+    "db:migrate": "drizzle-kit push:pg"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
