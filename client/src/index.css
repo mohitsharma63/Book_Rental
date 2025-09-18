@@ -121,6 +121,127 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+/* Enhanced Profile tabs styling */
+.profile-tabs [data-state="active"] {
+  position: relative;
+  z-index: 2;
+}
+
+.profile-tabs [data-state="active"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.profile-tabs [data-state="active"]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: inherit;
+  filter: blur(8px);
+  opacity: 0.6;
+  z-index: -2;
+  transform: scale(1.1);
+}
+
+/* Profile tab hover effects */
+.profile-tab-trigger {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.profile-tab-trigger::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.6s ease;
+  z-index: 1;
+}
+
+.profile-tab-trigger:hover::before {
+  left: 100%;
+}
+
+/* Enhanced mobile profile tabs */
+@media (max-width: 640px) {
+  .profile-tabs [role="tablist"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+  
+  .profile-tabs [role="tab"] {
+    min-height: 80px !important;
+    padding: 1rem 0.75rem !important;
+    border-radius: 16px !important;
+    font-size: 0.875rem !important;
+  }
+  
+  .profile-tabs [role="tab"] svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  .profile-tabs [role="tab"] span {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Tab gradient animations */
+@keyframes tabGlow {
+  0% {
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.3);
+  }
+  100% {
+    box-shadow: 0 8px 30px rgba(139, 69, 19, 0.5);
+  }
+}
+
+.profile-tab-active {
+  animation: tabGlow 2s ease-in-out infinite alternate;
+}
+
+/* Gradient overlays for tabs */
+.tab-gradient-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.tab-gradient-orange {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.tab-gradient-green {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.tab-gradient-pink {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+}
+
+.tab-gradient-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
 .status-available { 
   @apply bg-green-100 text-green-800;
 }
@@ -881,6 +1002,45 @@ textarea:focus-visible {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Mobile scrollbar styles */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Mobile menu scrollbar */
+  .mobile-menu-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-menu-content::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .mobile-menu-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+  }
+  
+  /* Sidebar mobile scrollbar */
+  [data-sidebar="sidebar"] .mobile-menu-content {
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
 }
 
 /* Smooth gradient animations */

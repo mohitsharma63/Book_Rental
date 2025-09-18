@@ -10,11 +10,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Menu, MessageCircle } from "lucide-react";
-import { useState, useEffect, useContext } from "react"; // Import useContext
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store-context";
 import { useAuth } from "@/lib/auth-context";
 import { ChatWidget } from "@/components/chat-widget";
 import Logo from "@assets/logo-removebg-preview_1757943248494.png";
+
 export function Header() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -24,6 +25,12 @@ export function Header() {
   // Use useAuth hook for login state and user data
   const { user, logout } = useAuth();
   const isLoggedIn = !!user;
+
+  // Debug log to check user data
+  useEffect(() => {
+    console.log("Header - User data:", user);
+    console.log("Header - Is logged in:", isLoggedIn);
+  }, [user, isLoggedIn]);
 
   const isActive = (path: string) => location === path;
 
@@ -38,7 +45,7 @@ export function Header() {
   // The `user` object from AuthContext should already be populated.
 
   return (
-    <header className="bg-card shadow-sm border-b border-border sticky top-0 z-50">
+    <header className="bg-card shadow-sm border-b border-border sticky top-0 z-[100]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -157,20 +164,24 @@ export function Header() {
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"} />
-                    <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
+                    <AvatarFallback>
+                      {user.firstName?.charAt(0) || user.email?.charAt(0) || "U"}
+                    </AvatarFallback>
                   </Avatar>
                   <span
                     className="text-sm font-medium hidden lg:inline"
                     data-testid="text-username"
                   >
-                    {user.name}
+                    {`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 z-[101]">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user.name}</p>
+                    <p className="font-medium">
+                      {`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                    </p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
                       {user.email}
                     </p>
@@ -253,15 +264,19 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <div className="flex flex-col space-y-4 mt-6">
+                <div className="flex flex-col space-y-4 mt-6 mobile-menu-content max-h-[calc(100vh-2rem)] overflow-y-auto">
                   {isLoggedIn && user && (
                     <div className="flex items-center space-x-2 pb-4 border-b">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={user.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"} />
-                        <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
+                        <AvatarFallback>
+                          {user.firstName?.charAt(0) || user.email?.charAt(0) || "U"}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{user.name}</p>
+                        <p className="font-medium">
+                          {`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                        </p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
                     </div>

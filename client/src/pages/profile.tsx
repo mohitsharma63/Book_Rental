@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/lib/auth-context";
 import {
   User,
   Mail,
@@ -33,10 +34,15 @@ import {
   Award,
   Target,
   Truck,
-  CheckCircle
+  CheckCircle,
+  Search,
+  MessageCircle,
+  RotateCcw
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Profile() {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -51,13 +57,16 @@ export default function Profile() {
 
   const queryClient = useQueryClient();
 
-  // Get current user ID from localStorage or context
-  const currentUserId = localStorage.getItem('userId') || 'user_123';
+  // Get current user ID from AuthContext
+  const currentUserId = user?.id;
 
   // Fetch user data
   const { data: userData, isLoading: userLoading } = useQuery({
     queryKey: ['user', currentUserId],
     queryFn: async () => {
+      if (!currentUserId) {
+        throw new Error('No user ID available');
+      }
       const response = await fetch(`/api/users/${currentUserId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
@@ -74,11 +83,7 @@ export default function Profile() {
         joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 15, 2024",
         avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
         membership: user.isAdmin ? "Admin" : "Premium",
-        totalRentals: 47,
-        activeRentals: 3,
-        favoriteGenre: "Science Fiction",
-        totalSpent: "₹12,450",
-        readingStreak: 23,
+       
         firstName: user.firstName,
         lastName: user.lastName
       };
@@ -128,11 +133,17 @@ export default function Profile() {
     setEditFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  if (userLoading) {
+  // Show loading if user is not available or data is loading
+  if (!user || userLoading || !currentUserId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">Loading...</div>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="text-lg font-medium">Loading your profile...</div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -351,94 +362,86 @@ Thank you for choosing our book rental service!
                 </div>
               </div>
             </div>
-            <Button
-              onClick={isEditing ? handleSaveChanges : () => setIsEditing(!isEditing)}
-              className="lg:self-start"
-              disabled={updateUserMutation.isPending}
-            >
-              <Edit3 className="h-4 w-4 mr-2" />
-              {updateUserMutation.isPending
-                ? "Saving..."
-                : isEditing
-                ? "Save Changes"
-                : "Edit Profile"}
-            </Button>
+
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{userData.totalRentals}</p>
-                  <p className="text-blue-100 text-sm">Total Rentals</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-white/80" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{userData.activeRentals}</p>
-                  <p className="text-green-100 text-sm">Active Rentals</p>
-                </div>
-                <Clock className="h-8 w-8 text-white/80" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{userData.totalSpent}</p>
-                  <p className="text-purple-100 text-sm">Total Spent</p>
-                </div>
-                <CreditCard className="h-8 w-8 text-white/80" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{userData.readingStreak}</p>
-                  <p className="text-orange-100 text-sm">Day Streak</p>
-                </div>
-                <Award className="h-8 w-8 text-white/80" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Tabs */}
+        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full lg:w-auto grid-cols-2 lg:grid-cols-5 bg-white/60 backdrop-blur-sm">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
+          <TabsList className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 h-auto bg-transparent p-0">
+            <TabsTrigger
+              value="overview"
+              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <User className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
+                  activeTab === 'overview' ? 'text-white' : 'text-purple-500'
+                }`} />
+                <span className="text-sm lg:text-base font-medium">Overview</span>
+              </div>
+              {activeTab === 'overview' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-purple-600/20 rounded-2xl" />
+              )}
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Orders</span>
+
+            <TabsTrigger
+              value="orders"
+              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <Package className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
+                  activeTab === 'orders' ? 'text-white' : 'text-orange-500'
+                }`} />
+                <span className="text-sm lg:text-base font-medium">Orders</span>
+              </div>
+              {activeTab === 'orders' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-orange-600/20 rounded-2xl" />
+              )}
             </TabsTrigger>
-            <TabsTrigger value="reading" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Reading</span>
+
+            <TabsTrigger
+              value="reading"
+              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <BookOpen className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
+                  activeTab === 'reading' ? 'text-white' : 'text-green-500'
+                }`} />
+                <span className="text-sm lg:text-base font-medium">Reading</span>
+              </div>
+              {activeTab === 'reading' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-green-600/20 rounded-2xl" />
+              )}
             </TabsTrigger>
-            <TabsTrigger value="wishlist" className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">Wishlist</span>
+
+            <TabsTrigger
+              value="wishlist"
+              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-pink-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <Heart className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
+                  activeTab === 'wishlist' ? 'text-white' : 'text-pink-500'
+                }`} />
+                <span className="text-sm lg:text-base font-medium">Wishlist</span>
+              </div>
+              {activeTab === 'wishlist' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-pink-400/20 to-pink-600/20 rounded-2xl" />
+              )}
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
+
+            <TabsTrigger
+              value="settings"
+              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <Settings className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
+                  activeTab === 'settings' ? 'text-white' : 'text-blue-500'
+                }`} />
+                <span className="text-sm lg:text-base font-medium">Settings</span>
+              </div>
+              {activeTab === 'settings' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-blue-600/20 rounded-2xl" />
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -449,10 +452,24 @@ Thank you for choosing our book rental service!
               <div className="lg:col-span-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      Personal Information
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Personal Information
+                      </CardTitle>
+                      <Button
+                        onClick={isEditing ? handleSaveChanges : () => setIsEditing(!isEditing)}
+                        disabled={updateUserMutation.isPending}
+                        size="sm"
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        {updateUserMutation.isPending
+                          ? "Saving..."
+                          : isEditing
+                          ? "Save Changes"
+                          : "Edit Profile"}
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
@@ -569,103 +586,185 @@ Thank you for choosing our book rental service!
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Order History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {orders.map((order) => (
-                    <div key={order.id} className="border rounded-lg p-6 bg-white shadow-sm">
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <h3 className="font-semibold text-lg">{order.id}</h3>
-                            <p className="text-sm text-gray-600">
-                              Ordered on {new Date(order.date).toLocaleDateString()}
-                            </p>
+            <div className="space-y-6">
+              {/* Enhanced Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Order History</h3>
+                  <p className="text-muted-foreground mt-1">Track and manage all your book rentals</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 px-3 py-1">
+                    12 Total Orders
+                  </Badge>
+                  <Badge variant="secondary" className="bg-green-50 text-green-700 px-3 py-1">
+                    8 Completed
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Advanced Filters */}
+              <Card className="bg-gradient-to-r from-gray-50 to-white border-0 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search orders, books..."
+                        className="pl-10 border-gray-200 focus:border-primary"
+                      />
+                    </div>
+
+                    {/* Status Filter */}
+                    <Select defaultValue="all">
+                      <SelectTrigger className="border-gray-200 focus:border-primary">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Date Range Filter */}
+                    <Select defaultValue="all-time">
+                      <SelectTrigger className="border-gray-200 focus:border-primary">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all-time">All Time</SelectItem>
+                        <SelectItem value="last-week">Last Week</SelectItem>
+                        <SelectItem value="last-month">Last Month</SelectItem>
+                        <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                        <SelectItem value="last-year">Last Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Sort By */}
+                    <Select defaultValue="newest">
+                      <SelectTrigger className="border-gray-200 focus:border-primary">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                        <SelectItem value="amount-high">Amount: High to Low</SelectItem>
+                        <SelectItem value="amount-low">Amount: Low to High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Enhanced Order Cards */}
+              <div className="space-y-4">
+                {[
+                  { id: 1, status: "Delivered", statusColor: "bg-green-100 text-green-800 border-green-200", amount: 299, date: "2024-01-22", book: "The Alchemist", author: "Paulo Coelho", progress: 100 },
+                  { id: 2, status: "In Transit", statusColor: "bg-blue-100 text-blue-800 border-blue-200", amount: 199, date: "2024-01-18", book: "Atomic Habits", author: "James Clear", progress: 75 },
+                  { id: 3, status: "Processing", statusColor: "bg-orange-100 text-orange-800 border-orange-200", amount: 149, date: "2024-01-15", book: "The Psychology of Money", author: "Morgan Housel", progress: 25 }
+                ].map((order) => (
+                  <Card key={order.id} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm bg-white">
+                    <CardContent className="p-6">
+                      {/* Order Header */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-bold text-lg text-gray-900">ORD-2024-00{order.id}</h4>
+                            <Badge className={`${order.statusColor} font-medium px-3 py-1`}>
+                              {order.status}
+                            </Badge>
                           </div>
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          </Badge>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Ordered on {order.date}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-xl">{order.totalAmount}</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2"
-                            onClick={() => handleViewDetails(order)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
+                        <div className="text-right mt-4 md:mt-0">
+                          <p className="text-2xl font-bold text-primary">₹{order.amount}</p>
+                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 p-0 h-auto">
+                            <Eye className="h-4 w-4 mr-1" />
                             View Details
                           </Button>
                         </div>
                       </div>
 
                       {/* Order Progress */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span>Order Progress</span>
-                          <span>{getOrderProgress(order.status)}%</span>
+                      <div className="mb-6">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-gray-700">Order Progress</span>
+                          <span className="text-sm font-medium text-primary">{order.progress}%</span>
                         </div>
-                        <Progress value={getOrderProgress(order.status)} />
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-primary to-blue-500 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${order.progress}%` }}
+                          ></div>
+                        </div>
                       </div>
 
-                      {/* Books in Order */}
-                      <div className="space-y-3">
-                        {order.books.map((book, index) => (
-                          <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                            <img
-                              src={book.image}
-                              alt={book.title}
-                              className="w-12 h-16 object-cover rounded"
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-medium">{book.title}</h4>
-                              <p className="text-sm text-gray-600">by {book.author}</p>
-                              <p className="text-sm text-gray-500">Rental: {book.rentalPeriod}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{book.price}</p>
-                            </div>
+                      {/* Book Details */}
+                      <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
+                        <div className="w-16 h-20 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-lg flex items-center justify-center shadow-sm">
+                          <BookOpen className="h-8 w-8 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-gray-900 text-lg">{order.book}</h5>
+                          <p className="text-muted-foreground flex items-center gap-1 mt-1">
+                            <User className="h-4 w-4" />
+                            by {order.author}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2">
+                            <Badge variant="outline" className="text-xs bg-white">
+                              <Clock className="h-3 w-3 mr-1" />
+                              2 weeks rental
+                            </Badge>
+                            <span className="text-sm font-semibold text-primary">₹{order.amount}</span>
                           </div>
-                        ))}
+                        </div>
                       </div>
 
-                      {/* Order Timeline */}
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="grid md:grid-cols-3 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>Delivered: {order.deliveryDate}</span>
-                          </div>
-                          {order.returnDate && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-gray-400" />
-                              <span>Return by: {order.returnDate}</span>
-                            </div>
-                          )}
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(order)}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Invoice
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          {order.status === "Delivered" ? "Delivered: 2024-01-22" :
+                           order.status === "In Transit" ? "Expected: 2024-02-05" :
+                           "Processing"}
+                        </div>
+                        <div className="flex gap-2 ml-auto">
+                          <Button variant="outline" size="sm" className="hover:bg-primary hover:text-white transition-colors">
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            Track Order
+                          </Button>
+                          <Button variant="outline" size="sm" className="hover:bg-blue-500 hover:text-white transition-colors">
+                            <Download className="h-4 w-4 mr-1" />
+                            Invoice
+                          </Button>
+                          {order.status === "Delivered" && (
+                            <Button variant="outline" size="sm" className="hover:bg-green-500 hover:text-white transition-colors">
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Reorder
                             </Button>
-                          </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Load More */}
+              <div className="flex justify-center mt-8">
+                <Button variant="outline" size="lg" className="px-8 hover:bg-primary hover:text-white transition-colors">
+                  Load More Orders
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Reading History Tab */}

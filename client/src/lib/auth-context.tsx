@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface User {
@@ -7,6 +6,8 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
+  name?: string;
+  avatar?: string;
 }
 
 interface AuthContextType {
@@ -21,12 +22,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        // Ensure name property exists
+        if (!userData.name && (userData.firstName || userData.lastName)) {
+          userData.name = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email;
+        }
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error loading user from localStorage:', error);
+      localStorage.removeItem('user'); // Clear corrupted data
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -42,8 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        const userData = {
+          ...data.user,
+          name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.email
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
         return true;
       }
       return false;
@@ -65,8 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        const userData = {
+          ...data.user,
+          name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.email
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
         return true;
       }
       return false;
@@ -84,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user,
-      isAuthenticated: !!user,
+      isAuthenticated: !!user && !isLoading,
       login,
       logout,
       signup
