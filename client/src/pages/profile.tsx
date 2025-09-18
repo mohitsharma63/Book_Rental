@@ -83,7 +83,7 @@ export default function Profile() {
         joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 15, 2024",
         avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
         membership: user.isAdmin ? "Admin" : "Premium",
-       
+
         firstName: user.firstName,
         lastName: user.lastName
       };
@@ -222,32 +222,7 @@ export default function Profile() {
   ];
 
   // Static reading history
-  const readingHistory = [
-    {
-      id: 1,
-      title: "The Midnight Library",
-      author: "Matt Haig",
-      completedDate: "2024-01-18",
-      rating: 5,
-      review: "Absolutely loved this book! Life-changing perspective."
-    },
-    {
-      id: 2,
-      title: "Atomic Habits",
-      author: "James Clear",
-      completedDate: "2024-01-10",
-      rating: 4,
-      review: "Great insights on building good habits."
-    },
-    {
-      id: 3,
-      title: "The Silent Patient",
-      author: "Alex Michaelides",
-      completedDate: "2024-01-05",
-      rating: 5,
-      review: "Mind-blowing thriller with an unexpected twist!"
-    }
-  ];
+ 
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -288,37 +263,81 @@ export default function Profile() {
     setShowOrderDialog(true);
   };
 
-  const handleDownloadInvoice = (order: any) => {
-    // Create invoice content
-    const invoiceContent = `
-BOOK RENTAL INVOICE
-==================
+  const handleTrackOrder = (order: any) => {
+    setSelectedOrder(order);
+  };
 
+  const handleDownloadInvoice = (order: any) => {
+    const currentDate = new Date().toLocaleDateString();
+    const invoiceNumber = `INV-${order.id}-${Date.now()}`;
+
+    // Create detailed invoice content
+    const invoiceContent = `
+╔══════════════════════════════════════════════════════════════════╗
+║                        BOOKWISE RENTALS                         ║
+║                      TAX INVOICE                                 ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Invoice Number: ${invoiceNumber}
+Invoice Date: ${currentDate}
 Order ID: ${order.id}
 Order Date: ${new Date(order.date).toLocaleDateString()}
-Status: ${order.status.toUpperCase()}
+Order Status: ${order.status.toUpperCase()}
 
-Customer Information:
+══════════════════════════════════════════════════════════════════
+                        CUSTOMER DETAILS
+══════════════════════════════════════════════════════════════════
+
 Name: ${userData.name}
 Email: ${userData.email}
 Phone: ${userData.phone}
+Address: ${userData.address}
 
-Billing Address:
-${userData.address}
+══════════════════════════════════════════════════════════════════
+                        ORDER DETAILS
+══════════════════════════════════════════════════════════════════
 
-Order Details:
 ${order.books.map((book: any, index: number) => `
-${index + 1}. ${book.title}
-   Author: ${book.author}
-   Rental Period: ${book.rentalPeriod}
-   Price: ${book.price}
+Item ${index + 1}:
+  Book Title: ${book.title}
+  Author: ${book.author}
+  Rental Period: ${book.rentalPeriod}
+  Price: ${book.price}
+
 `).join('')}
 
-Total Amount: ${order.totalAmount}
-Delivery Date: ${order.deliveryDate}
-${order.returnDate ? `Return Date: ${order.returnDate}` : ''}
+══════════════════════════════════════════════════════════════════
+                        BILLING SUMMARY
+══════════════════════════════════════════════════════════════════
 
-Thank you for choosing our book rental service!
+Subtotal: ${order.totalAmount}
+GST (18%): ₹${(parseFloat(order.totalAmount.replace('₹', '')) * 0.18).toFixed(2)}
+Delivery Charges: ₹50
+Total Amount: ₹${(parseFloat(order.totalAmount.replace('₹', '')) * 1.18 + 50).toFixed(2)}
+
+══════════════════════════════════════════════════════════════════
+                      DELIVERY INFORMATION
+══════════════════════════════════════════════════════════════════
+
+Delivery Date: ${order.deliveryDate}
+${order.returnDate ? `Return Date: ${order.returnDate}` : 'Return Date: To be updated'}
+Delivery Address: ${userData.address}
+
+══════════════════════════════════════════════════════════════════
+                      TERMS & CONDITIONS
+══════════════════════════════════════════════════════════════════
+
+1. Books must be returned in good condition
+2. Late returns will incur additional charges
+3. Lost or damaged books will be charged at full price
+4. Please keep this invoice for your records
+
+══════════════════════════════════════════════════════════════════
+
+Thank you for choosing BookWise Rentals!
+For support, contact us at support@bookwise.com
+
+Generated on: ${currentDate}
     `;
 
     // Create and download file
@@ -326,11 +345,14 @@ Thank you for choosing our book rental service!
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `invoice-${order.id}.txt`;
+    a.download = `BookWise-Invoice-${order.id.replace('ORD-', '')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+
+    // Show success message
+    alert('Invoice downloaded successfully!');
   };
 
   return (
@@ -366,7 +388,7 @@ Thank you for choosing our book rental service!
           </div>
         </div>
 
-        
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 h-auto bg-transparent p-0">
             <TabsTrigger
@@ -399,20 +421,7 @@ Thank you for choosing our book rental service!
               )}
             </TabsTrigger>
 
-            <TabsTrigger
-              value="reading"
-              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
-            >
-              <div className="flex flex-col items-center text-center space-y-2">
-                <BookOpen className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
-                  activeTab === 'reading' ? 'text-white' : 'text-green-500'
-                }`} />
-                <span className="text-sm lg:text-base font-medium">Reading</span>
-              </div>
-              {activeTab === 'reading' && (
-                <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-green-600/20 rounded-2xl" />
-              )}
-            </TabsTrigger>
+            
 
             <TabsTrigger
               value="wishlist"
@@ -429,20 +438,7 @@ Thank you for choosing our book rental service!
               )}
             </TabsTrigger>
 
-            <TabsTrigger
-              value="settings"
-              className={`group relative overflow-hidden rounded-2xl p-4 lg:p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-white h-auto`}
-            >
-              <div className="flex flex-col items-center text-center space-y-2">
-                <Settings className={`h-6 w-6 lg:h-8 lg:w-8 transition-colors ${
-                  activeTab === 'settings' ? 'text-white' : 'text-blue-500'
-                }`} />
-                <span className="text-sm lg:text-base font-medium">Settings</span>
-              </div>
-              {activeTab === 'settings' && (
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-blue-600/20 rounded-2xl" />
-              )}
-            </TabsTrigger>
+            
           </TabsList>
 
           {/* Overview Tab */}
@@ -686,9 +682,22 @@ Thank you for choosing our book rental service!
                         </div>
                         <div className="text-right mt-4 md:mt-0">
                           <p className="text-2xl font-bold text-primary">₹{order.amount}</p>
-                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 p-0 h-auto">
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
+                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 p-0 h-auto" onClick={() => handleViewDetails({
+                              id: `ORD-2024-00${order.id}`,
+                              date: order.date,
+                              status: order.status.toLowerCase(),
+                              books: [{
+                                title: order.book,
+                                author: order.author,
+                                image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
+                                rentalPeriod: "2 weeks",
+                                price: `₹${order.amount}`
+                              }],
+                              totalAmount: `₹${order.amount}`,
+                              deliveryDate: order.date,
+                              returnDate: order.status === "Delivered" ? "2024-02-05" : null
+                            })}>
+                         
                           </Button>
                         </div>
                       </div>
@@ -729,29 +738,37 @@ Thank you for choosing our book rental service!
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          {order.status === "Delivered" ? "Delivered: 2024-01-22" :
-                           order.status === "In Transit" ? "Expected: 2024-02-05" :
-                           "Processing"}
-                        </div>
-                        <div className="flex gap-2 ml-auto">
-                          <Button variant="outline" size="sm" className="hover:bg-primary hover:text-white transition-colors">
-                            <MessageCircle className="h-4 w-4 mr-1" />
-                            Track Order
+                      <div className="flex gap-2 mt-4">
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="hover:bg-primary hover:text-white transition-colors"
+                          onClick={() => handleViewDetails({
+                            id: `ORD-2024-00${order.id}`,
+                            date: order.date,
+                            status: order.status.toLowerCase(),
+                            books: [{
+                              title: order.book,
+                              author: order.author,
+                              image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
+                              rentalPeriod: "2 weeks",
+                              price: `₹${order.amount}`
+                            }],
+                            totalAmount: `₹${order.amount}`,
+                            deliveryDate: order.date,
+                            returnDate: order.status === "Delivered" ? "2024-02-05" : null
+                          })}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                        {order.status === "Delivered" && (
+                          <Button variant="outline" size="sm" className="hover:bg-green-500 hover:text-white transition-colors">
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Reorder
                           </Button>
-                          <Button variant="outline" size="sm" className="hover:bg-blue-500 hover:text-white transition-colors">
-                            <Download className="h-4 w-4 mr-1" />
-                            Invoice
-                          </Button>
-                          {order.status === "Delivered" && (
-                            <Button variant="outline" size="sm" className="hover:bg-green-500 hover:text-white transition-colors">
-                              <RotateCcw className="h-4 w-4 mr-1" />
-                              Reorder
-                            </Button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -767,48 +784,6 @@ Thank you for choosing our book rental service!
             </div>
           </TabsContent>
 
-          {/* Reading History Tab */}
-          <TabsContent value="reading" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Reading History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {readingHistory.map((book) => (
-                    <div key={book.id} className="flex items-start gap-4 p-4 border rounded-lg">
-                      <BookOpen className="h-8 w-8 text-primary mt-1" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{book.title}</h3>
-                        <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < book.rating
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            Completed on {new Date(book.completedDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 italic">"{book.review}"</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Wishlist Tab */}
           <TabsContent value="wishlist" className="space-y-6">
@@ -832,62 +807,8 @@ Thank you for choosing our book rental service!
             </Card>
           </TabsContent>
 
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    Notifications
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Order Updates</h4>
-                      <p className="text-sm text-gray-600">Get notified about your orders</p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="toggle" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">New Releases</h4>
-                      <p className="text-sm text-gray-600">Latest book recommendations</p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="toggle" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Return Reminders</h4>
-                      <p className="text-sm text-gray-600">Reminders for book returns</p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="toggle" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Privacy & Security
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start">
-                    Change Password
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Download My Data
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-red-600">
-                    Delete Account
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+       
+          
         </Tabs>
 
         {/* Order Details Dialog */}
@@ -1046,6 +967,9 @@ Thank you for choosing our book rental service!
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Order Tracking Dialog */}
+       
       </div>
     </div>
   );

@@ -99,7 +99,7 @@ export function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="chat-widget-container animate-in slide-in-from-bottom-5 duration-300 mb-4">
+    <div className="chat-widget-container animate-in slide-in-from-bottom-5 duration-300 mb-12 mr-6 fixed bottom-0 right-0 z-50">
       <Card className={`w-80 shadow-2xl border-0 transition-all duration-300 ${
         isMinimized ? 'h-16' : 'h-[550px]'
       }`} style={{
