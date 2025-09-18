@@ -1,63 +1,49 @@
 import { useAuth } from "@/lib/auth-context";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 interface RouteGuardProps {
   children: React.ReactNode;
   requireAuth?: boolean;
-  requireAdmin?: boolean;
+  redirectTo?: string;
 }
 
-export function RouteGuard({ children, requireAuth = false, requireAdmin = false }: RouteGuardProps) {
+export function RouteGuard({
+  children,
+  requireAuth = true,
+  redirectTo = "/login"
+}: RouteGuardProps) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Give some time for AuthContext to load user from localStorage
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    // Only redirect after loading is complete
-    if (!isLoading) {
-      // If authentication is required but user is not logged in
-      if (requireAuth && !isAuthenticated) {
-        setLocation("/login");
-        return;
-      }
-
-      // If admin access is required but user is not admin
-      if (requireAdmin && (!isAuthenticated || user?.role !== "admin")) {
-        setLocation("/");
-        return;
-      }
+    if (requireAuth && !isAuthenticated) {
+      setLocation(redirectTo);
     }
-  }, [requireAuth, requireAdmin, isAuthenticated, user, setLocation, isLoading]);
+  }, [isAuthenticated, requireAuth, redirectTo, setLocation]);
 
-  // Show loading while checking authentication
-  if (isLoading) {
+  if (requireAuth && !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="text-lg font-medium mb-4">Authentication required</div>
+              <p className="text-gray-600 mb-6">Please login to access this page</p>
+              <div className="space-x-4">
+                <Button onClick={() => setLocation("/login")}>
+                  Login
+                </Button>
+                <Button variant="outline" onClick={() => setLocation("/")}>
+                  Go Home
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
-  }
-
-  // Don't render children if requirements are not met
-  if (requireAuth && !isAuthenticated) {
-    return null;
-  }
-
-  if (requireAdmin && (!isAuthenticated || user?.role !== "admin")) {
-    return null;
   }
 
   return <>{children}</>;

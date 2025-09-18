@@ -114,7 +114,7 @@ export default function Home() {
 
   const getColorForCategory = (categoryName: string) => {
     const name = categoryName.toLowerCase();
-    if (name.includes('fiction')) return { color: "from-blue-400 to-blue-600", iconColor: "text-white", textColor: "text-blue-900", countColor: "text-blue-700" };
+    if (name.includes('fiction')) return { color: "from-blue-400 to-blue-600", iconColor: "text-white", textColor: "text-blue-900", countColor: "text-red-700" };
     if (name.includes('romance')) return { color: "from-red-400 to-red-600", iconColor: "text-white", textColor: "text-red-900", countColor: "text-red-700" };
     if (name.includes('thriller') || name.includes('mystery')) return { color: "from-purple-400 to-purple-600", iconColor: "text-white", textColor: "text-purple-900", countColor: "text-purple-700" };
     if (name.includes('sci-fi') || name.includes('science')) return { color: "from-green-400 to-green-600", iconColor: "text-white", textColor: "text-green-900", countColor: "text-green-700" };
@@ -392,11 +392,11 @@ export default function Home() {
                               {/* Category Image or Icon */}
                               <div className="relative mb-4">
                                 {category.imageUrl ? (
-                                  <div className="relative">
+                                  <div className="relative w-16 h-16 sm:w-16 sm:h-16 mx-auto mobile-category-icon">
                                     <img
                                       src={category.imageUrl}
                                       alt={category.name}
-                                      className="w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110 mobile-category-icon"
+                                      className="w-full h-full rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110"
                                       onError={(e) => {
                                         const target = e.currentTarget;
                                         const fallbackContainer = target.nextElementSibling as HTMLElement;
@@ -406,15 +406,11 @@ export default function Home() {
                                         }
                                       }}
                                     />
-                                    <div className={`hidden w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white mobile-category-icon`}>
+                                    <div className={`hidden w-full h-full rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white absolute top-0 left-0`}>
                                       <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                     </div>
                                     {/* Floating badge for book count */}
-                                    <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white mobile-category-badge`}>
-                                      <span className="text-xs font-bold text-white">
-                                        {category.count > 99 ? '99+' : category.count}
-                                      </span>
-                                    </div>
+                                 
                                   </div>
                                 ) : (
                                   <div className="relative">
@@ -517,11 +513,11 @@ export default function Home() {
                           {/* Category Image or Icon */}
                           <div className="relative mb-4">
                             {category.imageUrl ? (
-                              <div className="relative">
+                              <div className="relative w-16 h-16 sm:w-16 sm:h-16 mx-auto mobile-category-icon">
                                 <img
                                   src={category.imageUrl}
                                   alt={category.name}
-                                  className="w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110 mobile-category-icon"
+                                  className="w-full h-full rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110"
                                   onError={(e) => {
                                     const target = e.currentTarget;
                                     const fallbackContainer = target.nextElementSibling as HTMLElement;
@@ -531,15 +527,11 @@ export default function Home() {
                                     }
                                   }}
                                 />
-                                <div className={`hidden w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white mobile-category-icon`}>
+                                <div className={`hidden w-full h-full rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white absolute top-0 left-0`}>
                                   <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                 </div>
                                 {/* Floating badge for book count */}
-                                <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white mobile-category-badge`}>
-                                  <span className="text-xs font-bold text-white">
-                                    {category.count > 99 ? '99+' : category.count}
-                                  </span>
-                                </div>
+                              
                               </div>
                             ) : (
                               <div className="relative">
@@ -641,7 +633,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mobile-grid-2">
             {displayFeaturedBooks.map((book, index) => (
               <div key={book.id} className="relative">
-              
+
                 <BookCard
                   book={book}
                   onRent={() => handleRentNow(book)}

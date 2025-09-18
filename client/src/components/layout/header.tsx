@@ -45,7 +45,7 @@ export function Header() {
   // The `user` object from AuthContext should already be populated.
 
   return (
-    <header className="bg-card shadow-sm border-b border-border sticky top-0 z-[100]">
+    <header className="bg-card shadow-sm border-b border-border  top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -176,7 +176,7 @@ export function Header() {
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 z-[101]">
+              <DropdownMenuContent align="end" className="w-56 z-[60]">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
                     <p className="font-medium">
@@ -339,7 +339,7 @@ export function Header() {
                         )}
                       </Button>
                     </Link>
-                    {isLoggedIn && (
+                    {isLoggedIn && user && (
                       <>
                         <Button variant="ghost" className="w-full justify-start">
                           <Bell className="mr-2 h-4 w-4" />
@@ -355,14 +355,6 @@ export function Header() {
                             Profile
                           </Button>
                         </Link>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <User className="mr-2 h-4 w-4" />
-                          Profile
-                        </Button>
                         <Button 
                           variant="ghost" 
                           className="w-full justify-start"

@@ -236,7 +236,7 @@ export default function BookDetail() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="">
         <Link href="/catalog">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />

@@ -274,7 +274,7 @@ export default function Wishlist() {
                         </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 mb-3">
+                    <div className="">
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                         <span className="text-sm">{item.rating}</span>

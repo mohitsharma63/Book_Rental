@@ -44,7 +44,7 @@ function Router() {
         </RouteGuard>
       </Route>
       <Route path="/profile">
-        <RouteGuard requireAuth={true}>
+        <RouteGuard>
           <Profile />
         </RouteGuard>
       </Route>

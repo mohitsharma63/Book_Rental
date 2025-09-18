@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -134,7 +135,7 @@ export default function Profile() {
   };
 
   // Show loading if user is not available or data is loading
-  if (!user || userLoading || !currentUserId) {
+  if (userLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -142,6 +143,29 @@ export default function Profile() {
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
               <div className="text-lg font-medium">Loading your profile...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if user is not authenticated
+  if (!user || !currentUserId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="text-lg font-medium mb-4">Please login to view your profile</div>
+              <div className="space-x-4">
+                <Link href="/login">
+                  <Button>Login</Button>
+                </Link>
+                <Link href="/">
+                  <Button variant="outline">Go Home</Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
