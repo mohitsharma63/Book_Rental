@@ -10,6 +10,7 @@ import Admin from "./pages/admin";
 import BookDetail from "./pages/book-detail";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
+import Profile from "./pages/profile";
 import About from "./pages/about";
 import Contact from "./pages/contact";
 import Privacy from "./pages/privacy";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/catalog" component={Catalog} />
       <Route path="/book/:id" component={BookDetail} />
       <Route path="/admin" component={Admin} />
+      <Route path="/profile" component={Profile} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/about" component={About} />

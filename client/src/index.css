@@ -133,6 +133,108 @@
   @apply bg-red-100 text-red-800;
 }
 
+/* Enhanced Chat Widget Animations */
+@keyframes slide-in-from-bottom-5 {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Chat Widget Positioning Fix */
+.chat-widget-container {
+  position: fixed !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure chat widget stays above everything */
+.chat-widget-container * {
+  z-index: inherit !important;
+}
+
+@keyframes slide-in-from-bottom-2 {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(5, 150, 105, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(5, 150, 105, 0.6), 0 0 30px rgba(5, 150, 105, 0.4);
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-bottom-5 {
+  animation-name: slide-in-from-bottom-5;
+}
+
+.slide-in-from-bottom-2 {
+  animation-name: slide-in-from-bottom-2;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}
+
+.animate-float-gentle {
+  animation: float-gentle 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Floating chat button hover effect */
+.chat-float-effect {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-float-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
 /* Enhanced gradient hero */
 .gradient-hero {
   background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
@@ -598,6 +700,51 @@
   .mobile-category-card .count {
     font-size: 0.75rem !important;
     color: #6b7280 !important;
+  }
+
+  /* Mobile category icon fixes */
+  .mobile-category-icon {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto 0.75rem auto !important;
+    position: relative !important;
+  }
+  
+  .mobile-category-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+    color: white !important;
+    stroke-width: 2 !important;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1)) !important;
+  }
+  
+  .mobile-category-icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 12px !important;
+  }
+  
+  .mobile-category-badge {
+    position: absolute !important;
+    top: -6px !important;
+    right: -6px !important;
+    width: 20px !important;
+    height: 20px !important;
+    background: white !important;
+    border: 2px solid #f3f4f6 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #374151 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   }
   
   /* Mobile search improvements */

@@ -9,14 +9,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Menu } from "lucide-react";
+import { Bell, User, Settings, LayoutDashboard, LogOut, ShoppingCart, Heart, Menu, MessageCircle } from "lucide-react";
 import { useState, useEffect, useContext } from "react"; // Import useContext
 import { useStore } from "@/lib/store-context";
 import { useAuth } from "@/lib/auth-context";
+import { ChatWidget } from "@/components/chat-widget";
 import Logo from "@assets/logo-removebg-preview_1757943248494.png";
 export function Header() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const { cartCount, wishlistCount } = useStore();
 
   // Use useAuth hook for login state and user data
@@ -78,6 +80,15 @@ export function Header() {
           <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Action Icons - Always visible */}
             <div className="hidden sm:flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                data-testid="button-chat"
+                onClick={() => setIsChatOpen(true)}
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Button>
               <Link href="/wishlist">
                 <Button
                   variant="ghost"
@@ -169,6 +180,13 @@ export function Header() {
 
                 {/* Mobile-only menu items */}
                 <div className="sm:hidden">
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => setIsChatOpen(true)}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Chat with Us
+                  </DropdownMenuItem>
                   <Link href="/wishlist">
                     <DropdownMenuItem className="cursor-pointer">
                       <Heart className="mr-2 h-4 w-4" />
@@ -198,23 +216,16 @@ export function Header() {
                   <DropdownMenuSeparator />
                 </div>
 
-                <Link href={user.role === "admin" ? "/admin" : "/dashboard"}>
+                <Link href={user.role === "admin" ? "/admin" : "/profile"}>
                   <DropdownMenuItem
                     className="cursor-pointer"
-                    data-testid="menu-dashboard"
+                    data-testid="menu-profile"
                   >
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    Dashboard
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
                   </DropdownMenuItem>
                 </Link>
-                <DropdownMenuItem className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
+              
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="cursor-pointer text-red-600 focus:text-red-600"
@@ -272,6 +283,17 @@ export function Header() {
                   ))}
 
                   <div className="pt-4 border-t space-y-2">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setIsOpen(false);
+                        setIsChatOpen(true);
+                      }}
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Chat with Us
+                    </Button>
                     <Link href="/wishlist">
                       <Button
                         variant="ghost"
@@ -308,14 +330,14 @@ export function Header() {
                           <Bell className="mr-2 h-4 w-4" />
                           Notifications
                         </Button>
-                        <Link href={user.role === "admin" ? "/admin" : "/dashboard"}>
+                        <Link href={user.role === "admin" ? "/admin" : "/profile"}>
                           <Button
                             variant="ghost"
                             className="w-full justify-start"
                             onClick={() => setIsOpen(false)}
                           >
-                            <LayoutDashboard className="mr-2 h-4 w-4" />
-                            Dashboard
+                            <User className="mr-2 h-4 w-4" />
+                            Profile
                           </Button>
                         </Link>
                         <Button 
@@ -376,6 +398,10 @@ export function Header() {
           </div>
         </div>
       </div>
+      <ChatWidget 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+      />
     </header>
   );
 }

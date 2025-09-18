@@ -114,11 +114,11 @@ export default function Home() {
 
   const getColorForCategory = (categoryName: string) => {
     const name = categoryName.toLowerCase();
-    if (name.includes('fiction')) return { color: "from-blue-50 to-blue-100", iconColor: "text-black", textColor: "text-blue-900", countColor: "text-blue-700" };
-    if (name.includes('romance')) return { color: "from-red-50 to-red-100", iconColor: "text-black", textColor: "text-red-900", countColor: "text-red-700" };
-    if (name.includes('thriller') || name.includes('mystery')) return { color: "from-purple-50 to-purple-100", iconColor: "text-black", textColor: "text-purple-900", countColor: "text-purple-700" };
-    if (name.includes('sci-fi') || name.includes('science')) return { color: "from-green-50 to-green-100", iconColor: "text-black", textColor: "text-green-900", countColor: "text-green-700" };
-    return { color: "from-gray-50 to-gray-100", iconColor: "text-black", textColor: "text-gray-900", countColor: "text-gray-700" };
+    if (name.includes('fiction')) return { color: "from-blue-400 to-blue-600", iconColor: "text-white", textColor: "text-blue-900", countColor: "text-blue-700" };
+    if (name.includes('romance')) return { color: "from-red-400 to-red-600", iconColor: "text-white", textColor: "text-red-900", countColor: "text-red-700" };
+    if (name.includes('thriller') || name.includes('mystery')) return { color: "from-purple-400 to-purple-600", iconColor: "text-white", textColor: "text-purple-900", countColor: "text-purple-700" };
+    if (name.includes('sci-fi') || name.includes('science')) return { color: "from-green-400 to-green-600", iconColor: "text-white", textColor: "text-green-900", countColor: "text-green-700" };
+    return { color: "from-gray-400 to-gray-600", iconColor: "text-white", textColor: "text-gray-900", countColor: "text-gray-700" };
   };
 
   // Map categories from API data to display format with icons and colors
@@ -396,7 +396,7 @@ export default function Home() {
                                     <img
                                       src={category.imageUrl}
                                       alt={category.name}
-                                      className="w-16 h-16 mx-auto rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110"
+                                      className="w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110 mobile-category-icon"
                                       onError={(e) => {
                                         const target = e.currentTarget;
                                         const fallbackContainer = target.nextElementSibling as HTMLElement;
@@ -406,11 +406,11 @@ export default function Home() {
                                         }
                                       }}
                                     />
-                                    <div className="hidden w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-sm items-center justify-center shadow-md border-2 border-white">
-                                      <Icon className={`${category.iconColor} transition-all duration-300`} size={24} />
+                                    <div className={`hidden w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white mobile-category-icon`}>
+                                      <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                     </div>
                                     {/* Floating badge for book count */}
-                                    <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white`}>
+                                    <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white mobile-category-badge`}>
                                       <span className="text-xs font-bold text-white">
                                         {category.count > 99 ? '99+' : category.count}
                                       </span>
@@ -418,11 +418,11 @@ export default function Home() {
                                   </div>
                                 ) : (
                                   <div className="relative">
-                                    <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110 border border-white/20`}>
-                                      <Icon className="text-white transition-all duration-300" size={24} />
+                                    <div className={`w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110 border border-white/20 mobile-category-icon`}>
+                                      <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                     </div>
                                     {/* Floating badge for book count */}
-                                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-gray-100">
+                                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-gray-100 mobile-category-badge">
                                       <span className={`text-xs font-bold ${category.textColor}`}>
                                         {category.count > 99 ? '99+' : category.count}
                                       </span>
@@ -521,7 +521,7 @@ export default function Home() {
                                 <img
                                   src={category.imageUrl}
                                   alt={category.name}
-                                  className="w-16 h-16 mx-auto rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110"
+                                  className="w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-all duration-300 border-2 border-white group-hover:scale-110 mobile-category-icon"
                                   onError={(e) => {
                                     const target = e.currentTarget;
                                     const fallbackContainer = target.nextElementSibling as HTMLElement;
@@ -531,11 +531,11 @@ export default function Home() {
                                     }
                                   }}
                                 />
-                                <div className="hidden w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-sm items-center justify-center shadow-md border-2 border-white">
-                                  <Icon className={`${category.iconColor} transition-all duration-300`} size={24} />
+                                <div className={`hidden w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white mobile-category-icon`}>
+                                  <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                 </div>
                                 {/* Floating badge for book count */}
-                                <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white`}>
+                                <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white mobile-category-badge`}>
                                   <span className="text-xs font-bold text-white">
                                     {category.count > 99 ? '99+' : category.count}
                                   </span>
@@ -543,11 +543,11 @@ export default function Home() {
                               </div>
                             ) : (
                               <div className="relative">
-                                <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110 border border-white/20`}>
-                                  <Icon className="text-white transition-all duration-300" size={24} />
+                                <div className={`w-16 h-16 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110 border border-white/20 mobile-category-icon`}>
+                                  <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                 </div>
                                 {/* Floating badge for book count */}
-                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-gray-100">
+                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-gray-100 mobile-category-badge">
                                   <span className={`text-xs font-bold ${category.textColor}`}>
                                     {category.count > 99 ? '99+' : category.count}
                                   </span>
