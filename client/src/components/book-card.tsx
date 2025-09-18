@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Book } from "@/lib/types";
 import { Heart, BookOpen, Star, ShoppingCart } from "lucide-react";
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useStore } from "@/lib/store-context";
 
 interface BookCardProps {
   book: Book;
@@ -14,7 +15,14 @@ interface BookCardProps {
 }
 
 export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
+  const { addToCart, addToWishlist, removeFromWishlist, wishlistItems } = useStore();
   const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // Check if book is already in wishlist
+  useEffect(() => {
+    const isInWishlist = wishlistItems.some(item => item.bookId === book.id);
+    setIsWishlisted(isInWishlist);
+  }, [wishlistItems, book.id]);
   
   const getStatusColor = (availableCopies: number) => {
     if (availableCopies > 0) return "bg-green-100 text-green-800 border-green-200";
@@ -27,8 +35,47 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
   };
 
   const handleWishlistClick = () => {
-    setIsWishlisted(!isWishlisted);
+    if (isWishlisted) {
+      // Remove from wishlist
+      const wishlistItem = wishlistItems.find(item => item.bookId === book.id);
+      if (wishlistItem) {
+        removeFromWishlist(wishlistItem.id);
+      }
+    } else {
+      // Add to wishlist
+      const wishlistItem = {
+        id: `wishlist-${book.id}-${Date.now()}`,
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: book.imageUrl || "/placeholder-book.jpg",
+        available: book.availableCopies > 0,
+        price: parseFloat(book.pricePerWeek),
+        rating: parseFloat(book.rating || "4.5"),
+        dateAdded: new Date().toISOString(),
+        category: book.category
+      };
+      addToWishlist(wishlistItem);
+    }
     onWishlist?.();
+  };
+
+  const handleRentClick = () => {
+    if (book.availableCopies > 0) {
+      const cartItem = {
+        id: `cart-${book.id}-${Date.now()}`,
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: book.imageUrl || "/placeholder-book.jpg",
+        price: parseFloat(book.pricePerWeek),
+        rentalDuration: 1,
+        quantity: 1,
+        available: true
+      };
+      addToCart(cartItem);
+    }
+    onRent?.();
   };
 
   const renderStars = (rating: number = 4.5) => {
@@ -133,7 +180,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
             }`}
             disabled={book.availableCopies === 0}
-            onClick={onRent}
+            onClick={handleRentClick}
             data-testid={`button-rent-${book.id}`}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />

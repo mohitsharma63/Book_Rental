@@ -492,6 +492,67 @@
     color: #111827 !important;
     text-align: center !important;
   }
+
+  /* Filter sidebar mobile styles */
+  @media (max-width: 768px) {
+    [data-sidebar="sidebar"] {
+      width: 300px !important;
+    }
+    
+    .filter-sidebar-content {
+      padding: 1rem !important;
+    }
+    
+    .filter-sidebar-header {
+      padding: 1rem !important;
+      border-bottom: 1px solid #e5e7eb !important;
+    }
+    
+    /* Force all sheets with data-side="left" to appear from left */
+    [data-radix-dialog-content][data-side="left"] {
+      left: 0 !important;
+      right: auto !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      height: 100vh !important;
+      width: 300px !important;
+      max-width: 300px !important;
+      transform: translateX(-100%) !important;
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1) !important;
+    }
+    
+    [data-radix-dialog-content][data-side="left"][data-state="open"] {
+      transform: translateX(0) !important;
+    }
+    
+    [data-radix-dialog-content][data-side="left"][data-state="closed"] {
+      transform: translateX(-100%) !important;
+    }
+    
+    /* Override any right-side positioning for left sheets */
+    [data-radix-dialog-content][data-side="left"].inset-y-0 {
+      left: 0 !important;
+      right: auto !important;
+    }
+  }
+  
+  @keyframes slide-in-from-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-out-to-left {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  }
   
   /* Mobile hero section */
   .mobile-hero {

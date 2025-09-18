@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
@@ -22,12 +22,14 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Link } from "wouter";
+import { useStore } from "@/lib/store-context";
 
 export default function BookDetail() {
   const [, params] = useRoute("/book/:id");
   const bookId = params?.id;
   const { user, isAuthenticated } = useAuth();
 
+  const { addToCart, addToWishlist, removeFromWishlist, wishlistItems } = useStore();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedRentalPeriod, setSelectedRentalPeriod] = useState("1");
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -68,47 +70,56 @@ export default function BookDetail() {
     retry: false,
     refetchOnWindowFocus: false,
   });
-const handleSubmitReview = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!isAuthenticated || !user) {
-    alert("Please login to submit a review");
-    return;
-  }
 
-  // Log the review data before submission
-  const reviewData = {
-    userId: user.id,
-    bookId: bookId,
-    rating: reviewRating,
-    comment: reviewComment,
-  };
-  
-  console.log("Review Data being submitted:", reviewData);
-
-  try {
-    const response = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(reviewData),
-    });
-
-    if (response.ok) {
-      setShowReviewForm(false);
-      setReviewComment("");
-      setReviewRating(5);
-      // Refetch or reload reviews after a successful submission
-      window.location.reload();
-    } else {
-      const errorData = await response.json();
-      console.error("Failed to submit review:", errorData);
+  // Check if book is already in wishlist
+  useEffect(() => {
+    if (book) {
+      const isInWishlist = wishlistItems.some(item => item.bookId === book.id);
+      setIsWishlisted(isInWishlist);
     }
-  } catch (error) {
-    console.error("Error submitting review:", error);
-  }
-};
+  }, [wishlistItems, book]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isAuthenticated || !user) {
+      alert("Please login to submit a review");
+      return;
+    }
+
+    // Log the review data before submission
+    const reviewData = {
+      userId: user.id,
+      bookId: bookId,
+      rating: reviewRating,
+      comment: reviewComment,
+    };
+
+    console.log("Review Data being submitted:", reviewData);
+
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reviewData),
+      });
+
+      if (response.ok) {
+        setShowReviewForm(false);
+        setReviewComment("");
+        setReviewRating(5);
+        // Refetch or reload reviews after a successful submission
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to submit review:", errorData);
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -130,6 +141,58 @@ const handleSubmitReview = async (e: React.FormEvent) => {
       return `${months} month${months > 1 ? 's' : ''} ago`;
     }
   };
+
+  const calculatePrice = () => {
+    const basePrice = parseFloat(book?.pricePerWeek || "0");
+    const duration = parseInt(selectedRentalPeriod);
+    if (duration === 1) return basePrice;
+    if (duration === 2) return basePrice * 1.5;
+    if (duration === 3) return basePrice * 2;
+    return basePrice;
+  };
+
+  const handleWishlistClick = () => {
+    if (!book) return;
+    if (isWishlisted) {
+      // Remove from wishlist
+      const wishlistItem = wishlistItems.find(item => item.bookId === book.id);
+      if (wishlistItem) {
+        removeFromWishlist(wishlistItem.id);
+      }
+    } else {
+      // Add to wishlist
+      const wishlistItem = {
+        id: `wishlist-${book.id}-${Date.now()}`,
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: book.imageUrl || "/placeholder-book.jpg",
+        available: book.availableCopies > 0,
+        price: parseFloat(book.pricePerWeek),
+        rating: book.rating,
+        dateAdded: new Date().toISOString(),
+        category: book.category
+      };
+      addToWishlist(wishlistItem);
+    }
+  };
+
+  const handleRentClick = () => {
+    if (!book || book.availableCopies === 0) return;
+    const cartItem = {
+      id: `cart-${book.id}-${Date.now()}`,
+      bookId: book.id,
+      title: book.title,
+      author: book.author,
+      imageUrl: book.imageUrl || "/placeholder-book.jpg",
+      price: parseFloat(book.pricePerWeek),
+      rentalDuration: parseInt(selectedRentalPeriod),
+      quantity: 1,
+      available: true
+    };
+    addToCart(cartItem);
+  };
+
 
   if (isLoading) {
     return (
@@ -163,8 +226,8 @@ const handleSubmitReview = async (e: React.FormEvent) => {
 
   const rentalPeriods = [
     { weeks: "1", price: parseFloat(book.pricePerWeek).toFixed(2), label: "1 Week" },
-    { weeks: "2", price: (parseFloat(book.pricePerWeek) * 1.9).toFixed(2), label: "2 Weeks", discount: "5% off" },
-    { weeks: "4", price: (parseFloat(book.pricePerWeek) * 3.6).toFixed(2), label: "1 Month", discount: "10% off" },
+    { weeks: "2", price: (parseFloat(book.pricePerWeek) * 1.5).toFixed(2), label: "2 Weeks", discount: "5% off" }, // Adjusted discount calculation
+    { weeks: "3", price: (parseFloat(book.pricePerWeek) * 2).toFixed(2), label: "3 Weeks", discount: "10% off" }, // Adjusted discount calculation
   ];
 
   // Use dynamic reviews data or fallback to empty array
@@ -197,7 +260,7 @@ const handleSubmitReview = async (e: React.FormEvent) => {
                   <Button
                     variant="secondary"
                     size="icon"
-                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    onClick={handleWishlistClick}
                     className="bg-white/90 hover:bg-white"
                   >
                     <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
@@ -312,7 +375,7 @@ const handleSubmitReview = async (e: React.FormEvent) => {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Format:</span>
-                    <span>Paperback</span>
+                    <span className="text-sm">Paperback</span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -367,13 +430,15 @@ const handleSubmitReview = async (e: React.FormEvent) => {
 
               <div className="flex gap-4">
                 <Button 
-                  className="flex-1" 
+                  size="lg" 
+                  className="flex-1"
                   disabled={book.availableCopies === 0}
+                  onClick={handleRentClick}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {book.availableCopies > 0 ? 'Rent Now' : 'Not Available'}
+                  {book.availableCopies > 0 ? `Rent for $${calculatePrice().toFixed(2)}` : "Out of Stock"}
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => { /* Add to Cart functionality */ }}>
                   Add to Cart
                 </Button>
               </div>

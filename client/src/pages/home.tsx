@@ -114,11 +114,11 @@ export default function Home() {
 
   const getColorForCategory = (categoryName: string) => {
     const name = categoryName.toLowerCase();
-    if (name.includes('fiction')) return { color: "from-blue-50 to-blue-100", iconColor: "text-blue-600", textColor: "text-blue-900", countColor: "text-blue-700" };
-    if (name.includes('romance')) return { color: "from-red-50 to-red-100", iconColor: "text-red-600", textColor: "text-red-900", countColor: "text-red-700" };
-    if (name.includes('thriller') || name.includes('mystery')) return { color: "from-purple-50 to-purple-100", iconColor: "text-purple-600", textColor: "text-purple-900", countColor: "text-purple-700" };
-    if (name.includes('sci-fi') || name.includes('science')) return { color: "from-green-50 to-green-100", iconColor: "text-green-600", textColor: "text-green-900", countColor: "text-green-700" };
-    return { color: "from-gray-50 to-gray-100", iconColor: "text-gray-600", textColor: "text-gray-900", countColor: "text-gray-700" };
+    if (name.includes('fiction')) return { color: "from-blue-50 to-blue-100", iconColor: "text-black", textColor: "text-blue-900", countColor: "text-blue-700" };
+    if (name.includes('romance')) return { color: "from-red-50 to-red-100", iconColor: "text-black", textColor: "text-red-900", countColor: "text-red-700" };
+    if (name.includes('thriller') || name.includes('mystery')) return { color: "from-purple-50 to-purple-100", iconColor: "text-black", textColor: "text-purple-900", countColor: "text-purple-700" };
+    if (name.includes('sci-fi') || name.includes('science')) return { color: "from-green-50 to-green-100", iconColor: "text-black", textColor: "text-green-900", countColor: "text-green-700" };
+    return { color: "from-gray-50 to-gray-100", iconColor: "text-black", textColor: "text-gray-900", countColor: "text-gray-700" };
   };
 
   // Map categories from API data to display format with icons and colors
