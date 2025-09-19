@@ -353,7 +353,11 @@ export class MemStorage implements IStorage {
   async updateCategory(id: number, updates: Partial<Omit<Category, 'id' | 'createdAt'>>): Promise<Category | null> {
     const categoryIndex = this.categories.findIndex(c => c.id === id);
     if (categoryIndex !== -1) {
-      this.categories[categoryIndex] = { ...this.categories[categoryIndex], ...updates };
+      this.categories[categoryIndex] = { 
+        ...this.categories[categoryIndex], 
+        ...updates,
+        isActive: updates.isActive ?? this.categories[categoryIndex].isActive
+      };
       const updated = this.categories[categoryIndex];
       return {
         ...updated,

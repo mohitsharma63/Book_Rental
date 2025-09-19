@@ -8,7 +8,10 @@
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "start": "node dist/server/index.js",
     "db:setup": "tsx server/init-database.ts",
-    "db:migrate": "drizzle-kit push:pg"
+    "db:migrate": "drizzle-kit push",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx server/seed-database.ts",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

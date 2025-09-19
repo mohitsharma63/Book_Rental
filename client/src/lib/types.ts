@@ -12,6 +12,7 @@ export type Book = {
   publishedYear?: number;
   pages?: number;
   rating?: string;
+  status?: string;
   createdAt: Date;
 };
 
@@ -44,4 +45,17 @@ export type Wishlist = {
   userId: string;
   bookId: string;
   createdAt: Date;
+};
+
+export type WishlistItem = {
+  id: string;
+  bookId: string;
+  title: string;
+  author: string;
+  imageUrl: string;
+  price: number;
+  category: string;
+  rating: number;
+  available: boolean;
+  dateAdded: string;
 };

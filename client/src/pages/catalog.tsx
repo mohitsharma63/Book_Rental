@@ -157,7 +157,7 @@ export default function Catalog() {
       book.author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategories = selectedCategories.length === 0 || selectedCategories.includes(book.category);
     const matchesAuthors = selectedAuthors.length === 0 || selectedAuthors.includes(book.author);
-    const matchesAvailability = availability.length === 0 || availability.includes(book.status);
+    const matchesAvailability = availability.length === 0 || availability.includes(book.status || "");
     return matchesSearch && matchesCategories && matchesAuthors && matchesAvailability;
   });
 
@@ -209,10 +209,10 @@ export default function Catalog() {
       bookId: book.id,
       title: book.title,
       author: book.author,
-      imageUrl: book.imageUrl || (book as any).image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      price: parseFloat(book.pricePerWeek || (book as any).price || "0"),
+      imageUrl: book.imageUrl || "/placeholder-book.jpg",
+      price: parseFloat(book.pricePerWeek),
       category: book.category,
-      rating: book.rating,
+      rating: book.rating ? parseFloat(book.rating) : 0,
       available: book.availableCopies > 0,
       dateAdded: new Date().toISOString()
     };
@@ -564,7 +564,6 @@ export default function Catalog() {
                       book={book}
                       onRent={() => handleRentNow(book)}
                       onWishlist={() => handleAddToWishlist(book)}
-                      renderStars={renderStars}
                     />
                   ))
                 ) : (
@@ -599,8 +598,6 @@ export default function Catalog() {
                       book={book}
                       onRent={() => handleRentNow(book)}
                       onWishlist={() => handleAddToWishlist(book)}
-                      renderStars={renderStars}
-                      viewMode="list"
                     />
                   ))
                 ) : (

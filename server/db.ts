@@ -8,7 +8,7 @@ if (process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL ||"postgresql://bookloop:bookloop@localhost:5432/bokloopdb",
+  connectionString: process.env.DATABASE_URL ||"postgresql://bookloop:bookloop@213.210.21.124:5432/bokloopdb",
   ssl: false // Disable SSL for local development
 });
 
