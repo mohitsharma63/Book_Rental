@@ -115,28 +115,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Received book data:", req.body);
 
-      // Transform the data to match schema expectations
+      // Keep pricePerWeek as string for schema validation, transform others as needed
       const transformedData = {
         ...req.body,
-        pricePerWeek: parseFloat(req.body.pricePerWeek),
+        pricePerWeek: req.body.pricePerWeek.toString(),
         publishedYear: req.body.publishedYear ? parseInt(req.body.publishedYear) : null,
         pages: req.body.pages ? parseInt(req.body.pages) : null,
       };
 
-      const bookData = insertBookSchema.parse(transformedData);
-      console.log("Validated book data:", bookData);
-
-      // Create book with properly parsed numeric values
-      const bookToCreate = {
-        ...bookData,
-        pricePerWeek: typeof bookData.pricePerWeek === 'string' ? parseFloat(bookData.pricePerWeek) : bookData.pricePerWeek,
-      };
-
-      const bookToCreateWithStringPrice = {
-        ...bookToCreate,
-        pricePerWeek: bookToCreate.pricePerWeek.toString()
-      };
-      const book = await storage.createBook(bookToCreateWithStringPrice);
+      // Validate with schema (expects string for pricePerWeek)
+      const validatedData = insertBookSchema.parse(transformedData);
+      console.log("Validated book data:", validatedData);
+      
+      const book = await storage.createBook(validatedData);
       res.status(201).json(book);
     } catch (error) {
       console.error("Book creation error:", error);
@@ -149,10 +140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Updating book with ID:", req.params.id);
       console.log("Update data:", req.body);
 
-      // Transform the data to match schema expectations
+      // Keep pricePerWeek as string for schema validation, convert others as needed
       const transformedData = {
         ...req.body,
-        pricePerWeek: parseFloat(req.body.pricePerWeek),
+        pricePerWeek: req.body.pricePerWeek.toString(),
         totalCopies: parseInt(req.body.totalCopies),
         publishedYear: req.body.publishedYear ? parseInt(req.body.publishedYear) : null,
         pages: req.body.pages ? parseInt(req.body.pages) : null,
