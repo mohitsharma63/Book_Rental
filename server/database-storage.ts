@@ -209,7 +209,7 @@ export class DatabaseStorage implements IStorage {
         eq(wishlist.userId, userId),
         eq(wishlist.bookId, bookId)
       ));
-    return (result.rowCount || 0) > 0;
+    return (result as any).rowCount > 0;
   }
 
   // Category methods
@@ -253,7 +253,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(categories)
         .where(eq(categories.id, id));
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting category:", error);
       throw error;
@@ -437,7 +437,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(sliders)
         .where(eq(sliders.id, id));
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting slider:", error);
       throw error;

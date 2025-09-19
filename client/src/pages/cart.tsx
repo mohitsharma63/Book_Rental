@@ -41,9 +41,9 @@ export default function Cart() {
   };
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const duration = item.rentalPeriod || item.rentalDuration || 1;
+    const duration = item.rentalDuration || 1;
     const durationMultiplier = duration === 1 ? 1 : duration === 2 ? 1.5 : 2;
-    return sum + ((item.price || item.pricePerWeek || 0) * durationMultiplier * item.quantity);
+    return sum + (item.price * durationMultiplier * item.quantity);
   }, 0);
 
   const deliveryFee = selectedDelivery === "express" ? 4.99 : selectedDelivery === "standard" ? 2.99 : 0;
@@ -162,7 +162,7 @@ export default function Cart() {
                               Rental Period
                             </label>
                             <Select 
-                              value={(item.rentalPeriod || item.rentalDuration || 1).toString()}
+                              value={item.rentalDuration.toString()}
                               onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
                             >
                               <SelectTrigger className="bg-gray-50 border-gray-200">
@@ -207,7 +207,7 @@ export default function Cart() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Price</label>
                             <div className="text-2xl font-bold text-primary">
-                              ${((item.price || item.pricePerWeek || 0) * ((item.rentalPeriod || item.rentalDuration || 1) === 1 ? 1 : (item.rentalPeriod || item.rentalDuration || 1) === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
+                              ${(item.price * (item.rentalDuration === 1 ? 1 : item.rentalDuration === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
                             </div>
                           </div>
                         </div>

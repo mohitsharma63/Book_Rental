@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(books);
     } catch (error) {
       console.error("Get books error:", error);
-      res.status(500).json({ message: "Failed to fetch books", details: error.message });
+      res.status(500).json({ message: "Failed to fetch books", details: (error as Error).message });
     }
   });
 
@@ -106,7 +106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(book);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch book" });
+      console.error("Get book error:", error);
+      res.status(500).json({ message: "Failed to fetch book", details: (error as Error).message });
     }
   });
 
@@ -122,20 +123,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pages: req.body.pages ? parseInt(req.body.pages) : null,
       };
 
-      const bookData = insertBookSchema.parse(req.body);
+      const bookData = insertBookSchema.parse(transformedData);
       console.log("Validated book data:", bookData);
 
       // Create book with properly parsed numeric values
       const bookToCreate = {
         ...bookData,
-        pricePerWeek: parseFloat(bookData.pricePerWeek),
+        pricePerWeek: typeof bookData.pricePerWeek === 'string' ? parseFloat(bookData.pricePerWeek) : bookData.pricePerWeek,
       };
 
       const book = await storage.createBook(bookToCreate);
       res.status(201).json(book);
     } catch (error) {
       console.error("Book creation error:", error);
-      res.status(400).json({ message: "Invalid book data", error: error.message });
+      res.status(400).json({ message: "Invalid book data", error: (error as Error).message });
     }
   });
 
@@ -158,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(book);
     } catch (error) {
       console.error("Update book error:", error);
-      res.status(500).json({ message: "Failed to update book", error: error.message });
+      res.status(500).json({ message: "Failed to update book", error: (error as Error).message });
     }
   });
 
@@ -174,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Book deleted successfully" });
     } catch (error) {
       console.error("Delete book error:", error);
-      res.status(500).json({ message: "Failed to delete book", error: error.message });
+      res.status(500).json({ message: "Failed to delete book", error: (error as Error).message });
     }
   });
 
@@ -192,7 +193,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(rentals);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch rentals" });
+      console.error("Get rentals error:", error);
+      res.status(500).json({ message: "Failed to fetch rentals", details: (error as Error).message });
     }
   });
 
@@ -202,7 +204,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rental = await storage.createRental(rentalData);
       res.status(201).json(rental);
     } catch (error) {
-      res.status(400).json({ message: "Invalid rental data" });
+      console.error("Create rental error:", error);
+      res.status(400).json({ message: "Invalid rental data", details: (error as Error).message });
     }
   });
 
@@ -211,7 +214,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rental = await storage.updateRental(req.params.id, req.body);
       res.json(rental);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update rental" });
+      console.error("Update rental error:", error);
+      res.status(500).json({ message: "Failed to update rental", details: (error as Error).message });
     }
   });
 
@@ -227,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(safeUsers);
     } catch (error) {
       console.error("Get users error:", error);
-      res.status(500).json({ message: "Failed to fetch users", details: error.message });
+      res.status(500).json({ message: "Failed to fetch users", details: (error as Error).message });
     }
   });
 
@@ -241,7 +245,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Failed to fetch user", details: (error as Error).message });
     }
   });
 
@@ -266,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Update user error:", error);
-      res.status(500).json({ message: "Failed to update user", error: error.message });
+      res.status(500).json({ message: "Failed to update user", error: (error as Error).message });
     }
   });
 
@@ -294,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Suspend user error:", error);
-      res.status(500).json({ message: "Failed to suspend user", error: error.message });
+      res.status(500).json({ message: "Failed to suspend user", error: (error as Error).message });
     }
   });
 
@@ -304,7 +309,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlist = await storage.getWishlistByUser(req.params.userId);
       res.json(wishlist);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch wishlist" });
+      console.error("Get wishlist error:", error);
+      res.status(500).json({ message: "Failed to fetch wishlist", details: (error as Error).message });
     }
   });
 
@@ -314,7 +320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlistItem = await storage.addToWishlist(wishlistData);
       res.status(201).json(wishlistItem);
     } catch (error) {
-      res.status(400).json({ message: "Invalid wishlist data" });
+      console.error("Add to wishlist error:", error);
+      res.status(400).json({ message: "Invalid wishlist data", details: (error as Error).message });
     }
   });
 
@@ -326,7 +333,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Removed from wishlist" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to remove from wishlist" });
+      console.error("Remove from wishlist error:", error);
+      res.status(500).json({ message: "Failed to remove from wishlist", details: (error as Error).message });
     }
   });
 
@@ -369,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Contact error:", error);
-      res.status(500).json({ error: "Failed to send message" });
+      res.status(500).json({ error: "Failed to send message", details: (error as Error).message });
     }
   });
 
@@ -380,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(contacts);
     } catch (error) {
       console.error("Get contacts error:", error);
-      res.status(500).json({ error: "Failed to fetch contacts" });
+      res.status(500).json({ error: "Failed to fetch contacts", details: (error as Error).message });
     }
   });
 
@@ -400,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error("Get contact stats error:", error);
-      res.status(500).json({ error: "Failed to fetch contact stats" });
+      res.status(500).json({ error: "Failed to fetch contact stats", details: (error as Error).message });
     }
   });
 
@@ -411,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(sliders);
     } catch (error) {
       console.error("Get sliders error:", error);
-      res.status(500).json({ error: "Failed to fetch sliders" });
+      res.status(500).json({ error: "Failed to fetch sliders", details: (error as Error).message });
     }
   });
 
@@ -421,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(sliders);
     } catch (error) {
       console.error("Get active sliders error:", error);
-      res.status(500).json({ error: "Failed to fetch active sliders" });
+      res.status(500).json({ error: "Failed to fetch active sliders", details: (error as Error).message });
     }
   });
 
@@ -432,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(slider);
     } catch (error) {
       console.error("Create slider error:", error);
-      res.status(500).json({ error: "Failed to create slider" });
+      res.status(500).json({ error: "Failed to create slider", details: (error as Error).message });
     }
   });
 
@@ -441,15 +449,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const updateData = req.body;
       const slider = await storage.updateSlider(id, updateData);
-      
+
       if (!slider) {
         return res.status(404).json({ error: "Slider not found" });
       }
-      
+
       res.json(slider);
     } catch (error) {
       console.error("Update slider error:", error);
-      res.status(500).json({ error: "Failed to update slider" });
+      res.status(500).json({ error: "Failed to update slider", details: (error as Error).message });
     }
   });
 
@@ -457,15 +465,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteSlider(id);
-      
+
       if (!deleted) {
         return res.status(404).json({ error: "Slider not found" });
       }
-      
+
       res.json({ success: true, message: "Slider deleted successfully" });
     } catch (error) {
       console.error("Delete slider error:", error);
-      res.status(500).json({ error: "Failed to delete slider" });
+      res.status(500).json({ error: "Failed to delete slider", details: (error as Error).message });
     }
   });
 
@@ -488,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(contact);
     } catch (error) {
       console.error("Update contact status error:", error);
-      res.status(500).json({ error: "Failed to update contact status" });
+      res.status(500).json({ error: "Failed to update contact status", details: (error as Error).message });
     }
   });
 
@@ -500,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(categories);
     } catch (error) {
       console.error("Get categories error:", error);
-      res.status(500).json({ error: "Failed to fetch categories", details: error.message });
+      res.status(500).json({ error: "Failed to fetch categories", details: (error as Error).message });
     }
   });
 
@@ -525,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(category);
     } catch (error) {
       console.error("Create category error:", error);
-      res.status(500).json({ error: "Failed to create category", details: error.message });
+      res.status(500).json({ error: "Failed to create category", details: (error as Error).message });
     }
   });
 
@@ -555,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(category);
     } catch (error) {
       console.error("Update category error:", error);
-      res.status(500).json({ error: "Failed to update category", details: error.message });
+      res.status(500).json({ error: "Failed to update category", details: (error as Error).message });
     }
   });
 
@@ -571,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Category deleted successfully" });
     } catch (error) {
       console.error("Delete category error:", error);
-      res.status(500).json({ error: "Failed to delete category" });
+      res.status(500).json({ error: "Failed to delete category", details: (error as Error).message });
     }
   });
 
@@ -583,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reviews);
     } catch (error) {
       console.error("Get reviews error:", error);
-      res.status(500).json({ error: "Failed to fetch reviews" });
+      res.status(500).json({ error: "Failed to fetch reviews", details: (error as Error).message });
     }
   });
 
@@ -607,7 +615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(review);
     } catch (error) {
       console.error("Create review error:", error);
-      res.status(400).json({ error: "Invalid review data" });
+      res.status(400).json({ error: "Invalid review data", details: (error as Error).message });
     }
   });
 
@@ -618,7 +626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reviews);
     } catch (error) {
       console.error("Get user reviews error:", error);
-      res.status(500).json({ error: "Failed to fetch user reviews" });
+      res.status(500).json({ error: "Failed to fetch user reviews", details: (error as Error).message });
     }
   });
 

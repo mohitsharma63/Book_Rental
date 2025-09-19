@@ -106,9 +106,9 @@ export default function Checkout() {
   ];
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const duration = item.rentalPeriod || item.rentalDuration || 1;
+    const duration = item.rentalDuration || 1;
     const durationMultiplier = duration === 1 ? 1 : duration === 2 ? 1.5 : 2;
-    return sum + ((item.price || item.pricePerWeek || 0) * durationMultiplier * item.quantity);
+    return sum + (item.price * durationMultiplier * item.quantity);
   }, 0);
 
   const deliveryFee = selectedDelivery === "express" ? 199 : selectedDelivery === "standard" ? 99 : 0;
@@ -165,7 +165,7 @@ export default function Checkout() {
 
       if (orderData.success) {
         // Initialize Cashfree checkout
-        const cashfree = window.Cashfree({
+        const cashfree = (window as any).Cashfree({
           mode: "sandbox" // Use "production" for live
         });
 
@@ -534,7 +534,7 @@ export default function Checkout() {
                       <Checkbox
                         id="billingAddressSame"
                         checked={billingAddressSame}
-                        onCheckedChange={setBillingAddressSame}
+                        onCheckedChange={(checked) => setBillingAddressSame(checked === true)}
                       />
                       <Label htmlFor="billingAddressSame">
                         Same as shipping address
@@ -580,7 +580,7 @@ export default function Checkout() {
                         <h4 className="font-medium text-sm">{item.title}</h4>
                         <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
                         <p className="text-sm font-semibold text-primary">
-                          ₹{((item.price || item.pricePerWeek || 0) * item.quantity).toFixed(2)}
+                          ₹{(item.price * item.quantity).toFixed(2)}
                         </p>
                       </div>
                     </div>

@@ -122,11 +122,11 @@ export default function Home() {
   };
 
   // Map categories from API data to display format with icons and colors
-  const categories = categoriesData.map(category => {
+  const categories = categoriesData.map((category: any) => {
     const colors = getColorForCategory(category.name);
     return {
       name: category.name,
-      count: displayBooks.filter(book => book.category === category.name).length,
+      count: displayBooks.filter((book: any) => book.category === category.name).length,
       icon: getIconForCategory(category.name),
       imageUrl: category.imageUrl, // Include imageUrl from database
       ...colors
@@ -137,10 +137,11 @@ export default function Home() {
   const handleAddToWishlist = (book: Book) => {
     const wishlistItem = {
       id: book.id,
+      bookId: book.id,
       title: book.title,
       author: book.author,
       imageUrl: book.imageUrl || "/placeholder-book.jpg",
-      price: parseFloat(book.pricePerWeek),
+      price: book.pricePerWeek,
       available: book.availableCopies > 0,
       rating: book.rating || 4.5,
       category: book.category,
@@ -153,14 +154,16 @@ export default function Home() {
     if (book.availableCopies > 0) {
       const cartItem = {
         id: book.id,
+        bookId: book.id,
         title: book.title,
         author: book.author,
         imageUrl: book.imageUrl || "/placeholder-book.jpg",
-        pricePerWeek: parseFloat(book.pricePerWeek),
+        price: book.pricePerWeek,
         category: book.category,
         availableCopies: book.availableCopies,
         quantity: 1,
-        rentalPeriod: 1
+        rentalDuration: 1,
+        available: book.availableCopies > 0
       };
       addToCart(cartItem);
     }
@@ -410,7 +413,11 @@ export default function Home() {
                                       <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                     </div>
                                     {/* Floating badge for book count */}
-                                 
+                                    <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white mobile-category-badge`}>
+                                      <span className="text-xs font-bold text-white">
+                                        {category.count > 99 ? '99+' : category.count}
+                                      </span>
+                                    </div>
                                   </div>
                                 ) : (
                                   <div className="relative">
@@ -530,8 +537,12 @@ export default function Home() {
                                 <div className={`hidden w-full h-full rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md border-2 border-white absolute top-0 left-0`}>
                                   <Icon className="text-white transition-all duration-300" size={24} strokeWidth={2.5} />
                                 </div>
-                                {/* Floating badge for book count */}
-                              
+                                {/* Floating badge for book count - hidden on mobile when image present */}
+                                <div className={`absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-white mobile-category-badge`}>
+                                  <span className="text-xs font-bold text-white">
+                                    {category.count > 99 ? '99+' : category.count}
+                                  </span>
+                                </div>
                               </div>
                             ) : (
                               <div className="relative">

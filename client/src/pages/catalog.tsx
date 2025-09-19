@@ -134,19 +134,20 @@ export default function Catalog() {
     }
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number | string) => {
+    const numericRating = typeof rating === 'string' ? parseFloat(rating) : rating;
     return (
       <div className="flex items-center gap-1">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`h-4 w-4 ${i < Math.floor(rating)
+            className={`h-4 w-4 ${i < Math.floor(numericRating)
               ? "fill-yellow-400 text-yellow-400"
               : "fill-gray-200 text-gray-200"
               }`}
           />
         ))}
-        <span className="text-sm text-muted-foreground ml-1">{rating}</span>
+        <span className="text-sm text-muted-foreground ml-1">{numericRating}</span>
       </div>
     );
   };
@@ -162,15 +163,13 @@ export default function Catalog() {
 
   const sortedBooks = [...filteredBooks].sort((a, b) => {
     if (sortBy === "price-low") {
-      return a.price - b.price;
+      return (a as any).price - (b as any).price;
     } else if (sortBy === "price-high") {
-      return b.price - a.price;
+      return (b as any).price - (a as any).price;
     } else if (sortBy === "rating") {
-      return b.rating - a.rating;
+      return (parseFloat(b.rating as string || '0')) - (parseFloat(a.rating as string || '0'));
     } else if (sortBy === "newest") {
-      // Assuming books have a 'createdAt' field or similar for sorting by newest
-      // For mock data, we'll just use the id as a proxy
-      return b.id - a.id;
+      return parseInt(b.id) - parseInt(a.id);
     } else if (sortBy === "alphabetical-az") {
       return a.title.localeCompare(b.title);
     } else if (sortBy === "alphabetical-za") {
@@ -250,7 +249,7 @@ export default function Catalog() {
                 Smart Filters
               </SheetTitle>
             </SheetHeader>
-            
+
             <div className="p-6 space-y-6">
               {/* Search */}
               <div className="space-y-3">
@@ -561,7 +560,7 @@ export default function Catalog() {
                       key={book.id}
                       book={book}
                       onRent={() => handleRentNow(book)}
-                      onAddToWishlist={() => handleAddToWishlist(book)}
+                      onWishlist={() => handleAddToWishlist(book)}
                       getStatusBadge={getStatusBadge}
                       renderStars={renderStars}
                     />
@@ -597,7 +596,7 @@ export default function Catalog() {
                       key={book.id}
                       book={book}
                       onRent={() => handleRentNow(book)}
-                      onAddToWishlist={() => handleAddToWishlist(book)}
+                      onWishlist={() => handleAddToWishlist(book)}
                       getStatusBadge={getStatusBadge}
                       renderStars={renderStars}
                       viewMode="list"

@@ -39,12 +39,12 @@ function Router() {
       <Route path="/catalog" component={Catalog} />
       <Route path="/book/:id" component={BookDetail} />
       <Route path="/admin">
-        <RouteGuard requireAdmin={true}>
+        <RouteGuard requireAuth={true}>
           <Admin />
         </RouteGuard>
       </Route>
       <Route path="/profile">
-        <RouteGuard>
+        <RouteGuard requireAuth={true}>
           <Profile />
         </RouteGuard>
       </Route>

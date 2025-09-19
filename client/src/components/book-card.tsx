@@ -1,9 +1,8 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Book } from "@/lib/types";
-import { Heart, BookOpen, Star, ShoppingCart } from "lucide-react";
+import { Heart, BookOpen, ShoppingCart } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store-context";
@@ -23,7 +22,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
     const isInWishlist = wishlistItems.some(item => item.bookId === book.id);
     setIsWishlisted(isInWishlist);
   }, [wishlistItems, book.id]);
-  
+
   const getStatusColor = (availableCopies: number) => {
     if (availableCopies > 0) return "bg-green-100 text-green-800 border-green-200";
     return "bg-red-100 text-red-800 border-red-200";
@@ -158,7 +157,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
               {book.category}
             </span>
           )}
-          {renderStars(book.rating || 4.5)}
+          {renderStars(typeof book.rating === 'string' ? parseFloat(book.rating) : book.rating || 4.5)}
         </div>
 
         {/* Price */}
@@ -186,7 +185,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
             <ShoppingCart className="h-4 w-4 mr-2" />
             {book.availableCopies > 0 ? "Rent Now" : "Not Available"}
           </Button>
-          
+
           <Link href={`/book/${book.id}`} className="block w-full">
             <Button variant="outline" className="w-full font-medium border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
               <BookOpen className="h-4 w-4 mr-2" />

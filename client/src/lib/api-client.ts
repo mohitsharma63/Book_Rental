@@ -1,4 +1,3 @@
-
 import { useAuth } from './auth-context';
 
 export function useApiClient() {
@@ -12,7 +11,7 @@ export function useApiClient() {
 
     // Add user info to headers if authenticated
     if (user) {
-      headers['x-user-info'] = JSON.stringify(user);
+      (headers as any)['x-user-info'] = JSON.stringify(user);
     }
 
     return fetch(url, {

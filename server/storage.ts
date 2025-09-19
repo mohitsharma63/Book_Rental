@@ -63,9 +63,10 @@ export interface IStorage {
 
   // Slider methods
   getSliders(): Promise<Slider[]>;
+  getActiveSliders(): Promise<Slider[]>;
   createSlider(insertSlider: InsertSlider): Promise<Slider>;
-  updateSlider(id: string, updateData: Partial<Slider>): Promise<Slider | null>;
-  deleteSlider(id: string): Promise<boolean>;
+  updateSlider(id: number, updateData: Partial<Slider>): Promise<Slider | null>;
+  deleteSlider(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -108,13 +109,14 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
+    const user: User = {
       id,
       createdAt: new Date(),
       address: insertUser.address || null,
       phone: insertUser.phone || null,
       isAdmin: insertUser.isAdmin || false,
+      ...insertUser,
+      suspended: insertUser.suspended ?? null
     };
     this.users.set(id, user);
     return user;
@@ -351,38 +353,48 @@ export class MemStorage implements IStorage {
   ];
 
   async getCategories() {
-    return [...this.categories];
+    return this.categories.map(cat => ({
+      ...cat,
+      description: cat.description,
+      imageUrl: null,
+      isActive: cat.isActive,
+      createdAt: new Date(cat.createdAt)
+    }));
   }
 
-  async createCategory(categoryData: {
-    name: string;
-    description: string;
-    imageUrl?: string;
-    isActive: boolean;
-    createdAt: string;
-  }) {
-    const newCategory = {
-      id: Math.max(...this.categories.map(c => c.id), 0) + 1,
-      ...categoryData
+  async createCategory(categoryData: InsertCategory) {
+    const category = {
+      id: this.categories.length + 1,
+      name: categoryData.name,
+      description: categoryData.description || '',
+      imageUrl: categoryData.imageUrl || undefined,
+      isActive: categoryData.isActive ?? true,
+      createdAt: new Date().toISOString()
     };
-    this.categories.push(newCategory);
-    return newCategory;
+    this.categories.push(category);
+    return {
+      ...category,
+      description: category.description,
+      imageUrl: null,
+      isActive: category.isActive,
+      createdAt: new Date(category.createdAt)
+    };
   }
 
-  async updateCategory(id: number, updates: {
-    name: string;
-    description: string;
-    imageUrl?: string;
-    isActive: boolean;
-  }) {
+  async updateCategory(id: number, updates: Partial<Omit<Category, 'id' | 'createdAt'>>): Promise<Category | null> {
     const categoryIndex = this.categories.findIndex(c => c.id === id);
-    if (categoryIndex === -1) return null;
-
-    this.categories[categoryIndex] = { 
-      ...this.categories[categoryIndex], 
-      ...updates 
-    };
-    return this.categories[categoryIndex];
+    if (categoryIndex !== -1) {
+      this.categories[categoryIndex] = { ...this.categories[categoryIndex], ...updates };
+      const updated = this.categories[categoryIndex];
+      return {
+        ...updated,
+        description: updated.description,
+        imageUrl: null,
+        isActive: updated.isActive,
+        createdAt: new Date(updated.createdAt)
+      };
+    }
+    return null;
   }
 
   async deleteCategory(id: number): Promise<boolean> {
@@ -397,10 +409,11 @@ export class MemStorage implements IStorage {
   async createContact(contactData: InsertContact): Promise<Contact> {
     const id = randomUUID();
     const contact: Contact = {
-      ...contactData,
       id,
       createdAt: new Date(),
-      status: contactData.status || "pending",
+      status: 'new',
+      ...contactData,
+      category: contactData.category || null
     };
     this.contacts.set(id, contact);
     return contact;
@@ -425,11 +438,15 @@ export class MemStorage implements IStorage {
     return Array.from(this.sliders.values());
   }
 
+  async getActiveSliders(): Promise<Slider[]> {
+    return Array.from(this.sliders.values()).filter(slider => slider.isActive);
+  }
+
   async createSlider(insertSlider: InsertSlider): Promise<Slider> {
     const id = randomUUID();
     const slider: Slider = {
+      id: parseInt(id.split('-')[0]) || 1,
       ...insertSlider,
-      id,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -437,18 +454,18 @@ export class MemStorage implements IStorage {
     return slider;
   }
 
-  async updateSlider(id: string, updateData: Partial<Slider>): Promise<Slider | null> {
-    const slider = this.sliders.get(id);
+  async updateSlider(id: number, updateData: Partial<Slider>): Promise<Slider | null> {
+    const slider = this.sliders.get(id.toString());
     if (!slider) {
       return null;
     }
     const updatedSlider = { ...slider, ...updateData, updatedAt: new Date() };
-    this.sliders.set(id, updatedSlider);
+    this.sliders.set(id.toString(), updatedSlider);
     return updatedSlider;
   }
 
-  async deleteSlider(id: string): Promise<boolean> {
-    return this.sliders.delete(id);
+  async deleteSlider(id: number): Promise<boolean> {
+    return this.sliders.delete(id.toString());
   }
 }
 

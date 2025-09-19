@@ -85,9 +85,9 @@ export function CategoriesManager() {
   });
 
   // Calculate book counts for each category
-  const categoriesWithCounts = categories.map(category => ({
+  const categoriesWithCounts = categories.map((category: any) => ({
     ...category,
-    bookCount: books.filter(book => book.category === category.name).length
+    bookCount: books.filter((book: any) => book.category === category.name).length
   }));
 
   // Add category mutation
