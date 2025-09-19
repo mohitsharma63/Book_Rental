@@ -135,20 +135,22 @@ export default function Home() {
 
 
   const handleAddToWishlist = (book: Book) => {
-    const wishlistItem = {
-      id: book.id,
-      bookId: book.id,
-      title: book.title,
-      author: book.author,
-      imageUrl: book.imageUrl || "/placeholder-book.jpg",
-      price: book.pricePerWeek,
-      available: book.availableCopies > 0,
-      rating: book.rating || 4.5,
-      category: book.category,
-      dateAdded: new Date().toISOString()
-    };
-    addToWishlist(wishlistItem);
+  const wishlistItem = {
+    id: book.id,
+    bookId: book.id,
+    title: book.title,
+    author: book.author,
+    imageUrl: book.imageUrl || "/placeholder-book.jpg",
+    price: parseFloat(book.pricePerWeek),
+    available: book.availableCopies > 0,
+    rating: book.rating ? Number(book.rating) : 4.5, // <-- always number
+    category: book.category,
+    dateAdded: new Date().toISOString()
   };
+
+  addToWishlist(wishlistItem);
+};
+
 
   const handleRentNow = (book: Book) => {
     if (book.availableCopies > 0) {
@@ -158,7 +160,7 @@ export default function Home() {
         title: book.title,
         author: book.author,
         imageUrl: book.imageUrl || "/placeholder-book.jpg",
-        price: book.pricePerWeek,
+        price: parseFloat(book.pricePerWeek),
         category: book.category,
         availableCopies: book.availableCopies,
         quantity: 1,

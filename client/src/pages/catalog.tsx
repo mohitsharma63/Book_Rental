@@ -186,15 +186,17 @@ export default function Catalog() {
     if (book.availableCopies > 0) {
       const cartItem = {
         id: book.id,
+        bookId: book.id,
         title: book.title,
         author: book.author,
-        imageUrl: book.imageUrl || book.image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-        pricePerWeek: parseFloat(book.pricePerWeek || book.price),
-        price: parseFloat(book.pricePerWeek || book.price),
+        imageUrl: book.imageUrl || (book as any).image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
+        pricePerWeek: parseFloat(book.pricePerWeek || (book as any).price || "0"),
+        price: parseFloat(book.pricePerWeek || (book as any).price || "0"),
         category: book.category,
         availableCopies: book.availableCopies,
         quantity: 1,
-        rentalPeriod: 1
+        rentalDuration: 7,
+        available: book.availableCopies > 0
       };
       addToCart(cartItem);
       alert(`"${book.title}" has been added to your cart!`);
@@ -204,10 +206,11 @@ export default function Catalog() {
   const handleAddToWishlist = (book: BookType) => {
     const wishlistItem = {
       id: book.id,
+      bookId: book.id,
       title: book.title,
       author: book.author,
-      imageUrl: book.imageUrl || book.image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
-      price: parseFloat(book.pricePerWeek || book.price),
+      imageUrl: book.imageUrl || (book as any).image || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=400",
+      price: parseFloat(book.pricePerWeek || (book as any).price || "0"),
       category: book.category,
       rating: book.rating,
       available: book.availableCopies > 0,
@@ -561,7 +564,6 @@ export default function Catalog() {
                       book={book}
                       onRent={() => handleRentNow(book)}
                       onWishlist={() => handleAddToWishlist(book)}
-                      getStatusBadge={getStatusBadge}
                       renderStars={renderStars}
                     />
                   ))
@@ -597,7 +599,6 @@ export default function Catalog() {
                       book={book}
                       onRent={() => handleRentNow(book)}
                       onWishlist={() => handleAddToWishlist(book)}
-                      getStatusBadge={getStatusBadge}
                       renderStars={renderStars}
                       viewMode="list"
                     />

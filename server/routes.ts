@@ -132,7 +132,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pricePerWeek: typeof bookData.pricePerWeek === 'string' ? parseFloat(bookData.pricePerWeek) : bookData.pricePerWeek,
       };
 
-      const book = await storage.createBook(bookToCreate);
+      const bookToCreateWithStringPrice = {
+        ...bookToCreate,
+        pricePerWeek: bookToCreate.pricePerWeek.toString()
+      };
+      const book = await storage.createBook(bookToCreateWithStringPrice);
       res.status(201).json(book);
     } catch (error) {
       console.error("Book creation error:", error);
@@ -284,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.updateUser(id, { 
         suspended: suspended,
-        updatedAt: new Date()
+        
       });
 
       if (!user) {

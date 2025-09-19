@@ -26,7 +26,7 @@ import {
   type InsertReview,
   type InsertSlider
 } from "@shared/schema";
-import type { IStorage } from "./storage";
+import type { IStorage } from "./interfaces";
 
 export class DatabaseStorage implements IStorage {
   // User methods
@@ -117,10 +117,7 @@ export class DatabaseStorage implements IStorage {
 
       const [book] = await db
         .update(books)
-        .set({
-          ...updateData,
-          updatedAt: new Date()
-        })
+        .set(updateData)
         .where(eq(books.id, id))
         .returning();
 

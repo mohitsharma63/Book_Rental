@@ -10,64 +10,7 @@ import type {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./database-storage";
-
-
-export interface IStorage {
-  // User methods
-  getUser(id: string): Promise<User | undefined>;
-  getUserById(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(insertUser: InsertUser): Promise<User>;
-  updateUser(id: string, updateData: Partial<User>): Promise<User>;
-  getAllUsers(): Promise<User[]>;
-
-  // Book methods
-  getAllBooks(): Promise<Book[]>;
-  getBook(id: string): Promise<Book | undefined>;
-  getBookById(id: string): Promise<Book | undefined>;
-  getBooksByCategory(category: string): Promise<Book[]>;
-  searchBooks(query: string): Promise<Book[]>;
-  createBook(insertBook: InsertBook): Promise<Book>;
-  updateBook(id: string, updateData: Partial<Book>): Promise<Book>;
-  deleteBook(id: string): Promise<boolean>;
-
-  // Rental methods
-  getAllRentals(): Promise<Rental[]>;
-  getRental(id: string): Promise<Rental | undefined>;
-  getRentalsByUser(userId: string): Promise<Rental[]>;
-  getRentalsByBook(bookId: string): Promise<Rental[]>;
-  createRental(insertRental: InsertRental): Promise<Rental>;
-  updateRental(id: string, updateData: Partial<Rental>): Promise<Rental>;
-
-  // Review methods
-  getReviewsByBook(bookId: string): Promise<Review[]>;
-  createReview(insertReview: InsertReview): Promise<Review>;
-  getReviewsByUser(userId: string): Promise<Review[]>;
-
-  // Wishlist methods
-  getWishlistByUser(userId: string): Promise<Wishlist[]>;
-  addToWishlist(insertWishlist: InsertWishlist): Promise<Wishlist>;
-  removeFromWishlist(userId: string, bookId: string): Promise<boolean>;
-
-  // Category methods
-  getCategories(): Promise<Category[]>;
-  createCategory(categoryData: InsertCategory): Promise<Category>;
-  updateCategory(id: number, updates: Partial<Omit<Category, 'id' | 'createdAt'>>): Promise<Category | null>;
-  deleteCategory(id: number): Promise<boolean>;
-
-  // Contact methods
-  createContact(contactData: InsertContact): Promise<Contact>;
-  getAllContacts(): Promise<Contact[]>;
-  updateContactStatus(id: string, status: string): Promise<Contact | null>;
-
-  // Slider methods
-  getSliders(): Promise<Slider[]>;
-  getActiveSliders(): Promise<Slider[]>;
-  createSlider(insertSlider: InsertSlider): Promise<Slider>;
-  updateSlider(id: number, updateData: Partial<Slider>): Promise<Slider | null>;
-  deleteSlider(id: number): Promise<boolean>;
-}
+import type { IStorage } from "./interfaces";
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
@@ -75,6 +18,7 @@ export class MemStorage implements IStorage {
   private rentals: Map<string, Rental>;
   private wishlist: Map<string, Wishlist>;
   private contacts: Map<string, Contact>;
+  private reviews: Map<string, Review>;
   private sliders: Map<string, Slider>; // Added for slider storage
 
   constructor() {
@@ -83,6 +27,7 @@ export class MemStorage implements IStorage {
     this.rentals = new Map();
     this.wishlist = new Map();
     this.contacts = new Map();
+    this.reviews = new Map();
     this.sliders = new Map(); // Initialize slider storage
   }
 
@@ -258,11 +203,35 @@ export class MemStorage implements IStorage {
     return false;
   }
 
+  // Review methods
+  async getReviewsByBook(bookId: string): Promise<Review[]> {
+    return Array.from(this.reviews.values()).filter(review => review.bookId === bookId);
+  }
+
+  async createReview(insertReview: InsertReview): Promise<Review> {
+    const id = randomUUID();
+    const review: Review = {
+      id,
+      userId: insertReview.userId,
+      bookId: insertReview.bookId,
+      rating: insertReview.rating,
+      comment: insertReview.comment,
+      createdAt: new Date(),
+    };
+    this.reviews.set(id, review);
+    return review;
+  }
+
+  async getReviewsByUser(userId: string): Promise<Review[]> {
+    return Array.from(this.reviews.values()).filter(review => review.userId === userId);
+  }
+
   // Category methods
   private categories: Array<{
     id: number;
     name: string;
-    description: string;
+    description: string | null;
+    imageUrl?: string | null;
     isActive: boolean;
     createdAt: string;
   }> = [
@@ -352,17 +321,17 @@ export class MemStorage implements IStorage {
     }
   ];
 
-  async getCategories() {
+  async getCategories(): Promise<Category[]> {
     return this.categories.map(cat => ({
       ...cat,
-      description: cat.description,
+      description: cat.description || null,
       imageUrl: null,
       isActive: cat.isActive,
       createdAt: new Date(cat.createdAt)
     }));
   }
 
-  async createCategory(categoryData: InsertCategory) {
+  async createCategory(categoryData: InsertCategory): Promise<Category> {
     const category = {
       id: this.categories.length + 1,
       name: categoryData.name,
@@ -374,7 +343,7 @@ export class MemStorage implements IStorage {
     this.categories.push(category);
     return {
       ...category,
-      description: category.description,
+      description: category.description || null,
       imageUrl: null,
       isActive: category.isActive,
       createdAt: new Date(category.createdAt)
@@ -412,7 +381,10 @@ export class MemStorage implements IStorage {
       id,
       createdAt: new Date(),
       status: 'new',
-      ...contactData,
+      name: contactData.name,
+      email: contactData.email,
+      message: contactData.message,
+      subject: contactData.subject || null,
       category: contactData.category || null
     };
     this.contacts.set(id, contact);
@@ -446,9 +418,14 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const slider: Slider = {
       id: parseInt(id.split('-')[0]) || 1,
-      ...insertSlider,
+      title: insertSlider.title || null,
+      description: insertSlider.description || null,
+      imageUrl: insertSlider.imageUrl,
+      linkUrl: insertSlider.linkUrl || null,
+      buttonText: insertSlider.buttonText || null,
+      order: insertSlider.order || null,
+      isActive: insertSlider.isActive ?? null,
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
     this.sliders.set(id, slider);
     return slider;
@@ -459,7 +436,7 @@ export class MemStorage implements IStorage {
     if (!slider) {
       return null;
     }
-    const updatedSlider = { ...slider, ...updateData, updatedAt: new Date() };
+    const updatedSlider = { ...slider, ...updateData };
     this.sliders.set(id.toString(), updatedSlider);
     return updatedSlider;
   }

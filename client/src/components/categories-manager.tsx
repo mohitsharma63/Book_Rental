@@ -185,7 +185,7 @@ export function CategoriesManager() {
   };
 
   const toggleCategoryStatus = (id: number) => {
-    const category = categories.find(cat => cat.id === id);
+    const category = categories.find((cat: any) => cat.id === id);
     if (category) {
       updateCategoryMutation.mutate({
         id,
@@ -352,7 +352,7 @@ export function CategoriesManager() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {categoriesWithCounts.filter(c => c.isActive).length}
+              {categoriesWithCounts.filter((c: any) => c.isActive).length}
             </div>
             <p className="text-xs text-muted-foreground">
               Currently in use
@@ -366,7 +366,7 @@ export function CategoriesManager() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {categoriesWithCounts.reduce((sum, cat) => sum + cat.bookCount, 0)}
+              {categoriesWithCounts.reduce((sum: number, cat: any) => sum + cat.bookCount, 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Across all categories
@@ -393,7 +393,7 @@ export function CategoriesManager() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categoriesWithCounts.map((category) => (
+              {categoriesWithCounts.map((category: any) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
