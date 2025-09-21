@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -304,9 +303,9 @@ export default function Terms() {
             <p className="text-sm text-blue-900">
               <strong>Mailing Address:</strong><br />
               BookLoop Legal Department<br />
-              123 Library Street<br />
-              Reading City, RC 12345<br />
-              United States
+              Mylapore<br />
+              Chennai, 600004<br />
+              India
             </p>
           </div>
         </CardContent>

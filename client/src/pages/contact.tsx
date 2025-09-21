@@ -125,17 +125,11 @@ export default function Contact() {
     {
       title: "Visit Us",
       description: "Our main office",
-      value: "123 Book Street, Reading City, RC 12345",
+      value: "Mylapore,chennai,600004",
       icon: MapPin,
       color: "text-red-600"
     },
-    {
-      title: "Business Hours",
-      description: "We're here to help",
-      value: "Mon-Fri: 9AM-6PM EST",
-      icon: Clock,
-      color: "text-purple-600"
-    }
+   
   ];
 
   const faq = [
@@ -291,44 +285,12 @@ export default function Contact() {
           </div>
 
           {/* Map Placeholder */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="bg-muted h-64 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground">Interactive Map</p>
-                  <p className="text-sm text-muted-foreground">123 Book Street, Reading City</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
       </div>
 
       {/* FAQ Section */}
-      <div>
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4 flex items-center justify-center gap-2">
-            <HelpCircle className="h-8 w-8" />
-            Frequently Asked Questions
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-          Find quick answers to common questions about BookLoop.
-        </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {faq.map((item, index) => (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-3">{item.question}</h3>
-                <p className="text-muted-foreground">{item.answer}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
+    
       {/* CTA Section */}
       <div className="mt-16 bg-primary/5 rounded-lg p-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Still Have Questions?</h2>

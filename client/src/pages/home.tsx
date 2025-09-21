@@ -669,47 +669,7 @@ export default function Home() {
       {/* Popular Categories */}
 
 
-      {/* Why Choose BookWise */}
-      <section className="mb-8 sm:mb-12 bg-muted/30 rounded-lg p-4 sm:p-6 lg:p-8">
-        <div className="text-center mb-6 sm:mb-8">
-          <h3 className="text-xl sm:text-2xl font-bold mb-4">Why Choose BookLoop?</h3>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto px-4 sm:px-0">
-            Join thousands of readers who have made BookLoop their go-to platform for discovering and enjoying great books.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-          <div className="text-center">
-            <div className="bg-blue-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">💰</span>
-            </div>
-            <h4 className="font-semibold mb-2 text-sm sm:text-base">Affordable Pricing</h4>
-            <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
-              Rent books at a fraction of the retail price. Starting from just $5/week.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="bg-green-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">🚚</span>
-            </div>
-            <h4 className="font-semibold mb-2 text-sm sm:text-base">Fast Delivery</h4>
-            <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
-              Get your books delivered within 24 hours. Free delivery on orders above $25.
-            </p>
-          </div>
-
-          <div className="text-center sm:col-span-2 md:col-span-1">
-            <div className="bg-purple-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">📖</span>
-            </div>
-            <h4 className="font-semibold mb-2 text-sm sm:text-base">Vast Collection</h4>
-            <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
-              Access over 10,000 titles across all genres. New releases added weekly.
-            </p>
-          </div>
-        </div>
-      </section>
+     
     </main>
     </>
   );

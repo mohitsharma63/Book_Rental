@@ -87,7 +87,7 @@ export default function Privacy() {
           about how we collect, use, and safeguard your personal information.
         </p>
         <div className="mt-6 text-sm text-muted-foreground">
-          <p>Last updated: January 15, 2024</p>
+          <p>Last updated: January 15, 2025</p>
         </div>
       </div>
 

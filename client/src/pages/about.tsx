@@ -1,165 +1,201 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Users, Award, Heart, Target, Sparkles } from "lucide-react";
+import { BookOpen, Users, Award, Heart, Target, Sparkles, Quote, Star } from "lucide-react";
 
 export default function About() {
-  const stats = [
-    { label: "Books Available", value: "10,000+", icon: BookOpen, color: "text-blue-600" },
-    { label: "Happy Readers", value: "25,000+", icon: Users, color: "text-green-600" },
-    { label: "Cities Served", value: "50+", icon: Target, color: "text-purple-600" },
-    { label: "Years of Service", value: "5+", icon: Award, color: "text-orange-600" }
-  ];
 
-  const team = [
-    {
-      name: "Sarah Johnson",
-      role: "Founder & CEO",
-      bio: "Former librarian with a passion for making books accessible to everyone.",
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200"
-    },
-    {
-      name: "Michael Chen",
-      role: "Head of Technology",
-      bio: "Tech enthusiast building the future of digital book rentals.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200"
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Community Manager",
-      bio: "Book lover connecting readers with their next favorite story.",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200"
-    }
-  ];
 
   const values = [
     {
-      title: "Accessibility",
-      description: "Making reading affordable and accessible to everyone, everywhere.",
+      title: "Stories Shared with Love",
+      description: "Every book is passed on with care, creating connections between readers across the globe.",
       icon: Heart,
-      color: "text-red-500"
+      color: "text-red-500",
+      gradient: "from-red-100 to-pink-100"
     },
     {
-      title: "Quality",
-      description: "Curating the finest collection of books across all genres.",
-      icon: Sparkles,
-      color: "text-yellow-500"
+      title: "Books Meant to be Enjoyed",
+      description: "We believe books should be read, not stored. Experience the joy of discovering new stories.",
+      icon: BookOpen,
+      color: "text-blue-500",
+      gradient: "from-blue-100 to-sky-100"
     },
     {
-      title: "Community",
-      description: "Building a vibrant community of passionate readers.",
+      title: "Accessible Reading for All",
+      description: "Making literature affordable and accessible to every reader, regardless of budget.",
       icon: Users,
-      color: "text-blue-500"
+      color: "text-green-500",
+      gradient: "from-green-100 to-emerald-100"
     }
   ];
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Hero Section */}
-      <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
-        <Badge className="mb-4 text-xs sm:text-sm">About BookLoop</Badge>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6" data-testid="about-title">
-          Revolutionizing How You Read
-        </h1>
-        <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Founded in 2024, BookLoop is more than just a book rental service. We're a community 
-          of book lovers dedicated to making reading accessible, affordable, and enjoyable for everyone.
-        </p>
+      {/* Hero Section with Founder's Story */}
+      <div className="relative overflow-hidden mb-16">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-50 to-blue-50 rounded-3xl"></div>
+        <div className="relative px-8 py-16 text-center">
+          <div className="flex items-center justify-center mb-6">
+            <Sparkles className="h-8 w-8 text-primary mr-3 animate-pulse" />
+            <Badge variant="secondary" className="text-lg px-6 py-2 bg-white/80 backdrop-blur">
+              Founder's Note
+            </Badge>
+            <Sparkles className="h-8 w-8 text-primary ml-3 animate-pulse" />
+          </div>
+          
+      
+          {/* Founder's Quote Card */}
+          <div className="max-w-4xl mx-auto mb-12">
+            <Card className="bg-white/90 backdrop-blur border-2 border-primary/20 shadow-xl">
+              <CardContent className="p-8 sm:p-12">
+                <Quote className="h-12 w-12 text-primary/30 mb-6 mx-auto" />
+                
+                <div className="space-y-6 text-left">
+                  <p className="text-lg sm:text-xl leading-relaxed text-gray-700 italic">
+                    "Hi, I am <span className="font-semibold text-primary">Dr. Sravya</span>, a doctor and an avid reader. 
+                    For years, I wished to explore countless books but couldn't buy them all. I often thought 
+                    <span className="font-medium text-purple-700"> 'how wonderful it would be if there were a reliable book rental service!'</span>"
+                  </p>
+                  
+                  <p className="text-lg sm:text-xl leading-relaxed text-gray-700">
+                    "That thought has now taken shape as <span className="font-bold text-primary">BookLoop</span> — a space where stories are shared, 
+                    re-read, and passed on with love."
+                  </p>
+                  
+                  <p className="text-lg sm:text-xl leading-relaxed text-gray-700 font-medium">
+                    "Welcome to my dream venture, built for every reader who believes books are meant to be enjoyed, not stored. 💛📚"
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center mt-8 pt-6 border-t border-gray-200">
+                  <div className="text-center">
+                    <p className="font-semibold text-lg text-primary">Dr. Sravya</p>
+                    <p className="text-sm text-gray-600">Founder & CEO, BookLoop</p>
+                    <div className="flex justify-center mt-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="text-xl sm:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+            Founded in <span className="font-bold text-primary">2025</span>, BookLoop transforms the dream of every book lover into reality
+          </p>
+
+          <Button size="lg" className="text-lg px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            Join Our Reading Community
+          </Button>
+        </div>
       </div>
 
       {/* Stats Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-12 sm:mb-16">
-        {stats.map((stat, index) => (
-          <Card key={index} className="text-center p-3 sm:p-6">
-            <CardContent className="p-0">
-              <stat.icon className={`h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 sm:mb-3 ${stat.color}`} />
-              <div className="text-lg sm:text-2xl font-bold mb-1">{stat.value}</div>
-              <div className="text-xs sm:text-sm text-muted-foreground">{stat.label}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      
 
-      {/* Mission Section */}
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center mb-12 sm:mb-16">
-        <div className="order-2 md:order-1">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Our Mission</h2>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-            We believe that everyone deserves access to great books, regardless of their budget or location. 
-            Our mission is to break down barriers to reading by providing an affordable, convenient, and 
-            sustainable way to access thousands of titles.
+      {/* Vision Section */}
+      <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+        <div className="space-y-6">
+          <Badge variant="outline" className="w-fit">Our Vision</Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold leading-tight">
+            Where Stories Find New Homes
+          </h2>
+          <p className="text-lg text-gray-600 leading-relaxed">
+            At BookLoop, we envision a world where every story finds its perfect reader. Our platform connects 
+            book lovers with thousands of titles, creating a sustainable ecosystem where books are loved, 
+            shared, and cherished.
           </p>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-            Through our platform, we're not just renting books – we're fostering a love of reading, 
-            supporting authors, and building a more literate world one reader at a time.
+          <p className="text-lg text-gray-600 leading-relaxed">
+            Located in the heart of <span className="font-semibold text-primary">Mylapore, Chennai, 600004</span>, 
+            we're building bridges between readers across India and beyond, one book at a time.
           </p>
-          <Button size="lg" className="w-full sm:w-auto">Join Our Community</Button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button size="lg" className="rounded-full">
+              Explore Our Collection
+            </Button>
+            <Button variant="outline" size="lg" className="rounded-full">
+              Learn How It Works
+            </Button>
+          </div>
         </div>
-        <div className="relative order-1 md:order-2">
+        
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-purple-200 rounded-3xl blur-3xl"></div>
           <img 
-            src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400" 
-            alt="Stack of books" 
-            className="rounded-lg shadow-lg w-full h-48 sm:h-64 md:h-auto object-cover"
+            src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=600" 
+            alt="Beautiful stack of books representing our collection" 
+            className="relative rounded-3xl shadow-2xl w-full h-96 object-cover"
           />
+          <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <Heart className="h-8 w-8 text-red-500 fill-current" />
+              <div>
+                <p className="font-bold text-gray-800">Made with Love</p>
+                <p className="text-sm text-gray-600">For Every Reader</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Values Section */}
-      <div className="mb-12 sm:mb-16">
-        <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4">Our Values</h2>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-            These core values guide everything we do at BookLoop.
+      <div className="mb-16">
+        <div className="text-center mb-12">
+          <Badge variant="outline" className="mb-4">Our Values</Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            Built on Love, Sustained by Community
+          </h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Every decision we make is guided by our core belief that books should bring joy, 
+            knowledge, and connection to readers everywhere.
           </p>
         </div>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+        
+        <div className="grid md:grid-cols-3 gap-8">
           {values.map((value, index) => (
-            <Card key={index} className="p-4 sm:p-6 text-center">
-              <CardContent className="p-0">
-                <value.icon className={`h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 ${value.color}`} />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">{value.title}</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">{value.description}</p>
+            <Card key={index} className={`group hover:shadow-xl transition-all duration-500 bg-gradient-to-br ${value.gradient} border-0`}>
+              <CardContent className="p-8 text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-lg mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <value.icon className={`h-10 w-10 ${value.color}`} />
+                </div>
+                <h3 className="text-xl font-bold mb-4 text-gray-800">{value.title}</h3>
+                <p className="text-gray-700 leading-relaxed">{value.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
 
-      {/* Team Section */}
-      <div className="mb-12 sm:mb-16">
-        <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4">Meet Our Team</h2>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-            Passionate individuals working together to make reading accessible for everyone.
-          </p>
-        </div>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-          {team.map((member, index) => (
-            <Card key={index} className="p-4 sm:p-6 text-center">
-              <CardContent className="p-0">
-                <img 
-                  src={member.image} 
-                  alt={member.name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto mb-3 sm:mb-4 object-cover"
-                />
-                <h3 className="text-lg sm:text-xl font-semibold mb-1">{member.name}</h3>
-                <p className="text-primary font-medium mb-2 sm:mb-3 text-sm sm:text-base">{member.role}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{member.bio}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      {/* Community Stats */}
+      
 
       {/* CTA Section */}
-      <div className="bg-primary/5 rounded-lg p-4 sm:p-6 lg:p-8 text-center">
-        <h2 className="text-xl sm:text-2xl font-bold mb-4">Ready to Start Reading?</h2>
-        <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-2xl mx-auto px-4 sm:px-0">
-          Join thousands of readers who have already discovered their next favorite book with BookLoop.
+      <div className="bg-gradient-to-r from-primary to-purple-600 rounded-3xl p-8 sm:p-12 text-center text-white">
+        <Sparkles className="h-12 w-12 mx-auto mb-6 animate-pulse" />
+        <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+          Ready to Join Dr. Sravya's Dream?
+        </h2>
+        <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90 leading-relaxed">
+          Discover your next favorite book and become part of a community that believes 
+          stories are meant to be shared, not stored.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-          <Button size="lg" className="w-full sm:w-auto">Browse Catalog</Button>
-          <Button variant="outline" size="lg" className="w-full sm:w-auto">Contact Us</Button>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button size="lg" variant="secondary" className="text-lg px-8 py-4 rounded-full">
+            Start Your Reading Journey
+          </Button>
+          <Button variant="outline" size="lg" className="text-lg px-8 py-4 rounded-full border-black text-black">
+            Browse Our Collection
+          </Button>
+        </div>
+        
+        <div className="mt-8 pt-6 border-t border-white/20">
+          <p className="text-lg opacity-90">
+            💛 Built with love for every reader who believes in the magic of books 📚
+          </p>
         </div>
       </div>
     </main>

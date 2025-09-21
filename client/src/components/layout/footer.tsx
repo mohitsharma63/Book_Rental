@@ -2,14 +2,14 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Mail,
+  Phone,
+  MapPin,
   BookOpen,
   Heart
 } from "lucide-react";
@@ -19,7 +19,7 @@ export function Footer() {
     <footer className="bg-muted/30 border-t">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          
+
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -33,7 +33,7 @@ export function Footer() {
               </Link>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Your trusted partner for affordable book rentals. Discover thousands of titles 
+              Your trusted partner for affordable book rentals. Discover thousands of titles
               and join our community of passionate readers worldwide.
             </p>
             <div className="flex space-x-4">
@@ -88,27 +88,11 @@ export function Footer() {
             <h4 className="text-lg font-semibold">About BookLoop</h4>
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>
-                Founded in 2019, BookLoop revolutionizes the way people access books. 
+                Founded in 2025, BookLoop revolutionizes the way people access books.
                 We believe reading should be affordable and accessible to everyone.
               </p>
-              <p>
-                With over 15,000 titles and growing, we're committed to building 
-                the largest community of book lovers globally.
-              </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Over 42,000 satisfied customers</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Available in 127 cities</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>24/7 customer support</span>
-                </div>
-              </div>
+              
+             
             </div>
           </div>
 
@@ -118,27 +102,27 @@ export function Footer() {
             <div className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>support@bookloop.com</span>
+                <span>bookloop.ind@gmail.com</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary" />
-                <span>+1 (555) 123-BOOK</span>
+                <span>+91 9652883765</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary" />
-                <span>123 Library Street, Reading City, RC 12345</span>
+                <span>Mylapore, Chennai, 600004</span>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <h5 className="font-medium">Stay Updated</h5>
               <p className="text-xs text-muted-foreground">
                 Get the latest book recommendations and exclusive offers
               </p>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Enter email" 
-                  className="text-xs h-8" 
+                <Input
+                  placeholder="Enter email"
+                  className="text-xs h-8"
                   type="email"
                 />
                 <Button size="sm" className="h-8 px-3">
@@ -150,7 +134,7 @@ export function Footer() {
         </div>
 
         <Separator className="my-8" />
-        
+
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm text-muted-foreground">
@@ -171,7 +155,7 @@ export function Footer() {
               </Button>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Made with</span>
             <Heart className="h-4 w-4 text-red-500 fill-current" />
