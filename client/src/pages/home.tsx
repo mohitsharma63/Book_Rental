@@ -164,7 +164,7 @@ export default function Home() {
         category: book.category,
         availableCopies: book.availableCopies,
         quantity: 1,
-        rentalDuration: 1,
+        rentalDuration: 0,
         available: book.availableCopies > 0
       };
       addToCart(cartItem);

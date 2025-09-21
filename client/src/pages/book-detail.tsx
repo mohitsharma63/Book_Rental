@@ -446,7 +446,7 @@ export default function BookDetail() {
               <div className="mt-4 p-4 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  <span>Free delivery within 24 hours • Return anytime during rental period</span>
+                  <span>Return anytime during rental period</span>
                 </div>
               </div>
             </CardContent>

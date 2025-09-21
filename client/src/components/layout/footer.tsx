@@ -34,7 +34,7 @@ export function Footer() {
             </div>
             <p className="text-sm text-muted-foreground max-w-sm">
               Your trusted partner for affordable book rentals. Discover thousands of titles
-              and join our community of passionate readers worldwide.
+              and join our community of passionate readers inida.
             </p>
             <div className="flex space-x-4">
               <Button variant="ghost" size="icon" className="h-8 w-8">

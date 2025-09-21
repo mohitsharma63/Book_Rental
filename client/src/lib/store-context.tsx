@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface CartItem {
@@ -34,6 +33,9 @@ interface StoreContextType {
   addToWishlist: (item: WishlistItem) => void;
   removeFromWishlist: (id: string) => void;
   updateCartQuantity: (id: string, quantity: number) => void;
+  clearCart: () => void;
+  clearWishlist: () => void;
+  clearAllData: () => void;
   cartCount: number;
   wishlistCount: number;
 }
@@ -51,17 +53,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     if (savedCart) {
       try {
-        setCartItems(JSON.parse(savedCart));
+        const parsedCart = JSON.parse(savedCart);
+        // Only set if it's a valid array, otherwise keep empty
+        if (Array.isArray(parsedCart)) {
+          setCartItems(parsedCart);
+        }
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
+        // Clear invalid localStorage data
+        localStorage.removeItem('cart');
       }
     }
 
     if (savedWishlist) {
       try {
-        setWishlistItems(JSON.parse(savedWishlist));
+        const parsedWishlist = JSON.parse(savedWishlist);
+        // Only set if it's a valid array, otherwise keep empty
+        if (Array.isArray(parsedWishlist)) {
+          setWishlistItems(parsedWishlist);
+        }
       } catch (error) {
         console.error('Error loading wishlist from localStorage:', error);
+        // Clear invalid localStorage data
+        localStorage.removeItem('wishlist');
       }
     }
   }, []);
@@ -78,6 +92,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (item: CartItem) => {
     setCartItems(prev => {
+      // Check for existing item by bookId instead of exact id match
       const existingItem = prev.find(cartItem => cartItem.bookId === item.bookId);
       if (existingItem) {
         return prev.map(cartItem =>
@@ -86,7 +101,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             : cartItem
         );
       }
-      return [...prev, item];
+      // Ensure rental duration is set to default value of 1 if not provided
+      return [...prev, { ...item, rentalDuration: item.rentalDuration || 1, quantity: 1 }];
     });
   };
 
@@ -116,6 +132,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setWishlistItems(prev => prev.filter(item => item.id !== id));
   };
 
+  const clearCart = () => {
+    setCartItems([]);
+    localStorage.removeItem('cart');
+  };
+
+  const clearWishlist = () => {
+    setWishlistItems([]);
+    localStorage.removeItem('wishlist');
+  };
+
+  const clearAllData = () => {
+    clearCart();
+    clearWishlist();
+  };
+
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const wishlistCount = wishlistItems.length;
 
@@ -129,6 +160,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         addToWishlist,
         removeFromWishlist,
         updateCartQuantity,
+        clearCart,
+        clearWishlist,
+        clearAllData,
         cartCount,
         wishlistCount,
       }}

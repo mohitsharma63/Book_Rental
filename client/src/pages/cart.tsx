@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,7 +161,7 @@ export default function Cart() {
                               Rental Period
                             </label>
                             <Select 
-                              value={item.rentalDuration.toString()}
+                              value={(item.rentalDuration || 1).toString()}
                               onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
                             >
                               <SelectTrigger className="bg-gray-50 border-gray-200">
@@ -207,7 +206,7 @@ export default function Cart() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Price</label>
                             <div className="text-2xl font-bold text-primary">
-                              ${(item.price * (item.rentalDuration === 1 ? 1 : item.rentalDuration === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
+                              ${(item.price * ((item.rentalDuration || 1) === 1 ? 1 : (item.rentalDuration || 1) === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
                             </div>
                           </div>
                         </div>

@@ -15,7 +15,7 @@ interface BookCardProps {
 }
 
 export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
-  const { addToCart, addToWishlist, removeFromWishlist, wishlistItems } = useStore();
+  const { addToCart, addToWishlist, removeFromWishlist, wishlistItems, cartItems, updateCartQuantity } = useStore();
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   // Check if book is already in wishlist
@@ -62,6 +62,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
 
   const handleRentClick = () => {
     if (book.availableCopies > 0) {
+      // Always use addToCart - it handles existing items properly
       const cartItem = {
         id: `cart-${book.id}-${Date.now()}`,
         bookId: book.id,

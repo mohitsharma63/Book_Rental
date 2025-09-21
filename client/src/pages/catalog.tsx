@@ -185,7 +185,7 @@ export default function Catalog() {
   const handleRentNow = (book: BookType) => {
     if (book.availableCopies > 0) {
       const cartItem = {
-        id: book.id,
+        id: `cart-${book.id}-${Date.now()}`,
         bookId: book.id,
         title: book.title,
         author: book.author,
@@ -195,7 +195,7 @@ export default function Catalog() {
         category: book.category,
         availableCopies: book.availableCopies,
         quantity: 1,
-        rentalDuration: 7,
+        rentalDuration: 1,
         available: book.availableCopies > 0
       };
       addToCart(cartItem);
