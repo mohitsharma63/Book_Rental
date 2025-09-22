@@ -2,8 +2,69 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema } from "@shared/schema";
+import { otpService } from "./otp-sevice";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // OTP routes
+  app.post("/api/otp/send", async (req, res) => {
+    try {
+      const { phone } = req.body;
+
+      if (!phone) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+
+      // Basic phone number validation
+      const phoneRegex = /^\+?[\d\s-()]{10,}$/;
+      if (!phoneRegex.test(phone)) {
+        return res.status(400).json({ message: "Please enter a valid phone number" });
+      }
+
+      const result = await otpService.sendOTP(phone);
+      
+      if (result.success) {
+        res.json({ message: result.message });
+      } else {
+        res.status(400).json({ message: result.message });
+      }
+    } catch (error) {
+      console.error("Send OTP error:", error);
+      res.status(500).json({ message: "Failed to send OTP. Please try again." });
+    }
+  });
+
+  app.post("/api/otp/verify", async (req, res) => {
+    try {
+      const { phone, otp } = req.body;
+
+      if (!phone || !otp) {
+        return res.status(400).json({ message: "Phone number and OTP are required" });
+      }
+
+      const result = await otpService.verifyOTP(phone, otp);
+      
+      if (result.success) {
+        res.json({ message: result.message, verified: true });
+      } else {
+        res.status(400).json({ message: result.message, verified: false });
+      }
+    } catch (error) {
+      console.error("Verify OTP error:", error);
+      res.status(500).json({ message: "Failed to verify OTP. Please try again." });
+    }
+  });
+
+  app.get("/api/otp/status/:phone", async (req, res) => {
+    try {
+      const { phone } = req.params;
+      const status = otpService.getOTPStatus(phone);
+      res.json(status);
+    } catch (error) {
+      console.error("Get OTP status error:", error);
+      res.status(500).json({ message: "Failed to get OTP status" });
+    }
+  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {

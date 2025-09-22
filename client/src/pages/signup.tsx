@@ -1,11 +1,12 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, BookOpen, Check } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Eye, EyeOff, BookOpen, Check, Phone } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import Logo from "@assets/logo-removebg-preview_1757943248494.png";
 export default function Signup() {
@@ -23,6 +24,11 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const { signup } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -37,11 +43,97 @@ export default function Signup() {
     if (!formData.lastName.trim()) return "Last name is required";
     if (!formData.email.trim()) return "Email is required";
     if (!/\S+@\S+\.\S+/.test(formData.email)) return "Please enter a valid email";
+    if (!formData.phone.trim()) return "Phone number is required";
+    if (!/^\+?[\d\s-()]{10,}$/.test(formData.phone)) return "Please enter a valid phone number";
+    if (!isOtpVerified) return "Please verify your phone number with OTP";
     if (formData.password.length < 6) return "Password must be at least 6 characters";
     if (formData.password !== formData.confirmPassword) return "Passwords do not match";
     if (!formData.agreeToTerms) return "You must agree to the terms and conditions";
     return null;
   };
+
+  const sendOtp = async () => {
+    if (!formData.phone.trim() || !/^\+?[\d\s-()]{10,}$/.test(formData.phone)) {
+      setError("Please enter a valid phone number");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/otp/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phone: formData.phone }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setOtpSent(true);
+        setShowOtpVerification(true);
+        setError("");
+        setResendCountdown(60); // 60 seconds countdown
+        console.log("OTP sent to:", formData.phone);
+      } else {
+        setError(data.message || "Failed to send OTP. Please try again.");
+      }
+    } catch (error) {
+      setError("Failed to send OTP. Please try again.");
+      console.error("Send OTP error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Countdown effect for resend button
+  React.useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => {
+        setResendCountdown(resendCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCountdown]);
+
+  const verifyOtp = async () => {
+    if (otp.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          phone: formData.phone, 
+          otp: otp 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.verified) {
+        setIsOtpVerified(true);
+        setShowOtpVerification(false);
+        setError("");
+        console.log("OTP verified successfully");
+      } else {
+        setError(data.message || "Invalid OTP. Please try again.");
+      }
+    } catch (error) {
+      setError("Failed to verify OTP. Please try again.");
+      console.error("Verify OTP error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,16 +258,89 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone (Optional)</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  className="h-11"
-                />
+                <Label htmlFor="phone">Phone Number *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    className="h-11"
+                    disabled={isOtpVerified}
+                  />
+                  <Button
+                    type="button"
+                    variant={isOtpVerified ? "default" : "outline"}
+                    onClick={sendOtp}
+                    disabled={isLoading || isOtpVerified || !formData.phone.trim() || resendCountdown > 0}
+                    className="h-11 px-4"
+                  >
+                    {isOtpVerified ? (
+                      <Check className="h-4 w-4" />
+                    ) : resendCountdown > 0 ? (
+                      `Resend (${resendCountdown}s)`
+                    ) : otpSent ? (
+                      "Resend"
+                    ) : (
+                      "Send OTP"
+                    )}
+                  </Button>
+                </div>
+                {isOtpVerified && (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <Check className="h-4 w-4" />
+                    Phone number verified
+                  </div>
+                )}
               </div>
+
+              {/* OTP Verification Modal/Section */}
+              {showOtpVerification && (
+                <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <h4 className="font-medium text-blue-900">Verify Phone Number</h4>
+                      <p className="text-sm text-blue-700">
+                        Enter the 6-digit OTP sent to {formData.phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center space-y-4">
+                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={verifyOtp}
+                        disabled={isLoading || otp.length !== 6}
+                        size="sm"
+                      >
+                        {isLoading ? "Verifying..." : "Verify OTP"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowOtpVerification(false)}
+                        size="sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>

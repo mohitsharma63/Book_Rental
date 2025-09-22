@@ -14,7 +14,9 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    phone: "",
   });
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const { login } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -29,13 +31,33 @@ export default function Login() {
     setError("");
 
     try {
-      const success = await login(formData.email, formData.password);
+      if (loginMethod === 'phone') {
+        // Send OTP for phone login
+        const response = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ phone: formData.phone }),
+        });
 
-      if (success) {
-        console.log("Login successful");
-        setLocation("/"); // Redirect to home page
+        if (response.ok) {
+          localStorage.setItem('otpPhone', formData.phone);
+          localStorage.setItem('otpRedirect', '/');
+          setLocation(`/otp-verification?phone=${encodeURIComponent(formData.phone)}`);
+        } else {
+          const data = await response.json();
+          setError(data.error || "Failed to send OTP");
+        }
       } else {
-        setError("Invalid email or password");
+        const success = await login(formData.email, formData.password);
+
+        if (success) {
+          console.log("Login successful");
+          setLocation("/"); // Redirect to home page
+        } else {
+          setError("Invalid email or password");
+        }
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
@@ -69,47 +91,83 @@ export default function Login() {
             <CardTitle className="text-2xl font-semibold text-center">Sign In</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  required
-                  className="h-11"
-                />
-              </div>
+            <div className="flex space-x-2 mb-4">
+              <Button
+                type="button"
+                variant={loginMethod === 'email' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setLoginMethod('email')}
+              >
+                Email
+              </Button>
+              <Button
+                type="button"
+                variant={loginMethod === 'phone' ? 'default' : 'outline'}
+                className="flex-1"
+                onClick={() => setLoginMethod('phone')}
+              >
+                Phone
+              </Button>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {loginMethod === 'email' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     required
-                    className="h-11 pr-10"
+                    className="h-11"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+              )}
+
+              {loginMethod === 'email' && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      required
+                      className="h-11 pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
@@ -122,22 +180,23 @@ export default function Login() {
                 className="w-full h-11"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Processing..." : (loginMethod === 'phone' ? "Send OTP" : "Sign In")}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
-                <Link href="/signup">
-                  <Button variant="link" className="p-0 h-auto font-semibold">
-                    Sign up
-                  </Button>
-                </Link>
-              </p>
+              {loginMethod === 'email' && (
+                <p className="text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <Link href="/signup">
+                    <Button variant="link" className="p-0 h-auto font-semibold">
+                      Sign up
+                    </Button>
+                  </Link>
+                </p>
+              )}
             </div>
 
-           
           </CardContent>
         </Card>
 
