@@ -7,6 +7,7 @@ import { Heart, BookOpen, ShoppingCart } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store-context";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookCardProps {
   book: Book;
@@ -17,6 +18,7 @@ interface BookCardProps {
 export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
   const { addToCart, addToWishlist, removeFromWishlist, wishlistItems, cartItems, updateCartQuantity } = useStore();
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const { toast } = useToast();
 
   // Check if book is already in wishlist
   useEffect(() => {
@@ -34,19 +36,22 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
     return "Rented";
   };
 
-  const handleWishlistClick = (e: React.MouseEvent) => {
+  const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (isWishlisted) {
-      // Remove from wishlist
       const wishlistItem = wishlistItems.find(item => item.bookId === book.id);
       if (wishlistItem) {
         removeFromWishlist(wishlistItem.id);
-        setIsWishlisted(false);
+        setIsWishlisted(false); // Immediately update local state
+        toast({
+          title: "Removed from Wishlist",
+          description: `"${book.title}" has been removed from your wishlist!`,
+          variant: "default",
+        });
       }
     } else {
-      // Add to wishlist
       const wishlistItem = {
         id: `wishlist-${book.id}-${Date.now()}`,
         bookId: book.id,
@@ -60,14 +65,18 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         category: book.category
       };
       addToWishlist(wishlistItem);
-      setIsWishlisted(true);
+      setIsWishlisted(true); // Immediately update local state
+      toast({
+        title: "Added to Wishlist",
+        description: `"${book.title}" has been added to your wishlist!`,
+        variant: "default",
+      });
     }
     onWishlist?.();
   };
 
-  const handleRentClick = () => {
+  const handleAddToCart = () => {
     if (book.availableCopies > 0) {
-      // Always use addToCart - it handles existing items properly
       const cartItem = {
         id: `cart-${book.id}-${Date.now()}`,
         bookId: book.id,
@@ -80,6 +89,11 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         available: true
       };
       addToCart(cartItem);
+      toast({
+        title: "Added to Cart",
+        description: `"${book.title}" has been added to your cart!`,
+        variant: "default",
+      });
     }
     onRent?.();
   };
@@ -102,6 +116,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
     );
   };
 
+
   return (
     <Card className="group relative overflow-hidden bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1" data-testid={`card-book-${book.id}`}>
       {/* Status Badge */}
@@ -122,7 +137,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
           className={`h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white transition-all duration-200 ${
             isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
           }`}
-          onClick={handleWishlistClick}
+          onClick={handleWishlistToggle}
           data-testid={`button-wishlist-${book.id}`}
         >
           <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -186,7 +201,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
             }`}
             disabled={book.availableCopies === 0}
-            onClick={handleRentClick}
+            onClick={handleAddToCart}
             data-testid={`button-rent-${book.id}`}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
@@ -211,6 +226,6 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
   );
 }

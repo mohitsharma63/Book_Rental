@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useStore } from "@/lib/store-context";
+import { useToast } from "@/hooks/use-toast";
 
 export default function BookDetail() {
   const [, params] = useRoute("/book/:id");
@@ -35,6 +36,7 @@ export default function BookDetail() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const { toast } = useToast();
 
   // Fetch book data dynamically from API
   const { data: book, isLoading, error } = useQuery({
@@ -157,6 +159,12 @@ export default function BookDetail() {
       const wishlistItem = wishlistItems.find(item => item.bookId === book.id);
       if (wishlistItem) {
         removeFromWishlist(wishlistItem.id);
+        setIsWishlisted(false); // Immediately update state
+        toast({
+          title: "Removed from Wishlist",
+          description: `"${book.title}" has been removed from your wishlist!`,
+          variant: "default",
+        });
       }
     } else {
       // Add to wishlist
@@ -173,6 +181,12 @@ export default function BookDetail() {
         category: book.category
       };
       addToWishlist(wishlistItem);
+      setIsWishlisted(true); // Immediately update state
+      toast({
+        title: "Added to Wishlist",
+        description: `"${book.title}" has been added to your wishlist!`,
+        variant: "default",
+      });
     }
   };
 
@@ -190,6 +204,11 @@ export default function BookDetail() {
       available: true
     };
     addToCart(cartItem);
+    toast({
+      title: "Added to Cart",
+      description: `"${book.title}" has been added to your cart!`,
+      variant: "default",
+    });
   };
 
 
