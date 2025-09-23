@@ -9,7 +9,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OTP routes
   app.post("/api/otp/send", async (req, res) => {
     try {
-      const { phone } = req.body;
+      const { phone, isResend = false } = req.body;
 
       if (!phone) {
         return res.status(400).json({ message: "Phone number is required" });
@@ -21,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Please enter a valid phone number" });
       }
 
-      const result = await otpService.sendOTP(phone);
+      const result = await otpService.sendOTP(phone, isResend);
       
       if (result.success) {
         res.json({ message: result.message });

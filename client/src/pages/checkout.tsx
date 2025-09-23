@@ -342,7 +342,7 @@ export default function Checkout() {
                           type="tel"
                           value={shippingInfo.phone}
                           onChange={(e) => handleShippingChange('phone', e.target.value)}
-                          placeholder="+91 98765 43210"
+                          placeholder="enter phone number"
                           className="bg-gray-50 border-gray-200"
                         />
                       </div>

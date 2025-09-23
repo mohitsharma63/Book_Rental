@@ -78,7 +78,7 @@ export default function Profile() {
         id: user.id,
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
-        phone: user.phone || "+91 98765 43210",
+        phone: user.phone ,
         address: user.address || "Mylapore,chennai,600004",
         joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 15, 2024",
         avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",

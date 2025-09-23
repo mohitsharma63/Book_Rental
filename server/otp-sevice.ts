@@ -16,42 +16,54 @@ class OTPService {
     return crypto.randomInt(100000, 999999).toString();
   }
 
-  async sendOTP(phone: string): Promise<{ success: boolean; message: string; sessionId?: string }> {
+  async sendOTP(phone: string, isResend: boolean = false): Promise<{ success: boolean; message: string; sessionId?: string }> {
     try {
       this.cleanupExpiredOTPs();
 
       const existing = this.otpStore.get(phone);
-      if (existing && existing.expiresAt > new Date()) {
+      if (existing && existing.expiresAt > new Date() && !isResend) {
+        const remainingTime = Math.ceil((existing.expiresAt.getTime() - Date.now()) / 1000);
         return {
           success: false,
-          message: 'OTP already sent. Please wait before requesting a new one.'
+          message: `OTP already sent. Please wait ${remainingTime} seconds before requesting a new one.`
         };
       }
 
-      // For 2Factor AUTOGEN, we'll get the OTP from the API response
-      const otp = this.generateOTP(); // Fallback OTP for development
-      const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
+      // If resending, clear the existing OTP
+      if (isResend && existing) {
+        this.otpStore.delete(phone);
+      }
 
-      this.otpStore.set(phone, {
-        phone,
-        otp,
-        expiresAt,
-        attempts: 0
-      });
+      const result = await this.sendSMSMessage(phone);
 
-      console.log(`📱 Sending OTP to ${phone} (expires in ${this.OTP_EXPIRY_MINUTES} minutes)`);
+      if (result.success && result.sessionId) {
+        const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
-      await this.sendSMSMessage(phone, otp);
+        this.otpStore.set(phone, {
+          phone,
+          otp: result.sessionId, // Store session ID for AUTOGEN verification
+          expiresAt,
+          attempts: 0
+        });
 
-      return {
-        success: true,
-        message: `OTP sent to ${phone}. Please check your mobile.`
-      };
+        console.log(`📱 OTP sent to ${phone} with session ID: ${result.sessionId}`);
+
+        return {
+          success: true,
+          message: `OTP sent to ${phone}`,
+          sessionId: result.sessionId
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Failed to send OTP. Please try again.'
+        };
+      }
     } catch (error) {
-      console.error('❌ Failed to send OTP:', error);
+      console.error('Failed to send OTP:', error);
       return {
         success: false,
-        message: 'Failed to send OTP. Please check your phone number and try again.'
+        message: 'Failed to send OTP. Please try again.'
       };
     }
   }
@@ -97,47 +109,51 @@ class OTPService {
     };
   }
 
-  private async sendSMSMessage(phone: string, otp: string): Promise<void> {
+  private async sendSMSMessage(phone: string): Promise<{ success: boolean; message: string; sessionId?: string }> {
     try {
-      if (process.env.TWOFACTOR_API_KEY) {
-        // Clean phone number - remove any spaces, dashes, or special characters except +
-        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-        
-        // Ensure phone number starts with country code
-        const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone.substring(3) : cleanPhone.startsWith('91') ? cleanPhone.substring(2) : cleanPhone;
-        
-        const apiUrl = `https://2factor.in/API/V1/0a21cf3b-9716-11f0-a562-0200cd936042/SMS/${formattedPhone}/AUTOGEN/BookLoopOTP`;
-        
-        console.log(`🚀 Sending OTP to: ${formattedPhone} via 2Factor API`);
-        console.log(`📡 API URL: ${apiUrl}`);
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+  
+        const formattedPhone = phone.replace(/^\+91/, '').replace(/\s/g, '');
+
+        const response = await fetch(`https://2factor.in/API/V1/0a21cf3b-9716-11f0-a562-0200cd936042/SMS/${formattedPhone}/AUTOGEN/BookLoopOTP`, {
+          method: 'GET'
         });
 
         const result = await response.json();
-        console.log(`📱 2Factor API Response:`, result);
-        
+        console.log('2Factor API Response:', result);
+
         if (result.Status === 'Success') {
-          console.log(`✅ SMS sent successfully to ${formattedPhone}: ${result.Details}`);
-          console.log(`🔑 Session ID: ${result.Details}`);
+          console.log(`📱 SMS sent via 2Factor to ${formattedPhone}: ${result.Details}`);
+          return {
+            success: true,
+            message: 'OTP sent successfully',
+            sessionId: result.Details // Session ID for verification
+          };
         } else {
-          console.error(`❌ 2Factor API error: ${result.Details}`);
-          throw new Error(`2Factor API error: ${result.Details}`);
+          console.error(`2Factor API error: ${result.Details}`);
+          return {
+            success: false,
+            message: `2Factor API error: ${result.Details}`
+          };
         }
-        return;
-      }
+      
 
       // Fallback for development
+      const otp = this.generateOTP();
       console.log(`📱 SMS to ${phone}: Your BookLoop verification code is: ${otp}. Valid for ${this.OTP_EXPIRY_MINUTES} minutes.`);
-      console.log('⚠️  No SMS service configured. Add TWOFACTOR_API_KEY to environment variables.');
-      
+      console.log('⚠️  No SMS service configured. Add SMS API credentials to environment variables.');
+
+      return {
+        success: true,
+        message: 'OTP sent (development mode)',
+        sessionId: otp // Use generated OTP as session ID in development
+      };
+
     } catch (error) {
-      console.error('❌ Failed to send SMS:', error);
-      throw error; // Re-throw to handle in calling function
+      console.error('Failed to send SMS:', error);
+      return {
+        success: false,
+        message: 'Failed to send SMS'
+      };
     }
   }
 

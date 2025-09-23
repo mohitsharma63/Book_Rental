@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -104,13 +103,14 @@ export default function OTPVerification() {
     setError("");
 
     try {
-      const response = await fetch('/api/auth/send-otp', {
+      const response = await fetch('/api/otp/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           phone: phoneNumber,
+          isResend: true
         }),
       });
 

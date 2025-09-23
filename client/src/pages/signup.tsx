@@ -52,7 +52,7 @@ export default function Signup() {
     return null;
   };
 
-  const sendOtp = async () => {
+  const sendOtp = async (isResend = false) => {
     if (!formData.phone.trim() || !/^\+?[\d\s-()]{10,}$/.test(formData.phone)) {
       setError("Please enter a valid phone number");
       return;
@@ -65,7 +65,10 @@ export default function Signup() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ phone: formData.phone }),
+        body: JSON.stringify({ 
+          phone: formData.phone,
+          isResend: isResend 
+        }),
       });
 
       const data = await response.json();
@@ -263,7 +266,7 @@ export default function Signup() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+91 98765 43210"
+                    placeholder="enter phone number"
                     value={formData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     className="h-11"
@@ -272,7 +275,7 @@ export default function Signup() {
                   <Button
                     type="button"
                     variant={isOtpVerified ? "default" : "outline"}
-                    onClick={sendOtp}
+                    onClick={() => sendOtp(otpSent)}
                     disabled={isLoading || isOtpVerified || !formData.phone.trim() || resendCountdown > 0}
                     className="h-11 px-4"
                   >
