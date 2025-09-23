@@ -70,7 +70,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         author: book.author,
         imageUrl: book.imageUrl || "/placeholder-book.jpg",
         price: parseFloat(book.pricePerWeek),
-        rentalDuration: 1,
+        rentalDuration: 4,
         quantity: 1,
         available: true
       };
@@ -166,9 +166,9 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-lg font-bold text-gray-900" data-testid={`text-book-price-${book.id}`}>
-              ${book.pricePerWeek}
+              ₹{book.pricePerWeek}
             </span>
-            <span className="text-sm text-gray-500">/week</span>
+            <span className="text-sm text-gray-500">/month</span>
           </div>
         </div>
 

@@ -94,7 +94,10 @@ class OTPService {
       };
     }
 
-    if (record.otp !== otp) {
+    // Verify OTP using 2Factor API
+    const verificationResult = await this.verify2FactorOTP(record.otp, otp);
+
+    if (!verificationResult.success) {
       record.attempts++;
       return {
         success: false,
@@ -107,6 +110,28 @@ class OTPService {
       success: true,
       message: 'Phone number verified successfully'
     };
+  }
+
+  private async verify2FactorOTP(sessionId: string, otp: string): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log('Verifying OTP:', { sessionId, otp });
+      
+      const response = await fetch(`https://2factor.in/API/V1/0a21cf3b-9716-11f0-a562-0200cd936042/SMS/VERIFY/${sessionId}/${otp}`, {
+        method: 'GET'
+      });
+
+      const result = await response.json();
+      console.log('2Factor Verification Response:', result);
+
+      if (result.Status === 'Success') {
+        return { success: true, message: 'OTP verified successfully' };
+      } else {
+        return { success: false, message: result.Details || 'OTP verification failed' };
+      }
+    } catch (error) {
+      console.error('Failed to verify OTP with 2Factor:', error);
+      return { success: false, message: 'Error verifying OTP' };
+    }
   }
 
   private async sendSMSMessage(phone: string): Promise<{ success: boolean; message: string; sessionId?: string }> {

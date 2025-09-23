@@ -204,7 +204,7 @@ export default function Wishlist() {
                     <span className="text-sm">{item.rating}</span>
                   </div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold">${item.price}</span>
+                    <span className="font-semibold">₹{item.price}</span>
                     <Badge variant="outline" className="text-xs">
                       {item.category}
                     </Badge>
@@ -280,7 +280,7 @@ export default function Wishlist() {
                         <span className="text-sm">{item.rating}</span>
                       </div>
                       <Badge variant="outline">{item.category}</Badge>
-                      <span className="font-semibold">${item.price}</span>
+                      <span className="font-semibold">₹{item.price}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-muted-foreground flex items-center gap-1">

@@ -145,9 +145,8 @@ export default function BookDetail() {
   const calculatePrice = () => {
     const basePrice = parseFloat(book?.pricePerWeek || "0");
     const duration = parseInt(selectedRentalPeriod);
-    if (duration === 1) return basePrice;
-    if (duration === 2) return basePrice * 1.5;
-    if (duration === 3) return basePrice * 2;
+    if (duration === 4) return basePrice * 4; // 1 month
+    if (duration === 8) return basePrice * 7.2; // 2 months with 10% discount
     return basePrice;
   };
 
@@ -225,9 +224,8 @@ export default function BookDetail() {
   }
 
   const rentalPeriods = [
-    { weeks: "1", price: parseFloat(book.pricePerWeek).toFixed(2), label: "1 Week" },
-    { weeks: "2", price: (parseFloat(book.pricePerWeek) * 1.5).toFixed(2), label: "2 Weeks", discount: "5% off" }, // Adjusted discount calculation
-    { weeks: "3", price: (parseFloat(book.pricePerWeek) * 2).toFixed(2), label: "3 Weeks", discount: "10% off" }, // Adjusted discount calculation
+    { weeks: "4", price: (parseFloat(book.pricePerWeek) * 4).toFixed(2), label: "1 Month" },
+    { weeks: "8", price: (parseFloat(book.pricePerWeek) * 7.2).toFixed(2), label: "2 Months", discount: "10% off" }, // 8 weeks with 10% discount
   ];
 
   // Use dynamic reviews data or fallback to empty array
@@ -416,7 +414,7 @@ export default function BookDetail() {
                     <div className="text-center">
                       <h4 className="font-semibold mb-1">{period.label}</h4>
                       <div className="text-2xl font-bold text-primary mb-1">
-                        ${period.price}
+                        ₹{period.price}
                       </div>
                       {period.discount && (
                         <Badge variant="secondary" className="text-xs">
@@ -436,11 +434,9 @@ export default function BookDetail() {
                   onClick={handleRentClick}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {book.availableCopies > 0 ? `Rent for $${calculatePrice().toFixed(2)}` : "Out of Stock"}
+                  {book.availableCopies > 0 ? `Rent for ₹${calculatePrice().toFixed(2)}` : "Out of Stock"}
                 </Button>
-                <Button variant="outline" onClick={() => { /* Add to Cart functionality */ }}>
-                  Add to Cart
-                </Button>
+               
               </div>
 
               <div className="mt-4 p-4 bg-muted/30 rounded-lg">

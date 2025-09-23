@@ -40,12 +40,12 @@ export default function Cart() {
   };
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const duration = item.rentalDuration || 1;
-    const durationMultiplier = duration === 1 ? 1 : duration === 2 ? 1.5 : 2;
+    const duration = item.rentalDuration || 4;
+    const durationMultiplier = duration === 4 ? 4 : duration === 8 ? 7.2 : 4;
     return sum + (item.price * durationMultiplier * item.quantity);
   }, 0);
 
-  const deliveryFee = selectedDelivery === "express" ? 4.99 : selectedDelivery === "standard" ? 2.99 : 0;
+  const deliveryFee = selectedDelivery === "express" ? 199 : selectedDelivery === "standard" ? 99 : 0;
   const promoDiscount = appliedPromo === "BOOKWORM10" ? subtotal * 0.1 : 0;
   const total = subtotal + deliveryFee - promoDiscount;
 
@@ -61,7 +61,7 @@ export default function Cart() {
     {
       id: "standard",
       name: "Standard Delivery",
-      price: 2.99,
+      price: 99,
       description: "2-3 business days",
       icon: "📦",
       highlight: true
@@ -69,7 +69,7 @@ export default function Cart() {
     {
       id: "express",
       name: "Express Delivery",
-      price: 4.99,
+      price: 199,
       description: "Next business day",
       icon: "⚡",
       highlight: false
@@ -161,16 +161,15 @@ export default function Cart() {
                               Rental Period
                             </label>
                             <Select 
-                              value={(item.rentalDuration || 1).toString()}
+                              value={(item.rentalDuration || 4).toString()}
                               onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
                             >
                               <SelectTrigger className="bg-gray-50 border-gray-200">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="1">1 Week</SelectItem>
-                                <SelectItem value="2">2 Weeks (+50%)</SelectItem>
-                                <SelectItem value="3">3 Weeks (+100%)</SelectItem>
+                                <SelectItem value="4">1 Month</SelectItem>
+                                <SelectItem value="8">2 Months (10% off)</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -206,7 +205,7 @@ export default function Cart() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Price</label>
                             <div className="text-2xl font-bold text-primary">
-                              ${(item.price * ((item.rentalDuration || 1) === 1 ? 1 : (item.rentalDuration || 1) === 2 ? 1.5 : 2) * item.quantity).toFixed(2)}
+                              ₹{(item.price * ((item.rentalDuration || 4) === 4 ? 4 : (item.rentalDuration || 4) === 8 ? 7.2 : 4) * item.quantity).toFixed(2)}
                             </div>
                           </div>
                         </div>
@@ -271,16 +270,16 @@ export default function Cart() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-gray-600">
                       <span>Subtotal</span>
-                      <span className="font-medium">${subtotal.toFixed(2)}</span>
+                      <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-600">
                       <span>Delivery</span>
-                      <span className="font-medium">{deliveryFee === 0 ? "Free" : `$${deliveryFee.toFixed(2)}`}</span>
+                      <span className="font-medium">{deliveryFee === 0 ? "Free" : `₹${deliveryFee.toFixed(2)}`}</span>
                     </div>
                     {promoDiscount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
-                        <span className="font-medium">-${promoDiscount.toFixed(2)}</span>
+                        <span className="font-medium">-₹{promoDiscount.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -289,7 +288,7 @@ export default function Cart() {
                   
                   <div className="flex justify-between text-xl font-bold">
                     <span>Total</span>
-                    <span className="text-primary">${total.toFixed(2)}</span>
+                    <span className="text-primary">₹{total.toFixed(2)}</span>
                   </div>
 
                   <Link href="/checkout">

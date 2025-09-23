@@ -1051,7 +1051,7 @@ export default function Admin() {
                                 {book.availableCopies > 0 ? "Available" : "Rented"}
                               </Badge>
                             </TableCell>
-                            <TableCell>${book.pricePerWeek}/week</TableCell>
+                            <TableCell>₹{book.pricePerWeek}/month</TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
                                 <Button
@@ -1319,7 +1319,7 @@ export default function Admin() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold" data-testid="text-revenue">$12,456</p>
+                      <p className="text-2xl font-bold" data-testid="text-revenue">₹12,456</p>
                       <p className="text-purple-100 text-sm">Monthly Revenue</p>
                     </div>
                     <div className="p-3 bg-white/20 rounded-lg">
