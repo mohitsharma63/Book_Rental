@@ -1,4 +1,3 @@
-
 import crypto from 'crypto';
 
 interface OTPRecord {
@@ -101,10 +100,10 @@ class OTPService {
   private async sendSMSMessage(phone: string, otp: string): Promise<void> {
     try {
       if (process.env.TWOFACTOR_API_KEY) {
-        const response = await fetch(`https://2factor.in/API/V1/0a21cf3b-9716-11f0-a562-0200cd936042/SMS/${phone}/${otp}`, {
+        const response = await fetch(`https://2factor.in/API/V1/0a21cf3b-9716-11f0-a562-0200cd936042/SMS/${phone}/AUTOGEN/BookLoopOTP`, {
           method: 'GET'
         });
-        
+
         const result = await response.json();
         if (result.Status === 'Success') {
           console.log(`📱 SMS sent via 2Factor to ${phone}: ${result.Details}`);
