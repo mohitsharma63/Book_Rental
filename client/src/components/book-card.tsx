@@ -34,12 +34,16 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
     return "Rented";
   };
 
-  const handleWishlistClick = () => {
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (isWishlisted) {
       // Remove from wishlist
       const wishlistItem = wishlistItems.find(item => item.bookId === book.id);
       if (wishlistItem) {
         removeFromWishlist(wishlistItem.id);
+        setIsWishlisted(false);
       }
     } else {
       // Add to wishlist
@@ -56,6 +60,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         category: book.category
       };
       addToWishlist(wishlistItem);
+      setIsWishlisted(true);
     }
     onWishlist?.();
   };

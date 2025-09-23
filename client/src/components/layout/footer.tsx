@@ -55,29 +55,29 @@ export function Footer() {
           {/* Quick Links */}
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Quick Links</h4>
-            <div className="space-y-3 text-sm">
+            <div className="flex flex-col gap-3 text-sm">
               <Link href="/">
-                <Button variant="ghost" className="h-auto p-0 text-muted-foreground hover:text-primary justify-start footer-link">
+                <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
                   Home
                 </Button>
               </Link>
               <Link href="/catalog">
-                <Button variant="ghost" className="h-auto p-0 text-muted-foreground hover:text-primary justify-start footer-link">
+                <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
                   Browse Books
                 </Button>
               </Link>
               <Link href="/dashboard">
-                <Button variant="ghost" className="h-auto p-0 text-muted-foreground hover:text-primary justify-start footer-link">
+                <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
                   My Account
                 </Button>
               </Link>
-              <Button variant="ghost" className="h-auto p-0 text-muted-foreground hover:text-primary justify-start footer-link">
+              <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
                 How it Works
               </Button>
-              <Button variant="ghost" className="h-auto p-0 text-muted-foreground hover:text-primary justify-start footer-link">
+              <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
                 Pricing
               </Button>
-              <Button variant="ghost" className="h-auto p-0 text-muted-foreground hover:text-primary justify-start footer-link">
+              <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
                 FAQs
               </Button>
             </div>

@@ -48,6 +48,10 @@ export default function Wishlist() {
     removeFromWishlist(id);
   };
 
+  const handleToggleWishlist = (id: string) => {
+    removeFromWishlist(id);
+  };
+
   const stats = {
     total: wishlistItems.length,
     available: wishlistItems.filter(item => item.available).length,
@@ -190,7 +194,7 @@ export default function Wishlist() {
                     variant="ghost"
                     size="icon"
                     className="absolute top-2 left-2 bg-white/80 hover:bg-white"
-                    onClick={() => handleRemoveFromWishlist(item.id)}
+                    onClick={() => handleToggleWishlist(item.id)}
                     data-testid={`remove-wishlist-${item.id}`}
                   >
                     <Trash2 className="h-4 w-4 text-red-600" />
@@ -267,7 +271,7 @@ export default function Wishlist() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleRemoveFromWishlist(item.id)}
+                          onClick={() => handleToggleWishlist(item.id)}
                           data-testid={`remove-wishlist-${item.id}`}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />

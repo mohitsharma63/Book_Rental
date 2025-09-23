@@ -33,6 +33,7 @@ interface StoreContextType {
   addToWishlist: (item: WishlistItem) => void;
   removeFromWishlist: (id: string) => void;
   updateCartQuantity: (id: string, quantity: number) => void;
+  updateCartItemRentalDuration: (id: string, newPeriod: string) => void;
   clearCart: () => void;
   clearWishlist: () => void;
   clearAllData: () => void;
@@ -118,6 +119,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const updateCartItemRentalDuration = (id: string, newPeriod: string) => {
+    setCartItems(prev =>
+      prev.map(item => {
+        if (item.id === id) {
+          const periodWeeks = newPeriod === '1 Month' ? 4 : 8;
+          const discount = newPeriod === '2 Months (10% off)' ? 0.1 : 0;
+          const basePrice = item.price; // Use the original price
+          const discountedPrice = basePrice * (1 - discount);
+
+          return {
+            ...item,
+            rentalDuration: periodWeeks,
+            price: discountedPrice
+          };
+        }
+        return item;
+      })
+    );
+  };
+
   const addToWishlist = (item: WishlistItem) => {
     setWishlistItems(prev => {
       const existingItem = prev.find(wishItem => wishItem.bookId === item.bookId);
@@ -160,6 +181,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         addToWishlist,
         removeFromWishlist,
         updateCartQuantity,
+        updateCartItemRentalDuration,
         clearCart,
         clearWishlist,
         clearAllData,

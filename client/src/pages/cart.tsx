@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useReducer } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +11,11 @@ import { useStore } from "@/lib/store-context";
 import { Link } from "wouter";
 
 export default function Cart() {
-  const { cartItems, removeFromCart, updateCartQuantity } = useStore();
+  const { cartItems, removeFromCart, updateCartQuantity, updateCartItemRentalDuration } = useStore();
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState("standard");
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   const updateQuantity = (id: string, change: number) => {
     const item = cartItems.find(item => item.id === id);
@@ -27,8 +28,11 @@ export default function Cart() {
     removeFromCart(id);
   };
 
-  const updateRentalDuration = (id: string, duration: number) => {
-    console.log('Update rental duration:', id, duration);
+  const handleRentalPeriodChange = (itemId: string, newPeriod: string) => {
+    updateCartItemRentalDuration(itemId, newPeriod);
+    
+    // Force re-render to update UI
+    forceUpdate();
   };
 
   const applyPromoCode = () => {
@@ -40,8 +44,7 @@ export default function Cart() {
   };
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const duration = item.rentalDuration || 4;
-    const durationMultiplier = duration === 4 ? 4 : duration === 8 ? 7.2 : 4;
+    const durationMultiplier = item.rentalDuration === 4 ? 4 : item.rentalDuration === 8 ? 7.2 : 4;
     return sum + (item.price * durationMultiplier * item.quantity);
   }, 0);
 
@@ -81,7 +84,7 @@ export default function Cart() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+          <div className="">
             <Link href="/catalog">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -161,15 +164,15 @@ export default function Cart() {
                               Rental Period
                             </label>
                             <Select 
-                              value={(item.rentalDuration || 4).toString()}
-                              onValueChange={(value) => updateRentalDuration(item.id, parseInt(value))}
+                              value={(item.rentalDuration === 4 ? '1 Month' : item.rentalDuration === 8 ? '2 Months (10% off)' : '4 Months').toString()}
+                              onValueChange={(value) => handleRentalPeriodChange(item.id, value)}
                             >
                               <SelectTrigger className="bg-gray-50 border-gray-200">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="4">1 Month</SelectItem>
-                                <SelectItem value="8">2 Months (10% off)</SelectItem>
+                                <SelectItem value="1 Month">1 Month</SelectItem>
+                                <SelectItem value="2 Months (10% off)">2 Months (10% off)</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -221,45 +224,7 @@ export default function Cart() {
 
             {/* Order Summary Sidebar */}
             <div className="lg:col-span-4 space-y-6">
-              {/* Promo Code */}
-              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-3 text-lg">
-                    <div className="p-2 bg-green-50 rounded-lg">
-                      <Tag className="h-5 w-5 text-green-600" />
-                    </div>
-                    Promo Code
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Enter promo code"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                        className="bg-gray-50 border-gray-200"
-                        data-testid="promo-code-input"
-                      />
-                      <Button 
-                        onClick={applyPromoCode}
-                        variant="outline"
-                        data-testid="apply-promo"
-                      >
-                        Apply
-                      </Button>
-                    </div>
-                    {appliedPromo && (
-                      <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-green-700">
-                          Code "{appliedPromo}" applied successfully!
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+             
 
               {/* Order Summary */}
               <Card className="border-0 shadow-sm bg-white/80 backdrop-blur sticky top-8">
@@ -305,23 +270,7 @@ export default function Cart() {
                 </CardContent>
               </Card>
 
-              {/* Security Notice */}
-              <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-green-50">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <Shield className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-1">Secure Checkout</h4>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        Your payment information is encrypted with bank-level security. 
-                        We never store your credit card details.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              
             </div>
           </div>
         )}

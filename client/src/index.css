@@ -254,6 +254,133 @@
   @apply bg-red-100 text-red-800;
 }
 
+/* Rental text visibility fix */
+.rental-text {
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.rental-period-select {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 2px solid hsl(var(--border)) !important;
+}
+
+/* Dynamic Alert Styles */
+.alert-dynamic {
+  border-radius: 12px !important;
+  border: 2px solid transparent !important;
+  background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted))) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.alert-dynamic::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+  transition: left 0.6s ease !important;
+}
+
+.alert-dynamic:hover::before {
+  left: 100% !important;
+}
+
+.alert-dynamic:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.alert-success {
+  border-color: hsl(147, 50%, 47%) !important;
+  background: linear-gradient(135deg, hsl(147, 50%, 97%), hsl(147, 30%, 95%)) !important;
+  color: hsl(147, 60%, 20%) !important;
+}
+
+.alert-error {
+  border-color: hsl(0, 84%, 60%) !important;
+  background: linear-gradient(135deg, hsl(0, 100%, 97%), hsl(0, 50%, 95%)) !important;
+  color: hsl(0, 70%, 25%) !important;
+}
+
+.alert-warning {
+  border-color: hsl(45, 93%, 47%) !important;
+  background: linear-gradient(135deg, hsl(45, 100%, 97%), hsl(45, 80%, 95%)) !important;
+  color: hsl(45, 90%, 20%) !important;
+}
+
+.alert-info {
+  border-color: hsl(210, 84%, 56%) !important;
+  background: linear-gradient(135deg, hsl(210, 100%, 97%), hsl(210, 80%, 95%)) !important;
+  color: hsl(210, 90%, 25%) !important;
+}
+
+/* Mobile checkbox alignment fix */
+@media (max-width: 640px) {
+  .checkbox-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.5rem 0 !important;
+  }
+  
+  .checkbox-container .checkbox-root {
+    height: 18px !important;
+    width: 18px !important;
+    min-height: 18px !important;
+    min-width: 18px !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .checkbox-container .checkbox-label {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+    flex: 1 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  /* Fix for any form checkboxes */
+  input[type="checkbox"] {
+    height: 18px !important;
+    width: 18px !important;
+    margin-right: 0.75rem !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Terms and conditions checkbox specific fix */
+  .terms-checkbox-container {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    padding: 1rem 0 !important;
+  }
+  
+  .terms-checkbox-container input[type="checkbox"] {
+    margin-top: 0.125rem !important;
+    height: 18px !important;
+    width: 18px !important;
+    min-height: 18px !important;
+    min-width: 18px !important;
+  }
+  
+  .terms-checkbox-container label {
+    flex: 1 !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+  }
+}
+
 /* Enhanced Chat Widget Animations */
 @keyframes slide-in-from-bottom-5 {
   from {
@@ -446,6 +573,26 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 700;
+}
+
+/* Enhanced price and rental styling */
+.price-display {
+  color: hsl(var(--primary)) !important;
+  font-weight: 700 !important;
+  font-size: 1.25rem !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.rental-period-text {
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+.quantity-text {
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
 }
 
 /* Status badge improvements */
