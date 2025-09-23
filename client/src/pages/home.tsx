@@ -15,7 +15,7 @@ export default function Home() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
   const [categorySlide, setCategorySlide] = useState(0);
-  const { addToWishlist, addToCart } = useStore();
+  const { addToWishlist, addToCart, removeFromWishlist, wishlistItems } = useStore();
 
   // Fetch books dynamically from database
   const { data: booksData = [], isLoading } = useQuery({
@@ -135,21 +135,29 @@ export default function Home() {
 
 
   const handleAddToWishlist = (book: Book) => {
-  const wishlistItem = {
-    id: book.id,
-    bookId: book.id,
-    title: book.title,
-    author: book.author,
-    imageUrl: book.imageUrl || "/placeholder-book.jpg",
-    price: parseFloat(book.pricePerWeek),
-    available: book.availableCopies > 0,
-    rating: book.rating ? Number(book.rating) : 4.5, // <-- always number
-    category: book.category,
-    dateAdded: new Date().toISOString()
+    // Check if book is already in wishlist
+    const existingWishlistItem = wishlistItems.find(item => item.bookId === book.id);
+    
+    if (existingWishlistItem) {
+      // Remove from wishlist
+      removeFromWishlist(existingWishlistItem.id);
+    } else {
+      // Add to wishlist
+      const wishlistItem = {
+        id: `wishlist-${book.id}-${Date.now()}`,
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        imageUrl: book.imageUrl || "/placeholder-book.jpg",
+        price: parseFloat(book.pricePerWeek),
+        available: book.availableCopies > 0,
+        rating: book.rating ? Number(book.rating) : 4.5,
+        category: book.category,
+        dateAdded: new Date().toISOString()
+      };
+      addToWishlist(wishlistItem);
+    }
   };
-
-  addToWishlist(wishlistItem);
-};
 
 
   const handleRentNow = (book: Book) => {

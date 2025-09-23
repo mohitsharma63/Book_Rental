@@ -199,7 +199,6 @@ export default function Catalog() {
         available: book.availableCopies > 0
       };
       addToCart(cartItem);
-      alert(`"${book.title}" has been added to your cart!`);
     }
   };
 

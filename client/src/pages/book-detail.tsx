@@ -192,21 +192,23 @@ export default function BookDetail() {
 
   const handleRentClick = () => {
     if (!book || book.availableCopies === 0) return;
+    const selectedPeriod = rentalPeriods.find(p => p.weeks === selectedRentalPeriod);
     const cartItem = {
       id: `cart-${book.id}-${Date.now()}`,
       bookId: book.id,
       title: book.title,
       author: book.author,
       imageUrl: book.imageUrl || "/placeholder-book.jpg",
-      price: parseFloat(book.pricePerWeek),
+      price: parseFloat(book.pricePerWeek), // Base price per week
       rentalDuration: parseInt(selectedRentalPeriod),
+      rentalPeriodLabel: selectedPeriod?.label || "1 Month",
       quantity: 1,
       available: true
     };
     addToCart(cartItem);
     toast({
       title: "Added to Cart",
-      description: `"${book.title}" has been added to your cart!`,
+      description: `"${book.title}" has been added to your cart for ${selectedPeriod?.label || "1 Month"}!`,
       variant: "default",
     });
   };
@@ -419,7 +421,7 @@ export default function BookDetail() {
           <Card>
             <CardContent className="p-6">
               <h3 className="text-xl font-semibold mb-4">Rental Options</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {rentalPeriods.map((period) => (
                   <div
                     key={period.weeks}

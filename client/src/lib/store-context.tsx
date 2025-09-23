@@ -8,6 +8,7 @@ interface CartItem {
   imageUrl: string;
   price: number;
   rentalDuration: number;
+  rentalPeriodLabel?: string; // Added for rental period label
   quantity: number;
   available: boolean;
 }
@@ -96,14 +97,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       // Check for existing item by bookId instead of exact id match
       const existingItem = prev.find(cartItem => cartItem.bookId === item.bookId);
       if (existingItem) {
+        // Update existing item properties but keep quantity as 1
         return prev.map(cartItem =>
           cartItem.bookId === item.bookId
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            ? { 
+                ...cartItem, 
+                rentalDuration: item.rentalDuration || cartItem.rentalDuration,
+                rentalPeriodLabel: item.rentalPeriodLabel || cartItem.rentalPeriodLabel,
+                quantity: 1 // Always set to 1, don't increment
+              }
             : cartItem
         );
       }
-      // Ensure rental duration is set to default value of 1 if not provided
-      return [...prev, { ...item, rentalDuration: item.rentalDuration || 1, quantity: 1 }];
+      // Ensure rental duration and label are properly set for new items
+      return [...prev, { 
+        ...item, 
+        rentalDuration: item.rentalDuration || 4, 
+        quantity: 1, 
+        rentalPeriodLabel: item.rentalPeriodLabel || '1 Month' 
+      }];
     });
   };
 
@@ -123,15 +135,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setCartItems(prev =>
       prev.map(item => {
         if (item.id === id) {
-          const periodWeeks = newPeriod === '1 Month' ? 4 : 8;
-          const discount = newPeriod === '2 Months (10% off)' ? 0.1 : 0;
-          const basePrice = item.price; // Use the original price
+          let periodWeeks: number;
+          let periodLabel: string;
+          let discount = 0;
+
+          switch (newPeriod) {
+            case '1 Month':
+              periodWeeks = 4;
+              periodLabel = '1 Month';
+              discount = 0;
+              break;
+            case '2 Months (10% off)':
+              periodWeeks = 8;
+              periodLabel = '2 Months';
+              discount = 0.1;
+              break;
+            default: // Default to 1 week if something unexpected happens
+              periodWeeks = 1;
+              periodLabel = '1 Week';
+              discount = 0;
+          }
+
+          const basePrice = item.price; // Assuming item.price is the price for 1 week
           const discountedPrice = basePrice * (1 - discount);
 
           return {
             ...item,
             rentalDuration: periodWeeks,
-            price: discountedPrice
+            rentalPeriodLabel: periodLabel, // Set the label
+            price: discountedPrice // Update price based on discount
           };
         }
         return item;

@@ -28,8 +28,25 @@ export default function Cart() {
     removeFromCart(id);
   };
 
-  const handleRentalPeriodChange = (itemId: string, newPeriod: string) => {
-    updateCartItemRentalDuration(itemId, newPeriod);
+  const handleRentalPeriodChange = (itemId: string, newPeriodValue: string) => {
+    let newPeriodLabel: string;
+    let rentalDurationValue: number;
+
+    switch(newPeriodValue) {
+      case '1 Month':
+        newPeriodLabel = '1 Month';
+        rentalDurationValue = 4;
+        break;
+      case '2 Months (10% off)':
+        newPeriodLabel = '2 Months (10% off)';
+        rentalDurationValue = 8;
+        break;
+      default:
+        newPeriodLabel = '1 Month'; // Default or fallback
+        rentalDurationValue = 4;
+    }
+    
+    updateCartItemRentalDuration(itemId, newPeriodLabel, rentalDurationValue);
     
     // Force re-render to update UI
     forceUpdate();
@@ -159,16 +176,19 @@ export default function Cart() {
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           {/* Rental Duration */}
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Rental Period
-                            </label>
-                            <Select 
-                              value={(item.rentalDuration === 4 ? '1 Month' : item.rentalDuration === 8 ? '2 Months (10% off)' : '4 Months').toString()}
+                          <div className="space-y-1">
+                            <div className="text-sm text-muted-foreground">Rental Period</div>
+                            <Select
+                              value={item.rentalPeriodLabel || "1 Month"}
                               onValueChange={(value) => handleRentalPeriodChange(item.id, value)}
                             >
                               <SelectTrigger className="bg-gray-50 border-gray-200">
-                                <SelectValue />
+                                <SelectValue placeholder={item.rentalPeriodLabel || "1 Month"}>
+                                  {item.rentalPeriodLabel || 
+                                    (item.rentalDuration === 4 ? "1 Month" :
+                                     item.rentalDuration === 8 ? "2 Months (10% off)" : 
+                                     "1 Month")} 
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="1 Month">1 Month</SelectItem>

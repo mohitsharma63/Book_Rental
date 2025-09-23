@@ -20,11 +20,22 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { toast } = useToast();
 
-  // Check if book is already in wishlist
+  // Check if book is already in wishlist and update state immediately
   useEffect(() => {
     const isInWishlist = wishlistItems.some(item => item.bookId === book.id);
     setIsWishlisted(isInWishlist);
   }, [wishlistItems, book.id]);
+
+  // Additional effect to ensure state is synchronized
+  useEffect(() => {
+    const checkWishlistStatus = () => {
+      const isInWishlist = wishlistItems.some(item => item.bookId === book.id);
+      if (isWishlisted !== isInWishlist) {
+        setIsWishlisted(isInWishlist);
+      }
+    };
+    checkWishlistStatus();
+  }, [wishlistItems, book.id, isWishlisted]);
 
   const getStatusColor = (availableCopies: number) => {
     if (availableCopies > 0) return "bg-green-100 text-green-800 border-green-200";

@@ -66,20 +66,19 @@ export function Footer() {
                   Browse Books
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/about">
                 <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
-                  My Account
+                  About
                 </Button>
+                
               </Link>
-              <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
-                How it Works
-              </Button>
-              <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
-                Pricing
-              </Button>
-              <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
-                FAQs
-              </Button>
+              <Link href="/contact">
+                <Button variant="ghost" className="h-auto p-2 text-muted-foreground hover:text-primary justify-start footer-link w-full">
+                  Contact
+                </Button>
+                
+              </Link>
+              
             </div>
           </div>
 
@@ -114,22 +113,7 @@ export function Footer() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h5 className="font-medium">Stay Updated</h5>
-              <p className="text-xs text-muted-foreground">
-                Get the latest book recommendations and exclusive offers
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter email"
-                  className="text-xs h-8"
-                  type="email"
-                />
-                <Button size="sm" className="h-8 px-3">
-                  Subscribe
-                </Button>
-              </div>
-            </div>
+           
           </div>
         </div>
 
