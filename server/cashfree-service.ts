@@ -104,14 +104,21 @@ class CashfreeService {
         payment_session_id: result.payment_session_id
       });
 
-      // Generate payment URL using the payment session ID
-      if (result.payment_session_id) {
-        const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
-        const checkoutUrl = environment === 'production'
-          ? 'https://payments.cashfree.com/pay'
-          : 'https://sandbox.cashfree.com/pg/checkout/pay';
-        result.payment_url = `${checkoutUrl}?payment_session_id=${result.payment_session_id}`;
+      // Validate payment session ID
+      if (!result.payment_session_id) {
+        console.error('Cashfree response missing payment_session_id:', result);
+        throw new Error('Payment session ID not received from Cashfree');
       }
+
+      // Generate payment URL using the payment session ID
+      const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
+      const checkoutUrl = environment === 'production'
+        ? 'https://payments.cashfree.com/pay'
+        : 'https://sandbox.cashfree.com/pg/checkout/pay';
+
+      result.payment_url = `${checkoutUrl}?payment_session_id=${result.payment_session_id}`;
+
+      console.log('Generated payment URL:', result.payment_url);
 
       return result;
     } catch (error) {

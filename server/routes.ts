@@ -858,8 +858,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       console.log("Creating Cashfree order with base URL:", baseUrl);
+      console.log("Cashfree order data:", JSON.stringify(cashfreeOrderData, null, 2));
 
       const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
+      
+      console.log("Cashfree order response:", JSON.stringify(cashfreeOrder, null, 2));
+
+      if (!cashfreeOrder.payment_session_id) {
+        throw new Error("Cashfree did not return a valid payment session ID");
+      }
 
       // Update payment order with Cashfree session ID
       await storage.updatePaymentOrder(orderId, { 
