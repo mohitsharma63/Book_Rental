@@ -113,7 +113,7 @@ class CashfreeService {
       // Generate payment URL using the payment session ID
       const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
       const checkoutUrl = environment === 'production'
-        ? 'https://api.cashfree.com/pg/orders'
+        ? 'https://checkout.cashfree.com/pg/checkout/pay'
         : 'https://sandbox.cashfree.com/pg/checkout/pay';
 
       result.payment_url = `${checkoutUrl}?payment_session_id=${result.payment_session_id}`;

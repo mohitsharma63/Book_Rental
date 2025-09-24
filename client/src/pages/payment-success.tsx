@@ -11,7 +11,10 @@ export default function PaymentSuccess() {
   const { clearCart } = useStore();
 
   const searchParams = new URLSearchParams(location.search);
-  const orderId = searchParams.get('oid') || searchParams.get('order_id');
+  const orderId = searchParams.get('oid') || 
+                 searchParams.get('order_id') || 
+                 searchParams.get('orderId') ||
+                 searchParams.get('cf_order_id');
 
   const { data: orderDetails, isLoading, error } = useQuery({
     queryKey: ['paymentOrder', orderId],

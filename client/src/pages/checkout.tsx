@@ -126,24 +126,17 @@ export default function Checkout() {
           throw new Error(result.message || `Server error: ${response.status}`);
         }
 
-        if (result.success && result.payment_url && result.payment_session_id) {
-          // Validate payment URL
-          if (!result.payment_url.includes('payment_session_id=')) {
-            throw new Error('Invalid payment URL received from server');
-          }
-          
-          // Redirect to Cashfree payment page
+        if (result.success && result.payment_url) {
           console.log('Redirecting to payment URL:', result.payment_url);
-          console.log('Payment session ID:', result.payment_session_id);
 
           // Clear cart before redirecting to payment
           clearCart();
 
-          // Use window.open for better user experience or direct assignment
+          // Redirect to Cashfree payment page
           window.location.href = result.payment_url;
         } else {
           console.error('Payment creation failed:', result);
-          throw new Error(result.message || result.details || 'Failed to create payment session - missing payment URL or session ID');
+          throw new Error(result.message || 'Failed to create payment session');
         }
       } catch (error) {
         console.error('Payment initiation failed:', error);

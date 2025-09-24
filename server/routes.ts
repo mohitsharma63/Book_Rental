@@ -813,33 +813,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Cashfree order
       const { cashfreeService } = await import('./cashfree-service');
 
-      // Get the proper domain for URLs
-      const protocol = req.get('x-forwarded-proto') || req.protocol;
-      const host = req.get('x-forwarded-host') || req.get('host');
-      
-      // Force HTTPS for production domain bookloopindia.com
-      let finalProtocol = 'https';
-      
-      // Only use original protocol for local development
-      if (host && (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('replit.app'))) {
-        finalProtocol = protocol;
-      }
-      
-      // Explicitly force HTTPS for bookloopindia.com
-      if (host && host.includes('bookloopindia.com')) {
-        finalProtocol = 'https';
-      }
-      
-      console.log('Host:', host, 'Original protocol:', protocol, 'Final protocol:', finalProtocol);
-      
-      const baseUrl = `${finalProtocol}://${host}`;
+      // Get the correct base URL
+      const protocol = req.get('x-forwarded-proto') || (req.get('host')?.includes('localhost') ? 'http' : 'https');
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
 
-      // Very simple return URL - all data is stored in database via orderId
-      const returnUrl = `${baseUrl}/payment-success?oid=${orderId}`;
-      const notifyUrl = `${baseUrl}/api/payment/webhook`;
+      const returnUrl = `${baseUrl}/payment-success`;
+      const notifyUrl = `${baseUrl}/api/payment-webhook`;
 
-      console.log('Return URL length:', returnUrl.length);
+      console.log('Base URL:', baseUrl);
       console.log('Return URL:', returnUrl);
+      console.log('Notify URL:', notifyUrl);
 
       const cashfreeOrderData = {
         order_id: orderId,
@@ -861,7 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Cashfree order data:", JSON.stringify(cashfreeOrderData, null, 2));
 
       const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
-      
+
       console.log("Cashfree order response:", JSON.stringify(cashfreeOrder, null, 2));
 
       if (!cashfreeOrder.payment_session_id) {
