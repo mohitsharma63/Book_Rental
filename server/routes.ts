@@ -817,7 +817,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.get('x-forwarded-proto') || req.protocol;
       const host = req.get('x-forwarded-host') || req.get('host');
       
-      const finalProtocol = protocol.includes('http') ? protocol : 'https';
+      // Force HTTPS for production domain bookloopindia.com
+      let finalProtocol = 'https';
+      
+      // Only use original protocol for local development
+      if (host && (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('replit.app'))) {
+        finalProtocol = protocol;
+      }
+      
+      // Explicitly force HTTPS for bookloopindia.com
+      if (host && host.includes('bookloopindia.com')) {
+        finalProtocol = 'https';
+      }
+      
+      console.log('Host:', host, 'Original protocol:', protocol, 'Final protocol:', finalProtocol);
+      
       const baseUrl = `${finalProtocol}://${host}`;
 
       // Very simple return URL - all data is stored in database via orderId
