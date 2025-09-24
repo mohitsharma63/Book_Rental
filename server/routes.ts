@@ -5,10 +5,19 @@ import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserS
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { otpService } from "./otp-sevice";
-
+import dotenv from 'dotenv';
+dotenv.config();
 // Cashfree configuration
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+
+// Log environment variables for debugging
+console.log('Environment variables loaded:', {
+  CASHFREE_APP_ID: CASHFREE_APP_ID ? `${CASHFREE_APP_ID.substring(0, 5)}...` : 'undefined',
+  CASHFREE_SECRET_KEY: CASHFREE_SECRET_KEY ? `${CASHFREE_SECRET_KEY.substring(0, 5)}...` : 'undefined',
+  CASHFREE_ENVIRONMENT: process.env.CASHFREE_ENVIRONMENT || 'not set',
+  DATABASE_URL: process.env.DATABASE_URL ? 'defined' : 'undefined'
+});
 
 // Determine environment based on the CASHFREE_ENVIRONMENT variable
 const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
@@ -18,15 +27,7 @@ const CASHFREE_BASE_URL = isProduction
   ? 'https://api.cashfree.com'
   : 'https://sandbox.cashfree.com';
 
-const CASHFREE_MODE = CASHFREE_ENVIRONMENT;
-
-console.log("Cashfree Environment Configuration:", {
-  environment: CASHFREE_ENVIRONMENT,
-  isProduction,
-  baseUrl: CASHFREE_BASE_URL,
-  hasAppId: !!CASHFREE_APP_ID,
-  hasSecretKey: !!CASHFREE_SECRET_KEY
-});
+const CASHFREE_MODE = isProduction ? 'production' : 'sandbox';
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -759,7 +760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "customerDetails must include customerId, customerName, and customerEmail"
         });
       }
-
+console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",CASHFREE_APP_ID)
       // Check if Cashfree is configured
       console.log("Cashfree configuration check:", {
         hasAppId: !!CASHFREE_APP_ID,
