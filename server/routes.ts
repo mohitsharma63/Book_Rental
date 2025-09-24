@@ -1,8 +1,24 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema, insertPaymentOrderSchema } from "@shared/schema";
+import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema, insertPaymentOrderSchema, cashfreePayments } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { otpService } from "./otp-sevice";
+
+// Cashfree configuration
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || 'cashfree_app_id';
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || 'cashfree_secret_key';
+
+// Determine environment based on credentials or explicit env variable
+const isProduction = process.env.CASHFREE_BASE_URL === 'production' ||
+                    (process.env.CASHFREE_SECRET_KEY && process.env.CASHFREE_SECRET_KEY.includes('prod'));
+
+const CASHFREE_BASE_URL = isProduction
+  ? 'https://api.cashfree.com'
+  : 'https://sandbox.cashfree.com';
+
+const CASHFREE_MODE = isProduction ? 'production' : 'sandbox';
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -686,7 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
- 
+
   app.get("/api/payment-orders", async (req, res) => {
     try {
       const paymentOrders = await storage.getAllPaymentOrders();
@@ -698,7 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  
+
 
 
   app.get("/api/payment-orders/:orderId", async (req, res) => {
@@ -714,6 +730,307 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get payment order error:", error);
       res.status(500).json({ error: "Failed to fetch payment order", details: (error as Error).message });
+    }
+  });
+
+  // Cashfree Payment Routes
+  app.post('/api/payments/cashfree/create-order', async (req, res) => {
+    try {
+      const { amount, orderId, currency, customerDetails, orderNote, orderData } = req.body;
+
+      // Validate required fields
+      if (!amount || !orderId || !currency || !customerDetails) {
+        return res.status(400).json({
+          error: "Missing required fields: amount, orderId, currency, and customerDetails are required"
+        });
+      }
+
+      // Validate customerDetails structure
+      if (!customerDetails.customerId || !customerDetails.customerName || !customerDetails.customerEmail) {
+        return res.status(400).json({
+          error: "customerDetails must include customerId, customerName, and customerEmail"
+        });
+      }
+
+      // Check if Cashfree is configured
+      if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY ||
+          CASHFREE_APP_ID === 'cashfree_app_id' || CASHFREE_SECRET_KEY === 'cashfree_secret_key') {
+        console.log("Cashfree not configured properly");
+        return res.status(400).json({
+          error: "Cashfree payment gateway is not configured",
+          configError: true
+        });
+      }
+
+      console.log("Creating Cashfree order:", {
+        orderId,
+        amount,
+        currency,
+        customer: customerDetails.customerName
+      });
+
+      // Create Cashfree order payload with proper HTTPS URLs
+      const host = req.get('host');
+
+      // Always use HTTPS for Cashfree as it requires secure URLs
+      let protocol = 'https';
+
+      // For Replit development, use the replit.dev domain with HTTPS
+      let returnHost = host;
+      if (host && (host.includes('localhost') || host.includes('127.0.0.1') || host.includes('0.0.0.0'))) {
+        // For local development, we need to use a publicly accessible HTTPS URL
+        // Since Cashfree requires HTTPS, we'll use the Replit preview URL
+        const replitHost = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : host;
+        returnHost = replitHost;
+        protocol = 'https';
+      }
+
+      const cashfreePayload = {
+        order_id: orderId,
+        order_amount: amount,
+        order_currency: currency,
+        customer_details: {
+          customer_id: customerDetails.customerId,
+          customer_name: customerDetails.customerName,
+          customer_email: customerDetails.customerEmail,
+          customer_phone: customerDetails.customerPhone || '9999999999'
+        },
+        order_meta: {
+          return_url: `${protocol}://${returnHost}/checkout?payment=processing&orderId=${orderId}`,
+          notify_url: `${protocol}://${returnHost}/api/payments/cashfree/webhook`
+        },
+        order_note: orderNote || 'BookWise Purchase'
+      };
+
+      console.log("Cashfree API URL:", `${CASHFREE_BASE_URL}/pg/orders`);
+      console.log("Cashfree payload:", JSON.stringify(cashfreePayload, null, 2));
+
+      // Call Cashfree API
+      const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/pg/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-version': '2023-08-01',
+          'x-client-id': CASHFREE_APP_ID,
+          'x-client-secret': CASHFREE_SECRET_KEY,
+        },
+        body: JSON.stringify(cashfreePayload)
+      });
+
+      const cashfreeResult = await cashfreeResponse.json();
+
+      console.log("Cashfree API response status:", cashfreeResponse.status);
+      console.log("Cashfree API response:", JSON.stringify(cashfreeResult, null, 2));
+
+      if (!cashfreeResponse.ok) {
+        console.error("Cashfree API error:", cashfreeResult);
+        return res.status(400).json({
+          error: cashfreeResult.message || "Failed to create Cashfree order",
+          cashfreeError: true,
+          details: cashfreeResult
+        });
+      }
+
+      // Store payment record in database
+      try {
+        await db.insert(cashfreePayments).values({
+          cashfreeOrderId: orderId,
+          userId: parseInt(customerDetails.customerId),
+          amount: amount,
+          status: 'created',
+          orderData: orderData || {},
+          customerInfo: customerDetails
+        });
+      } catch (dbError) {
+        console.error("Database error storing payment:", dbError);
+        // Continue even if database storage fails
+      }
+
+      // Return payment session details
+      res.json({
+        orderId: orderId,
+        paymentSessionId: cashfreeResult.payment_session_id,
+        environment: CASHFREE_MODE,
+        message: "Order created successfully"
+      });
+
+    } catch (error) {
+      console.error("Cashfree create order error:", error);
+      res.status(500).json({
+        error: "Failed to create payment order",
+        details: (error as Error).message
+      });
+    }
+  });
+
+  app.post('/api/payments/cashfree/verify', async (req, res) => {
+    try {
+      const { orderId } = req.body;
+
+      if (!orderId) {
+        return res.status(400).json({ error: "Order ID is required" });
+      }
+
+      console.log("Verifying payment for order:", orderId);
+
+      // Check Cashfree configuration
+      if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY ||
+          CASHFREE_APP_ID === 'cashfree_app_id' || CASHFREE_SECRET_KEY === 'cashfree_secret_key') {
+        return res.status(400).json({
+          error: "Cashfree payment gateway is not configured",
+          verified: false
+        });
+      }
+
+      // Get order status from Cashfree
+      const statusResponse = await fetch(`${CASHFREE_BASE_URL}/pg/orders/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-version': '2023-08-01',
+          'x-client-id': CASHFREE_APP_ID,
+          'x-client-secret': CASHFREE_SECRET_KEY,
+        }
+      });
+
+      const statusResult = await statusResponse.json();
+
+      console.log("Payment verification response:", JSON.stringify(statusResult, null, 2));
+
+      if (!statusResponse.ok) {
+        console.error("Cashfree verification error:", statusResult);
+        return res.json({
+          verified: false,
+          error: "Failed to verify payment status"
+        });
+      }
+
+      const isPaymentSuccessful = statusResult.order_status === 'PAID';
+
+      // Update payment record in database
+      try {
+        await db.update(cashfreePayments)
+          .set({
+            status: isPaymentSuccessful ? 'completed' : 'failed',
+            paymentId: statusResult.cf_order_id || null,
+            completedAt: isPaymentSuccessful ? new Date() : null
+          })
+          .where(eq(cashfreePayments.cashfreeOrderId, orderId));
+
+        // If payment is successful, create rental in the system
+        if (isPaymentSuccessful) {
+          // Get cashfree payment details
+          const cashfreePayment = await db
+            .select()
+            .from(cashfreePayments)
+            .where(eq(cashfreePayments.cashfreeOrderId, orderId))
+            .limit(1);
+
+          if (cashfreePayment.length > 0) {
+            const payment = cashfreePayment[0];
+            const orderData = payment.orderData;
+
+            // Create rental records for books
+            if (orderData.items && Array.isArray(orderData.items)) {
+              for (const item of orderData.items) {
+                if (item.bookId) {
+                  try {
+                    const rentalData = {
+                      userId: payment.userId.toString(),
+                      bookId: item.bookId,
+                      startDate: new Date(),
+                      endDate: new Date(Date.now() + (item.rentalDays || 7) * 24 * 60 * 60 * 1000), // Default 7 days
+                      status: 'active' as const,
+                      totalAmount: item.price
+                    };
+
+                    await storage.createRental(rentalData);
+                    console.log("Rental created for book:", item.bookId);
+                  } catch (rentalError) {
+                    console.error("Failed to create rental for book:", item.bookId, rentalError);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error("Database error updating payment:", dbError);
+      }
+
+      res.json({
+        verified: isPaymentSuccessful,
+        status: statusResult.order_status,
+        paymentId: statusResult.cf_order_id,
+        message: isPaymentSuccessful ? "Payment verified successfully" : "Payment verification failed"
+      });
+
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      res.json({
+        verified: false,
+        error: "Payment verification failed"
+      });
+    }
+  });
+
+  app.post("/api/admin/sync-cashfree-orders", async (req, res) => {
+    try {
+      console.log("Syncing Cashfree orders to rentals...");
+
+      // Get all completed Cashfree payments
+      const completedPayments = await db
+        .select()
+        .from(cashfreePayments)
+        .where(eq(cashfreePayments.status, 'completed'));
+
+      let syncedCount = 0;
+
+      for (const payment of completedPayments) {
+        try {
+          const orderData = payment.orderData;
+
+          // Create rental records for books
+          if (orderData.items && Array.isArray(orderData.items)) {
+            for (const item of orderData.items) {
+              if (item.bookId) {
+                // Check if rental already exists
+                const existingRentals = await storage.getRentalsByUser(payment.userId.toString());
+                const hasExistingRental = existingRentals.some(rental => 
+                  rental.bookId === item.bookId && 
+                  rental.status === 'active'
+                );
+
+                if (!hasExistingRental) {
+                  const rentalData = {
+                    userId: payment.userId.toString(),
+                    bookId: item.bookId,
+                    startDate: payment.createdAt || new Date(),
+                    endDate: new Date((payment.createdAt || new Date()).getTime() + (item.rentalDays || 7) * 24 * 60 * 60 * 1000),
+                    status: 'active' as const,
+                    totalAmount: item.price
+                  };
+
+                  await storage.createRental(rentalData);
+                  syncedCount++;
+                  console.log(`Synced rental for order: ${payment.cashfreeOrderId}, book: ${item.bookId}`);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to sync order ${payment.cashfreeOrderId}:`, error);
+        }
+      }
+
+      res.json({
+        message: `Successfully synced ${syncedCount} Cashfree orders to rentals`,
+        syncedCount,
+        totalPayments: completedPayments.length
+      });
+    } catch (error) {
+      console.error("Error syncing Cashfree orders:", error);
+      res.status(500).json({ error: "Failed to sync Cashfree orders" });
     }
   });
 

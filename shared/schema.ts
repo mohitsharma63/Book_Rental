@@ -171,7 +171,25 @@ export const slidersRelations = relations(sliders, ({ many }) => ({
   // Add relations if needed in the future
 }));
 
+// Cashfree payments table
+export const cashfreePayments = pgTable("cashfree_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cashfreeOrderId: text("cashfree_order_id").notNull().unique(),
+  userId: integer("user_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("created"), // created, completed, failed
+  paymentId: text("payment_id"), // Cashfree payment ID
+  orderData: text("order_data"), // JSON string of order details
+  customerInfo: text("customer_info"), // JSON string of customer details
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const paymentOrdersRelations = relations(paymentOrders, ({ many }) => ({
+  // Add relations if needed in the future
+}));
+
+export const cashfreePaymentsRelations = relations(cashfreePayments, ({ many }) => ({
   // Add relations if needed in the future
 }));
 
@@ -194,6 +212,8 @@ export type Slider = typeof sliders.$inferSelect;
 export type InsertSlider = typeof sliders.$inferInsert;
 export type PaymentOrder = typeof paymentOrders.$inferSelect;
 export type InsertPaymentOrder = typeof paymentOrders.$inferInsert;
+export type CashfreePayment = typeof cashfreePayments.$inferSelect;
+export type InsertCashfreePayment = typeof cashfreePayments.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
