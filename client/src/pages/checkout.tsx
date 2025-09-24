@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +8,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  CreditCard, 
   Truck, 
-  MapPin, 
-  User, 
-  Phone, 
-  Mail, 
-  Lock,
+  MapPin,
   ArrowLeft,
   CheckCircle,
   Shield,
@@ -35,13 +29,6 @@ interface ShippingInfo {
   state: string;
   zipCode: string;
   country: string;
-}
-
-interface PaymentInfo {
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-  cardholderName: string;
 }
 
 export default function Checkout() {
@@ -64,13 +51,6 @@ export default function Checkout() {
     state: "",
     zipCode: "",
     country: "IN"
-  });
-
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardholderName: ""
   });
 
   const deliveryOptions = [
@@ -98,11 +78,7 @@ export default function Checkout() {
   ];
 
   const paymentMethods = [
-    { id: "cashfree", name: "Cashfree Payment Gateway", icon: "💳", description: "Cards, UPI, Net Banking, Wallets" },
-    { id: "upi", name: "UPI", icon: "📱", description: "Pay directly with UPI apps" },
-    { id: "card", name: "Credit/Debit Card", icon: "💳", description: "Visa, Mastercard, RuPay" },
-    { id: "netbanking", name: "Net Banking", icon: "🏦", description: "All major banks supported" },
-    { id: "wallet", name: "Digital Wallets", icon: "👛", description: "Paytm, PhonePe, Amazon Pay" }
+    { id: "cashfree", name: "Cashfree Payment Gateway", icon: "💳", description: "Cards, UPI, Net Banking, Wallets" }
   ];
 
   const subtotal = cartItems.reduce((sum, item) => {
@@ -117,10 +93,6 @@ export default function Checkout() {
 
   const handleShippingChange = (field: keyof ShippingInfo, value: string) => {
     setShippingInfo(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handlePaymentChange = (field: keyof PaymentInfo, value: string) => {
-    setPaymentInfo(prev => ({ ...prev, [field]: value }));
   };
 
   const handleContinueToPayment = () => {
@@ -185,20 +157,7 @@ export default function Checkout() {
   };
 
   const handlePlaceOrder = async () => {
-    if (selectedPayment === 'cashfree' || selectedPayment === 'upi' || selectedPayment === 'netbanking' || selectedPayment === 'wallet') {
-      await initiateCashfreePayment();
-    } else if (selectedPayment === 'card') {
-      // Validate payment info for direct card payment
-      const isPaymentValid = paymentInfo.cardNumber && paymentInfo.expiryDate && paymentInfo.cvv && paymentInfo.cardholderName;
-      if (!isPaymentValid) {
-        alert('Please fill in all payment details');
-        return;
-      }
-      await initiateCashfreePayment();
-    } else {
-      // For other payment methods, proceed with Cashfree
-      await initiateCashfreePayment();
-    }
+    await initiateCashfreePayment();
   };
 
   const steps = [
