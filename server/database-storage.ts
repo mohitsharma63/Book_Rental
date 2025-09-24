@@ -445,63 +445,62 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Payment Order methods
-  async createPaymentOrder(insertPaymentOrder: InsertPaymentOrder): Promise<PaymentOrder> {
+  async createPaymentOrder(data: InsertPaymentOrder): Promise<PaymentOrder> {
     try {
-      console.log("DatabaseStorage: Creating payment order with data:", insertPaymentOrder);
-      const [paymentOrder] = await db
+      const result = await db
         .insert(paymentOrders)
-        .values(insertPaymentOrder)
+        .values(data)
         .returning();
-      console.log("DatabaseStorage: Payment order created:", paymentOrder);
-      return paymentOrder;
+
+      console.log("Payment order created in database:", result[0].orderId);
+      return result[0];
     } catch (error) {
-      console.error("Error creating payment order:", error);
+      console.error("Create payment order error:", error);
       throw error;
     }
   }
 
-  async getPaymentOrder(orderId: string): Promise<PaymentOrder | undefined> {
+  async updatePaymentOrder(orderId: string, data: Partial<InsertPaymentOrder>): Promise<PaymentOrder | null> {
     try {
-      const [paymentOrder] = await db
-        .select()
-        .from(paymentOrders)
-        .where(eq(paymentOrders.orderId, orderId));
-      return paymentOrder || undefined;
-    } catch (error) {
-      console.error("Error getting payment order:", error);
-      throw error;
-    }
-  }
-
-  async updatePaymentOrder(orderId: string, updateData: Partial<PaymentOrder>): Promise<PaymentOrder> {
-    try {
-      console.log("DatabaseStorage: Updating payment order", orderId, "with data:", updateData);
-      const [paymentOrder] = await db
+      const result = await db
         .update(paymentOrders)
-        .set({ ...updateData, updatedAt: new Date() })
+        .set({ ...data, updatedAt: new Date() })
         .where(eq(paymentOrders.orderId, orderId))
         .returning();
-      
-      if (!paymentOrder) {
-        throw new Error("Payment order not found");
-      }
-      
-      console.log("DatabaseStorage: Payment order updated:", paymentOrder);
-      return paymentOrder;
+
+      console.log("Payment order updated in database:", orderId);
+      return result[0] || null;
     } catch (error) {
-      console.error("Error updating payment order:", error);
+      console.error("Update payment order error:", error);
       throw error;
     }
   }
 
   async getAllPaymentOrders(): Promise<PaymentOrder[]> {
     try {
-      return await db
+      const result = await db
         .select()
         .from(paymentOrders)
         .orderBy(desc(paymentOrders.createdAt));
+
+      return result;
     } catch (error) {
-      console.error("Error getting all payment orders:", error);
+      console.error("Get all payment orders error:", error);
+      throw error;
+    }
+  }
+
+  async getPaymentOrder(orderId: string): Promise<PaymentOrder | null> {
+    try {
+      const result = await db
+        .select()
+        .from(paymentOrders)
+        .where(eq(paymentOrders.orderId, orderId))
+        .limit(1);
+
+      return result[0] || null;
+    } catch (error) {
+      console.error("Get payment order error:", error);
       throw error;
     }
   }

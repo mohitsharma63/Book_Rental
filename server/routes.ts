@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await otpService.sendOTP(phone, isResend);
-      
+
       if (result.success) {
         res.json({ message: result.message });
       } else {
@@ -43,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await otpService.verifyOTP(phone, otp);
-      
+
       if (result.success) {
         res.json({ message: result.message, verified: true });
       } else {
@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate with schema (expects string for pricePerWeek)
       const validatedData = insertBookSchema.parse(transformedData);
       console.log("Validated book data:", validatedData);
-      
+
       const book = await storage.createBook(validatedData);
       res.status(201).json(book);
     } catch (error) {
@@ -340,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.updateUser(id, { 
         suspended: suspended,
-        
+
       });
 
       if (!user) {
@@ -686,7 +686,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Payment Order routes
+  // Payment Session route (only creates payment, no order save)
+  app.post("/api/create-payment-session", async (req, res) => {
+    try {
+      const { order_id, order_amount, order_currency, customer_details, order_meta } = req.body;
+
+      console.log("Creating payment session");
+
+      // Validate required fields
+      if (!customer_details?.customer_name || !customer_details?.customer_email || !customer_details?.customer_phone) {
+        console.error("Missing customer details:", customer_details);
+        return res.status(400).json({
+          success: false,
+          message: "Missing required customer details",
+          details: "customer_name, customer_email, and customer_phone are required"
+        });
+      }
+
+      if (!order_amount || isNaN(parseFloat(order_amount.toString())) || parseFloat(order_amount.toString()) <= 0) {
+        console.error("Invalid amount:", order_amount);
+        return res.status(400).json({
+          success: false,
+          message: "Invalid amount",
+          details: "amount must be a valid positive number"
+        });
+      }
+
+      // Create Cashfree order (no database save yet)
+      const { cashfreeService } = await import('./cashfree-service');
+
+      const cashfreeOrderData = {
+        order_id,
+        order_amount: parseFloat(order_amount.toString()),
+        order_currency: order_currency || "INR",
+        customer_details,
+        order_meta
+      };
+
+      console.log("Creating Cashfree payment session");
+
+      const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
+
+      console.log("Payment session created successfully:", {
+        orderId: order_id,
+        sessionId: cashfreeOrder.payment_session_id
+      });
+
+      res.json({
+        success: true,
+        order_id,
+        payment_session_id: cashfreeOrder.payment_session_id,
+        payment_url: cashfreeOrder.payment_url,
+        cf_order_id: cashfreeOrder.cf_order_id,
+        message: "Payment session created successfully"
+      });
+    } catch (error) {
+      console.error("Create payment session error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to create payment session", 
+        details: (error as Error).message 
+      });
+    }
+  });
+
+  // Payment Order routes (saves order after payment success)
   app.post("/api/create-order", async (req, res) => {
     try {
       const { amount, currency, customer_details, shipping_details, orderMeta, cartItems } = req.body;
@@ -748,12 +812,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create Cashfree order
       const { cashfreeService } = await import('./cashfree-service');
-      
+
       // Get the proper domain for URLs
       const protocol = req.get('x-forwarded-proto') || req.protocol;
       const host = req.get('x-forwarded-host') || req.get('host');
       const baseUrl = `${protocol}://${host}`;
-      
+
+      // Simplified return URL with only order_id - other data is already stored in database
+      const returnUrl = `${baseUrl}/payment-success?order_id=${orderId}`;
+      const notifyUrl = `${baseUrl}/api/payment/webhook`;
+
+      console.log('Return URL length:', returnUrl.length);
+      console.log('Return URL:', returnUrl);
+
       const cashfreeOrderData = {
         order_id: orderId,
         order_amount: parseFloat(amount.toString()),
@@ -765,8 +836,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customer_phone: customer_details.customer_phone,
         },
         order_meta: {
-          return_url: orderMeta?.return_url || `${baseUrl}/payment-success?order_id=${orderId}`,
-          notify_url: orderMeta?.notify_url || `${baseUrl}/api/payment-webhook`,
+          return_url: orderMeta?.return_url || returnUrl,
+          notify_url: orderMeta?.notify_url || notifyUrl,
         }
       };
 
@@ -814,7 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (eventType === "PAYMENT_SUCCESS_WEBHOOK") {
         const order = data.order;
         const payment = data.payment;
-        
+
         const orderId = order.order_id;
         const paymentStatus = payment.payment_status;
         const transactionId = payment.cf_payment_id;
@@ -881,16 +952,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check payment status from Cashfree
+  app.get("/api/payment-status/:orderId", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+
+      // Get payment status from Cashfree
+      const { cashfreeService } = await import('./cashfree-service');
+      const paymentStatus = await cashfreeService.getPaymentStatus(orderId);
+
+      res.json(paymentStatus);
+    } catch (error) {
+      console.error("Get payment status error:", error);
+      res.status(500).json({ error: "Failed to fetch payment status", details: (error as Error).message });
+    }
+  });
+
   // Get specific payment order
   app.get("/api/payment-orders/:orderId", async (req, res) => {
     try {
       const { orderId } = req.params;
       const paymentOrder = await storage.getPaymentOrder(orderId);
-      
+
       if (!paymentOrder) {
         return res.status(404).json({ error: "Payment order not found" });
       }
-      
+
       res.json(paymentOrder);
     } catch (error) {
       console.error("Get payment order error:", error);

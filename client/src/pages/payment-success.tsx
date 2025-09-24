@@ -4,47 +4,60 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Package, ArrowRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "@/lib/store-context";
+import { useQuery } from "@tanstack/react-query";
 
 export default function PaymentSuccess() {
   const [location] = useLocation();
   const { clearCart } = useStore();
-  const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Extract order_id from URL params
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const orderId = urlParams.get('order_id');
+  const searchParams = new URLSearchParams(location.search);
+  const orderId = searchParams.get('order_id');
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!orderId) {
-        setLoading(false);
-        return;
-      }
+  const { data: orderDetails, isLoading, error } = useQuery({
+    queryKey: ['paymentOrder', orderId],
+    queryFn: async () => {
+      if (!orderId) return null;
+      const response = await fetch(`/api/payment-orders/${orderId}`);
+      if (!response.ok) throw new Error('Failed to fetch order details');
+      return response.json();
+    },
+    enabled: !!orderId,
+  });
 
-      try {
-        const response = await fetch(`/api/payment-orders/${orderId}`);
-        if (response.ok) {
-          const order = await response.json();
-          setOrderDetails(order);
-          
-          // Clear cart on successful payment
-          if (order.status === 'paid') {
-            // Cart should already be cleared before payment redirect
-            // clearCart();
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching order details:', error);
-      } finally {
-        setLoading(false);
-      }
+  // Parse customer data and cart items from order details
+  let customerData = null;
+  let cartItems = [];
+
+  if (orderDetails) {
+    customerData = {
+      firstName: orderDetails.customerName?.split(' ')[0] || '',
+      lastName: orderDetails.customerName?.split(' ').slice(1).join(' ') || '',
+      email: orderDetails.customerEmail,
+      phone: orderDetails.customerPhone,
+      address: orderDetails.shippingAddress,
+      city: orderDetails.shippingCity,
+      state: orderDetails.shippingState,
+      pincode: orderDetails.shippingPincode,
+      landmark: orderDetails.shippingLandmark || ''
     };
 
-    fetchOrderDetails();
-  }, [orderId, clearCart]);
+    try {
+      if (orderDetails.cartItems) {
+        cartItems = JSON.parse(orderDetails.cartItems);
+      }
+    } catch (error) {
+      console.error('Error parsing cart items:', error);
+    }
+  }
 
-  if (loading) {
+  useEffect(() => {
+    if (orderDetails && orderDetails.status === 'paid') {
+      clearCart();
+    }
+  }, [orderDetails, clearCart]);
+
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 flex items-center justify-center">
         <div className="text-center">
@@ -55,7 +68,7 @@ export default function PaymentSuccess() {
     );
   }
 
-  if (!orderId || !orderDetails) {
+  if (error || !orderId || !orderDetails) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-red-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4 text-center">
@@ -65,7 +78,7 @@ export default function PaymentSuccess() {
             </div>
             <h2 className="text-2xl font-bold mb-4">Order Not Found</h2>
             <p className="text-gray-600 mb-6">
-              We couldn't find the order details. Please contact support if you need assistance.
+              {error ? `Error: ${error.message}` : 'We couldn\'t find the order details. Please contact support if you need assistance.'}
             </p>
             <Link href="/catalog">
               <Button className="w-full">Continue Shopping</Button>
@@ -76,7 +89,7 @@ export default function PaymentSuccess() {
     );
   }
 
-  const isPaymentSuccessful = orderDetails.status === 'paid';
+  const isPaymentSuccessful = orderDetails.status === 'paid' || orderDetails.status === 'success';
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${isPaymentSuccessful ? 'from-slate-50 to-green-50' : 'from-slate-50 to-red-50'} flex items-center justify-center`}>
@@ -89,13 +102,13 @@ export default function PaymentSuccess() {
               <Package className="h-12 w-12 text-red-600" />
             )}
           </div>
-          
+
           <h2 className="text-2xl font-bold mb-4">
             {isPaymentSuccessful ? 'Payment Successful!' : 'Payment Failed'}
           </h2>
-          
+
           <p className="text-gray-600 mb-6">
-            {isPaymentSuccessful 
+            {isPaymentSuccessful
               ? 'Thank you for your order. You will receive a confirmation email shortly.'
               : 'There was an issue processing your payment. Please try again or contact support.'
             }
@@ -110,7 +123,7 @@ export default function PaymentSuccess() {
               </div>
               <div className="flex justify-between">
                 <span>Amount:</span>
-                <span>₹{parseFloat(orderDetails.amount).toFixed(2)}</span>
+                <span>₹{orderDetails.amount ? parseFloat(orderDetails.amount.toString()).toFixed(2) : '0.00'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Status:</span>

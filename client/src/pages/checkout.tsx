@@ -82,13 +82,15 @@ export default function Checkout() {
     }
 
     const customerName = `${formData.firstName}${formData.lastName ? ' ' + formData.lastName : ''}`;
-    const shippingAddress = `${formData.address}\n${formData.city}, ${formData.state} - ${formData.pincode}${formData.landmark ? '\nNear ' + formData.landmark : ''}`;
 
     try {
         setIsProcessingPayment(true);
 
+        // Generate unique order ID
+        const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Create order data for saving to database
         const orderData = {
-          order_id: `order_${Date.now()}`, // Generate a unique order ID
           amount: parseFloat(total.toFixed(2)),
           currency: "INR",
           customer_details: {
@@ -98,20 +100,13 @@ export default function Checkout() {
             customer_phone: formData.phone,
           },
           shipping_details: {
-            name: customerName,
-            phone: formData.phone,
-            email: formData.email,
-            address: shippingAddress,
+            address: formData.address,
             city: formData.city,
             state: formData.state,
             pincode: formData.pincode,
             landmark: formData.landmark || ''
           },
           cartItems: cartItems,
-          orderMeta: {
-            return_url: `${window.location.origin}/payment-success?order_id={order_id}`,
-            notify_url: `${window.location.origin}/api/payment-webhook`,
-          }
         };
 
         console.log("Creating order with data:", orderData);
@@ -125,7 +120,7 @@ export default function Checkout() {
         });
 
         const result = await response.json();
-        console.log("Order creation response:", result);
+        console.log("Create order response:", result);
 
         if (!response.ok) {
           throw new Error(result.message || `Server error: ${response.status}`);
