@@ -1,57 +1,175 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { ArrowLeft, CreditCard, MapPin, User, Package, CheckCircle } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  ArrowLeft,
-  CheckCircle,
-  Shield,
-  Wallet
-} from "lucide-react";
-import { Link } from "wouter";
-import { useStore } from "@/lib/store-context";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-export default function Checkout() {
-  const { cartItems, clearCart } = useStore();
+interface CartItem {
+  id: number;
+  name: string;
+  price: string;
+  originalPrice?: string;
+  image: string;
+  quantity: number;
+  inStock: boolean;
+}
+
+export default function CheckoutPage() {
+  const [, setLocation] = useLocation();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderId, setOrderId] = useState("");
   const { toast } = useToast();
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [orderCompleted, setOrderCompleted] = useState(false);
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    landmark: ''
+    email: "",
+    firstName: "",
+    lastName: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    phone: "",
+    paymentMethod: "cashfree",
   });
+  const [userProfile, setUserProfile] = useState(null);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
 
-  const paymentMethods = [
-    { id: "cashfree", name: "Cashfree Payment Gateway", icon: "💳", description: "Cards, UPI, Net Banking, Wallets" }
-  ];
+  useEffect(() => {
+    // Check if user is logged in when accessing checkout
+    const user = localStorage.getItem("user");
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to proceed with checkout",
+        variant: "destructive",
+      });
+      window.location.href = "/auth/login";
+      return;
+    }
 
-  const subtotal = cartItems.reduce((sum, item) => {
-    const duration = item.rentalDuration || 1;
-    const durationMultiplier = duration === 1 ? 1 : duration === 2 ? 1.5 : 2;
-    return sum + (item.price * durationMultiplier * item.quantity);
-  }, 0);
+    // Parse user data and set profile
+    try {
+      const userData = JSON.parse(user);
+      setUserProfile(userData);
 
-  const deliveryFee = 99; // Standard delivery
-  const tax = subtotal * 0.18; // 18% GST
-  const total = subtotal + deliveryFee + tax;
+      // Auto-fill form data if profile has information and not already loaded
+      if (userData && !profileDataLoaded) {
+        // Parse address to extract city, state, zipCode from profile
+        let city = "";
+        let state = "";
+        let zipCode = "";
+        let streetAddress = userData.address || "";
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+        // Try to extract city, state, zipCode from full address if they exist
+        if (streetAddress) {
+          const addressParts = streetAddress.split(',').map(part => part.trim());
+          if (addressParts.length >= 3) {
+            // Last part might contain state and pin code
+            const lastPart = addressParts[addressParts.length - 1];
+            const pinCodeMatch = lastPart.match(/\d{6}$/);
+            if (pinCodeMatch) {
+              zipCode = pinCodeMatch[0];
+              state = lastPart.replace(/\d{6}$/, '').trim();
+            } else {
+              state = lastPart;
+            }
+
+            // Second last part might be city
+            if (addressParts.length >= 2) {
+              city = addressParts[addressParts.length - 2];
+            }
+
+            // Remove city and state from full address to get street address
+            streetAddress = addressParts.slice(0, -2).join(', ');
+          } else if (addressParts.length === 2) {
+            // If only 2 parts, assume first is address and second is city
+            city = addressParts[1];
+            streetAddress = addressParts[0];
+          } else if (addressParts.length === 1) {
+            // If only 1 part, use it as street address
+            streetAddress = addressParts[0];
+          }
+        }
+
+        // Auto-fill form data with profile information
+        setFormData({
+          email: userData.email || "",
+          firstName: userData.firstName || "",
+          lastName: userData.lastName || "",
+          address: streetAddress,
+          city: city,
+          state: state,
+          zipCode: zipCode,
+          phone: userData.phone || "",
+          paymentMethod: "cod",
+        });
+
+        setProfileDataLoaded(true);
+
+        // Show notification that data was auto-filled
+        if (userData.firstName || userData.lastName || userData.email || userData.phone || userData.address) {
+          toast({
+            title: "Profile Data Loaded",
+            description: "Your contact information and shipping address have been filled automatically.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+    }
+
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        setCartItems(parsedCart);
+      } catch (error) {
+        console.error("Error parsing cart data:", error);
+        setCartItems([]);
+      }
+    }
+    setLoading(false);
+  }, [profileDataLoaded]);
+
+  const calculateSubtotal = () => {
+    return cartItems.reduce((total, item) => {
+      // Handle different price formats - string or number
+      let price = 0;
+      if (typeof item.price === 'string') {
+        price = parseInt(item.price.replace(/[₹,]/g, ""));
+      } else if (typeof item.price === 'number') {
+        price = item.price;
+      }
+      return total + (price * item.quantity);
+    }, 0);
   };
 
-  const handlePlaceOrder = async () => {
-    if (!formData.firstName || !formData.email || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode) {
+  const subtotal = calculateSubtotal();
+  const shipping = subtotal > 599 ? 0 : 99;
+  const total = subtotal + shipping;
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Basic validation
+    if (!formData.email || !formData.firstName || !formData.lastName || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -60,114 +178,146 @@ export default function Checkout() {
       return;
     }
 
-    // Validate PIN code format
-    if (!/^\d{6}$/.test(formData.pincode)) {
-      toast({
-        title: "Invalid PIN Code",
-        description: "Please enter a valid 6-digit PIN code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const customerName = `${formData.firstName}${formData.lastName ? ' ' + formData.lastName : ''}`;
-
     try {
-        setIsProcessingPayment(true);
+      setLoading(true);
 
-        // Generate unique order ID
+      if (formData.paymentMethod === "cashfree") {
+        // Cashfree payment flow
         const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Create order data for saving to database
-        const orderData = {
-          amount: parseFloat(total.toFixed(2)),
-          currency: "INR",
-          customer_details: {
-            customer_id: `customer_${Date.now()}`,
-            customer_name: customerName,
-            customer_email: formData.email,
-            customer_phone: formData.phone,
-          },
-          shipping_details: {
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.pincode,
-            landmark: formData.landmark || ''
-          },
-          cartItems: cartItems,
+        const customerDetails = {
+          customerId: userProfile?.id || `customer_${Date.now()}`,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          customerEmail: formData.email,
+          customerPhone: formData.phone || '9999999999'
         };
 
-        console.log("Creating order with data:", orderData);
+        const orderData = {
+          items: cartItems.map(item => ({
+            productId: item.id,
+            productName: item.name,
+            productImage: item.image,
+            quantity: item.quantity,
+            price: typeof item.price === 'string' ? parseInt(item.price.replace(/[₹,]/g, "")) : item.price
+          })),
+          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.zipCode}`
+        };
 
+        // Create Cashfree order
+        const response = await fetch('/api/payments/cashfree/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: total,
+            orderId: orderId,
+            currency: 'INR',
+            customerDetails: customerDetails,
+            orderNote: `Order for ${cartItems.length} items`,
+            orderData: orderData
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create payment order');
+        }
+
+        // Redirect to Cashfree payment page
+        const paymentUrl = `https://sandbox.cashfree.com/pg/checkout/pay?payment_session_id=${result.paymentSessionId}`;
+        window.location.href = paymentUrl;
+
+      } else {
+        // Cash on Delivery flow
+        const newOrderId = `ORD-${Date.now()}`;
+
+        // Create order with your existing API
         const response = await fetch('/api/create-order', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(orderData),
+          body: JSON.stringify({
+            amount: total,
+            currency: 'INR',
+            customer_details: {
+              customer_name: `${formData.firstName} ${formData.lastName}`,
+              customer_email: formData.email,
+              customer_phone: formData.phone || '9999999999',
+            },
+            shipping_details: {
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              pincode: formData.zipCode,
+            },
+            cartItems: cartItems
+          })
         });
-
-        const result = await response.json();
-        console.log("Create order response:", result);
 
         if (!response.ok) {
-          throw new Error(result.message || `Server error: ${response.status}`);
+          throw new Error('Failed to create order');
         }
 
-        if (result.success && result.payment_url) {
-          console.log('Redirecting to payment URL:', result.payment_url);
+        setOrderId(newOrderId);
+        setOrderPlaced(true);
 
-          // Clear cart before redirecting to payment
-          clearCart();
+        // Clear cart
+        localStorage.removeItem("cart");
+        localStorage.setItem("cartCount", "0");
+        window.dispatchEvent(new Event("cartUpdated"));
 
-          // Redirect to Cashfree payment page
-          window.location.href = result.payment_url;
-        } else {
-          console.error('Payment creation failed:', result);
-          throw new Error(result.message || 'Failed to create payment session');
-        }
-      } catch (error) {
-        console.error('Payment initiation failed:', error);
         toast({
-          title: "Payment Failed",
-          description: error instanceof Error ? error.message : 'Failed to initiate payment. Please try again.',
-          variant: "destructive",
+          title: "Order Placed Successfully!",
+          description: "You will receive a confirmation call shortly",
         });
-      } finally {
-        setIsProcessingPayment(false);
       }
+    } catch (error) {
+      console.error('Order placement error:', error);
+      toast({
+        title: "Order Failed",
+        description: error.message || "There was an error placing your order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (orderCompleted) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4 text-center">
-          <CardContent className="p-8">
-            <div className="p-4 bg-green-100 rounded-full w-fit mx-auto mb-6">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (orderPlaced) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center shadow-lg">
+          <CardContent className="pt-6 space-y-4">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold mb-4">Order Confirmed!</h2>
-            <p className="text-gray-600 mb-6">
-              Thank you for your order. You will receive an email confirmation shortly.
+            <h2 className="text-2xl font-bold text-gray-900">Order Confirmed!</h2>
+            <p className="text-gray-600">
+              Thank you for your purchase. Your order {orderId} has been confirmed.
             </p>
-            <div className="space-y-3">
-              <Link href="/catalog">
-                <Button className="w-full">Continue Shopping</Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button variant="outline" className="w-full">View Orders</Button>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">Estimated delivery</p>
+              <p className="font-semibold">3-5 business days</p>
+            </div>
+            <div className="space-y-3 pt-4">
+              <Link href="/">
+                <Button className="w-full bg-red-600 hover:bg-red-700">
+                  Continue Shopping
+                </Button>
               </Link>
             </div>
           </CardContent>
@@ -176,314 +326,251 @@ export default function Checkout() {
     );
   }
 
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-16">
+            <Package className="mx-auto h-24 w-24 text-gray-300 mb-6" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+            <p className="text-gray-600 mb-8">Add some items to your cart before checking out.</p>
+            <Link href="/">
+              <Button className="bg-red-600 hover:bg-red-700">
+                Continue Shopping
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Link href="/cart">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Cart
-            </Button>
+        <div className="mb-8">
+          <Link href="/cart" className="inline-flex items-center text-red-600 hover:text-red-700 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Cart
           </Link>
-          <h1 className="text-2xl font-bold">Checkout</h1>
-          <div></div>
+          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-8">
+        <form onSubmit={handlePlaceOrder}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Checkout Form */}
             <div className="space-y-6">
-              {/* Shipping Information */}
-              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <Shield className="h-5 w-5 text-blue-600" />
-                    </div>
-                    Shipping Information
+                  <CardTitle className="flex items-center">
+                    <User className="h-5 w-5 mr-2" />
+                    Contact Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name *</Label>
-                      <input
-                        id="firstName"
-                        type="text"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter your first name"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <input
-                        id="lastName"
-                        type="text"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter your last name"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="email">Email Address *</Label>
-                    <input
+                    <Input
                       id="email"
+                      name="email"
                       type="email"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Enter your email address"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <input
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
                       id="phone"
+                      name="phone"
                       type="tel"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Enter your phone number"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      required
                     />
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Complete Address *</Label>
-                    <textarea
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Shipping Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="address">Address *</Label>
+                    <Textarea
                       id="address"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[100px] resize-none"
-                      placeholder="House/Flat No, Building Name, Street, Area"
+                      name="address"
                       value={formData.address}
                       onChange={handleInputChange}
                       required
                     />
                   </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <Label htmlFor="city">City *</Label>
-                      <input
+                      <Input
                         id="city"
-                        type="text"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter city"
+                        name="city"
                         value={formData.city}
                         onChange={handleInputChange}
                         required
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div>
                       <Label htmlFor="state">State *</Label>
-                      <input
+                      <Input
                         id="state"
-                        type="text"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter state"
+                        name="state"
                         value={formData.state}
                         onChange={handleInputChange}
                         required
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="pincode">PIN Code *</Label>
-                      <input
-                        id="pincode"
-                        type="text"
-                        pattern="[0-9]{6}"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Enter PIN code"
-                        value={formData.pincode}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="landmark">Landmark (Optional)</Label>
-                    <input
-                      id="landmark"
-                      type="text"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Near landmark for easy delivery"
-                      value={formData.landmark}
+                  <div>
+                    <Label htmlFor="zipCode">ZIP Code *</Label>
+                    <Input
+                      id="zipCode"
+                      name="zipCode"
+                      value={formData.zipCode}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Payment Method */}
-              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 rounded-lg">
-                      <Wallet className="h-5 w-5 text-green-600" />
-                    </div>
+                  <CardTitle className="flex items-center">
+                    <CreditCard className="h-5 w-5 mr-2" />
                     Payment Method
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RadioGroup value="cashfree" className="space-y-3">
-                    {paymentMethods.map((method) => (
-                      <div key={method.id} className="flex items-center space-x-3 p-4 rounded-lg border-2 border-primary bg-primary/5">
-                        <RadioGroupItem value={method.id} id={method.id} checked />
-                        <span className="text-2xl">{method.icon}</span>
-                        <div className="flex-1">
-                          <Label htmlFor={method.id} className="font-semibold cursor-pointer block">
-                            {method.name}
-                          </Label>
-                          <p className="text-sm text-gray-600">{method.description}</p>
+                  <RadioGroup
+                    value={formData.paymentMethod}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                      <RadioGroupItem value="cashfree" id="cashfree" />
+                      <Label htmlFor="cashfree" className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Pay Online</p>
+                            <p className="text-sm text-gray-500">Credit/Debit Card, UPI, Net Banking</p>
+                          </div>
+                          <CreditCard className="h-5 w-5 text-gray-400" />
                         </div>
-                      </div>
-                    ))}
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                      <RadioGroupItem value="cod" id="cod" />
+                      <Label htmlFor="cod" className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Cash on Delivery</p>
+                            <p className="text-sm text-gray-500">Pay when you receive your order</p>
+                          </div>
+                        </div>
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </CardContent>
               </Card>
+            </div>
 
-              {/* Cashfree Benefits */}
-              <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-green-50">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-blue-600" />
-                    Secure Payment with Cashfree
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white rounded-lg">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+            {/* Order Summary */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex items-center space-x-4">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-16 w-16 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{item.name}</h4>
+                          <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900">₹{item.price}</p>
+                        </div>
                       </div>
-                      <span className="text-sm">256-bit SSL Encryption</span>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-gray-200 mt-6 pt-6 space-y-2">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal</span>
+                      <span>₹{subtotal.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white rounded-lg">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      </div>
-                      <span className="text-sm">PCI DSS Compliant</span>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Shipping</span>
+                      <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white rounded-lg">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      </div>
-                      <span className="text-sm">100+ Payment Methods</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white rounded-lg">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      </div>
-                      <span className="text-sm">Instant Refunds</span>
+                    <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
+                      <span>Total</span>
+                      <span>₹{total.toLocaleString()}</span>
                     </div>
                   </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full mt-6 bg-red-600 hover:bg-red-700"
+                    size="lg"
+                    disabled={loading}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    {loading ? 'Processing...' : 
+                     formData.paymentMethod === 'cashfree' ? 
+                     `Pay Online - ₹${total.toLocaleString()}` : 
+                     `Place Order - ₹${total.toLocaleString()}`}
+                  </Button>
+
+                  <p className="text-xs text-gray-500 mt-4 text-center">
+                    By placing your order, you agree to our Terms of Service and Privacy Policy.
+                  </p>
                 </CardContent>
               </Card>
-
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handlePlaceOrder} 
-                  size="lg" 
-                  className="px-8"
-                  disabled={isProcessingPayment}
-                >
-                  {isProcessingPayment 
-                    ? "Processing Payment..." 
-                    : `Pay ₹${total.toFixed(2)}`}
-                </Button>
-              </div>
             </div>
           </div>
-
-          {/* Order Summary Sidebar */}
-          <div className="lg:col-span-4">
-            <Card className="border-0 shadow-sm bg-white/80 backdrop-blur sticky top-8">
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Items */}
-                <div className="space-y-4">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="w-16 h-20 object-cover rounded"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{item.title}</h4>
-                        <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
-                        <p className="text-sm font-semibold text-primary">
-                          ₹{(item.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator />
-
-                {/* Totals */}
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>₹{subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Delivery</span>
-                    <span>₹{deliveryFee.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>GST (18%)</span>
-                    <span>₹{tax.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span className="text-primary">₹{total.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* Security Notice */}
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-green-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold text-green-900 text-sm">Secure Payment</h4>
-                      <p className="text-xs text-green-700">
-                        Powered by Cashfree - Your payment information is encrypted and secure.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Accepted Payment Methods */}
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 text-sm mb-2">We Accept</h4>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="px-2 py-1 bg-white rounded">Visa</span>
-                    <span className="px-2 py-1 bg-white rounded">Mastercard</span>
-                    <span className="px-2 py-1 bg-white rounded">RuPay</span>
-                    <span className="px-2 py-1 bg-white rounded">UPI</span>
-                    <span className="px-2 py-1 bg-white rounded">NetBanking</span>
-                    <span className="px-2 py-1 bg-white rounded">Wallets</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        </form>
       </div>
     </div>
   );

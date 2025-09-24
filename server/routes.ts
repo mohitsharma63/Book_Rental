@@ -959,6 +959,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cashfree Payment Routes
+  app.post('/api/payments/cashfree/create-order', async (req, res) => {
+    try {
+      const { amount, orderId, currency, customerDetails, orderNote, orderData } = req.body;
+
+      // Validate required fields
+      if (!amount || !orderId || !currency || !customerDetails) {
+        return res.status(400).json({
+          error: "Missing required fields: amount, orderId, currency, and customerDetails are required"
+        });
+      }
+
+      // Validate customerDetails structure
+      if (!customerDetails.customerId || !customerDetails.customerName || !customerDetails.customerEmail) {
+        return res.status(400).json({
+          error: "customerDetails must include customerId, customerName, and customerEmail"
+        });
+      }
+
+      console.log("Creating Cashfree order:", {
+        orderId,
+        amount,
+        currency,
+        customer: customerDetails.customerName
+      });
+
+      // Create Cashfree order
+      const { cashfreeService } = await import('./cashfree-service');
+
+      const host = req.get('host');
+      const protocol = req.get('x-forwarded-proto') || (req.get('host')?.includes('localhost') ? 'http' : 'https');
+      const baseUrl = `${protocol}://${host}`;
+
+      const cashfreeOrderData = {
+        order_id: orderId,
+        order_amount: parseFloat(amount.toString()),
+        order_currency: currency || "INR",
+        customer_details: {
+          customer_id: customerDetails.customerId,
+          customer_name: customerDetails.customerName,
+          customer_email: customerDetails.customerEmail,
+          customer_phone: customerDetails.customerPhone,
+        },
+        order_meta: {
+          return_url: `${baseUrl}/checkout?payment=processing&orderId=${orderId}`,
+          notify_url: `${baseUrl}/api/payments/cashfree/webhook`
+        }
+      };
+
+      const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
+
+      // Store payment order in database
+      const paymentOrderData = {
+        orderId,
+        amount: amount.toString(),
+        currency: currency || "INR",
+        status: "created",
+        customerName: customerDetails.customerName,
+        customerEmail: customerDetails.customerEmail,
+        customerPhone: customerDetails.customerPhone,
+        shippingAddress: orderData?.shippingAddress || '',
+        shippingCity: '',
+        shippingState: '',
+        shippingPincode: '',
+        shippingLandmark: '',
+        cartItems: JSON.stringify(orderData?.items || []),
+        paymentSessionId: cashfreeOrder.payment_session_id
+      };
+
+      const validatedData = insertPaymentOrderSchema.parse(paymentOrderData);
+      await storage.createPaymentOrder(validatedData);
+
+      res.json({
+        orderId: orderId,
+        paymentSessionId: cashfreeOrder.payment_session_id,
+        environment: process.env.CASHFREE_ENVIRONMENT || 'sandbox',
+        message: "Order created successfully"
+      });
+
+    } catch (error) {
+      console.error("Cashfree create order error:", error);
+      res.status(500).json({
+        error: "Failed to create payment order",
+        details: (error as Error).message
+      });
+    }
+  });
+
+  app.post('/api/payments/cashfree/verify', async (req, res) => {
+    try {
+      const { orderId } = req.body;
+
+      if (!orderId) {
+        return res.status(400).json({ error: "Order ID is required" });
+      }
+
+      console.log("Verifying payment for order:", orderId);
+
+      // Get payment status from Cashfree
+      const { cashfreeService } = await import('./cashfree-service');
+      const paymentStatus = await cashfreeService.getPaymentStatus(orderId);
+
+      const isPaymentSuccessful = paymentStatus?.some?.((payment: any) => payment.payment_status === 'SUCCESS');
+
+      // Update payment record in database
+      if (isPaymentSuccessful) {
+        await storage.updatePaymentOrder(orderId, {
+          status: 'paid',
+          transactionId: paymentStatus[0]?.cf_payment_id,
+          paymentMethod: paymentStatus[0]?.payment_method?.type
+        });
+      }
+
+      res.json({
+        verified: isPaymentSuccessful,
+        status: isPaymentSuccessful ? 'SUCCESS' : 'FAILED',
+        message: isPaymentSuccessful ? "Payment verified successfully" : "Payment verification failed"
+      });
+
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      res.json({
+        verified: false,
+        error: "Payment verification failed"
+      });
+    }
+  });
+
+  app.post('/api/payments/cashfree/webhook', async (req, res) => {
+    try {
+      console.log("Cashfree webhook received:", JSON.stringify(req.body, null, 2));
+
+      const eventType = req.body.type;
+      const data = req.body.data;
+
+      if (eventType === "PAYMENT_SUCCESS_WEBHOOK") {
+        const order = data.order;
+        const payment = data.payment;
+
+        const orderId = order.order_id;
+        const paymentStatus = payment.payment_status;
+
+        if (orderId && paymentStatus === "SUCCESS") {
+          await storage.updatePaymentOrder(orderId, {
+            status: 'paid',
+            transactionId: payment.cf_payment_id,
+            paymentMethod: payment.payment_method?.type,
+            gatewayResponse: JSON.stringify(req.body)
+          });
+
+          console.log("Payment order updated via webhook:", orderId);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Cashfree webhook error:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
   // Check payment status from Cashfree
   app.get("/api/payment-status/:orderId", async (req, res) => {
     try {

@@ -11,8 +11,8 @@ export default function PaymentSuccess() {
   const { clearCart } = useStore();
 
   const searchParams = new URLSearchParams(location.search);
-  const orderId = searchParams.get('oid') || 
-                 searchParams.get('order_id') || 
+  const orderId = searchParams.get('oid') ||
+                 searchParams.get('order_id') ||
                  searchParams.get('orderId') ||
                  searchParams.get('cf_order_id');
 
@@ -20,9 +20,25 @@ export default function PaymentSuccess() {
     queryKey: ['paymentOrder', orderId],
     queryFn: async () => {
       if (!orderId) return null;
+
+      // First verify payment with Cashfree
+      const verifyResponse = await fetch('/api/payments/cashfree/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId })
+      });
+
+      const verifyResult = await verifyResponse.json();
+      console.log('Payment verification result:', verifyResult);
+
+      // Then get order details
       const response = await fetch(`/api/payment-orders/${orderId}`);
       if (!response.ok) throw new Error('Failed to fetch order details');
-      return response.json();
+      const orderData = await response.json();
+
+      return { ...orderData, paymentVerified: verifyResult.verified };
     },
     enabled: !!orderId,
   });
