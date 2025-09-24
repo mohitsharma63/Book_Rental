@@ -986,7 +986,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Create Cashfree order
-      const { cashfreeService } = await import('./cashfree-service');
 
       const host = req.get('host');
       const protocol = req.get('x-forwarded-proto') || (req.get('host')?.includes('localhost') ? 'http' : 'https');
@@ -1008,7 +1007,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
 
       // Store payment order in database
       const paymentOrderData = {
@@ -1025,7 +1023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingPincode: '',
         shippingLandmark: '',
         cartItems: JSON.stringify(orderData?.items || []),
-        paymentSessionId: cashfreeOrder.payment_session_id
+        paymentSessionId: ''
       };
 
       const validatedData = insertPaymentOrderSchema.parse(paymentOrderData);
@@ -1033,7 +1031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         orderId: orderId,
-        paymentSessionId: cashfreeOrder.payment_session_id,
+        paymentSessionId: '',
         environment: process.env.CASHFREE_ENVIRONMENT || 'sandbox',
         message: "Order created successfully"
       });
