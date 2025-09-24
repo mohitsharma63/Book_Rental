@@ -36,17 +36,20 @@ class CashfreeService {
   constructor() {
     this.appId = process.env.CASHFREE_APP_ID || '';
     this.secretKey = process.env.CASHFREE_SECRET_KEY || '';
-    this.baseUrl = process.env.CASHFREE_ENVIRONMENT === 'production'
+    
+    // Default to sandbox if environment not specified
+    const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
+    this.baseUrl = environment === 'production'
       ? 'https://api.cashfree.com/pg'
       : 'https://sandbox.cashfree.com/pg';
 
-    console.log('Cashfree Environment:', process.env.CASHFREE_ENVIRONMENT);
+    console.log('Cashfree Environment:', environment);
     console.log('Cashfree App ID:', this.appId ? 'Set' : 'Not set');
     console.log('Cashfree Secret Key:', this.secretKey ? 'Set' : 'Not set');
     console.log('Cashfree Base URL:', this.baseUrl);
 
     if (!this.appId || !this.secretKey) {
-      console.warn('Cashfree credentials not found. Payment integration may not work.');
+      console.error('CRITICAL: Cashfree credentials not found. Set CASHFREE_APP_ID and CASHFREE_SECRET_KEY environment variables.');
     }
   }
 
@@ -62,7 +65,11 @@ class CashfreeService {
 
   async createOrder(orderData: CashfreeOrderRequest): Promise<CashfreeOrderResponse & { payment_url?: string }> {
     try {
-      console.log('Creating Cashfree order:', orderData);
+      if (!this.appId || !this.secretKey) {
+        throw new Error('Cashfree credentials not configured. Check environment variables CASHFREE_APP_ID and CASHFREE_SECRET_KEY');
+      }
+
+      console.log('Creating Cashfree order for amount:', orderData.order_amount);
 
       const response = await fetch(`${this.baseUrl}/orders`, {
         method: 'POST',
@@ -70,18 +77,37 @@ class CashfreeService {
         body: JSON.stringify(orderData),
       });
 
+      const responseText = await response.text();
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Cashfree API error:', response.status, errorText);
-        throw new Error(`Cashfree API error: ${response.status} - ${errorText}`);
+        console.error('Cashfree API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: responseText,
+          url: `${this.baseUrl}/orders`,
+          headers: this.getHeaders()
+        });
+        throw new Error(`Cashfree API error: ${response.status} - ${responseText}`);
       }
 
-      const result = await response.json();
-      console.log('Cashfree order created successfully:', result);
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse Cashfree response:', responseText);
+        throw new Error('Invalid response from Cashfree API');
+      }
+
+      console.log('Cashfree order created successfully:', {
+        order_id: result.order_id,
+        cf_order_id: result.cf_order_id,
+        payment_session_id: result.payment_session_id
+      });
 
       // Generate payment URL using the payment session ID
       if (result.payment_session_id) {
-        const checkoutUrl = process.env.CASHFREE_ENVIRONMENT === 'production'
+        const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
+        const checkoutUrl = environment === 'production'
           ? 'https://payments.cashfree.com/pay'
           : 'https://sandbox.cashfree.com/pg/checkout';
         result.payment_url = `${checkoutUrl}?payment_session_id=${result.payment_session_id}`;

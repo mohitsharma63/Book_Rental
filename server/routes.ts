@@ -691,10 +691,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amount, currency, customer_details, shipping_details, orderMeta, cartItems } = req.body;
 
-      console.log("Creating order with data:", req.body);
+      console.log("Creating order request received");
 
       // Validate required fields
       if (!customer_details?.customer_name || !customer_details?.customer_email || !customer_details?.customer_phone) {
+        console.error("Missing customer details:", customer_details);
         return res.status(400).json({
           success: false,
           message: "Missing required customer details",
@@ -703,6 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!shipping_details?.address || !shipping_details?.city || !shipping_details?.state || !shipping_details?.pincode) {
+        console.error("Missing shipping details:", shipping_details);
         return res.status(400).json({
           success: false,
           message: "Missing required shipping details",
@@ -710,11 +712,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!amount || isNaN(parseFloat(amount.toString()))) {
+      if (!amount || isNaN(parseFloat(amount.toString())) || parseFloat(amount.toString()) <= 0) {
+        console.error("Invalid amount:", amount);
         return res.status(400).json({
           success: false,
           message: "Invalid amount",
-          details: "amount must be a valid number"
+          details: "amount must be a valid positive number"
         });
       }
 
@@ -746,6 +749,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Cashfree order
       const { cashfreeService } = await import('./cashfree-service');
       
+      // Get the proper domain for URLs
+      const protocol = req.get('x-forwarded-proto') || req.protocol;
+      const host = req.get('x-forwarded-host') || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      
       const cashfreeOrderData = {
         order_id: orderId,
         order_amount: parseFloat(amount.toString()),
@@ -757,12 +765,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customer_phone: customer_details.customer_phone,
         },
         order_meta: {
-          return_url: orderMeta?.return_url || `${req.protocol}://${req.get('host')}/payment-success?order_id=${orderId}`,
-          notify_url: orderMeta?.notify_url || `${req.protocol}://${req.get('host')}/api/payment-webhook`,
+          return_url: orderMeta?.return_url || `${baseUrl}/payment-success?order_id=${orderId}`,
+          notify_url: orderMeta?.notify_url || `${baseUrl}/api/payment-webhook`,
         }
       };
 
-      console.log("Cashfree order data:", cashfreeOrderData);
+      console.log("Creating Cashfree order with base URL:", baseUrl);
 
       const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
 
