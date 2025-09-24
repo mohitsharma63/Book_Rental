@@ -44,12 +44,14 @@ class CashfreeService {
       : 'https://sandbox.cashfree.com/pg';
 
     console.log('Cashfree Environment:', environment);
-    console.log('Cashfree App ID:', this.appId ? 'Set' : 'Not set');
-    console.log('Cashfree Secret Key:', this.secretKey ? 'Set' : 'Not set');
+    console.log('Cashfree App ID:', this.appId ? `${this.appId.substring(0, 8)}...` : 'Not set');
+    console.log('Cashfree Secret Key:', this.secretKey ? `${this.secretKey.substring(0, 8)}...` : 'Not set');
     console.log('Cashfree Base URL:', this.baseUrl);
 
-    if (!this.appId || !this.secretKey) {
-      console.error('CRITICAL: Cashfree credentials not found. Set CASHFREE_APP_ID and CASHFREE_SECRET_KEY environment variables.');
+    if (!this.appId || !this.secretKey || this.appId === 'cashfree_app_id' || this.secretKey === 'cashfree_secret_key') {
+      console.error('CRITICAL: Cashfree credentials not configured properly. Please set CASHFREE_APP_ID and CASHFREE_SECRET_KEY in environment variables.');
+      console.error('Current App ID:', this.appId || 'undefined');
+      console.error('Current Secret Key length:', this.secretKey ? this.secretKey.length : 0);
     }
   }
 
@@ -65,11 +67,13 @@ class CashfreeService {
 
   async createOrder(orderData: CashfreeOrderRequest): Promise<CashfreeOrderResponse & { payment_url?: string }> {
     try {
-      if (!this.appId || !this.secretKey) {
-        throw new Error('Cashfree credentials not configured. Check environment variables CASHFREE_APP_ID and CASHFREE_SECRET_KEY');
+      if (!this.appId || !this.secretKey || this.appId === 'cashfree_app_id' || this.secretKey === 'cashfree_secret_key') {
+        throw new Error('Cashfree credentials not configured properly. Please set valid CASHFREE_APP_ID and CASHFREE_SECRET_KEY environment variables');
       }
 
       console.log('Creating Cashfree order for amount:', orderData.order_amount);
+      console.log('Using App ID:', this.appId.substring(0, 8) + '...');
+      console.log('API URL:', `${this.baseUrl}/orders`);
 
       const response = await fetch(`${this.baseUrl}/orders`, {
         method: 'POST',
