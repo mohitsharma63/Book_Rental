@@ -1,4 +1,3 @@
-
 interface CashfreeOrderRequest {
   order_id: string;
   order_amount: number;
@@ -37,8 +36,8 @@ class CashfreeService {
   constructor() {
     this.appId = process.env.CASHFREE_APP_ID || '';
     this.secretKey = process.env.CASHFREE_SECRET_KEY || '';
-    this.baseUrl = process.env.CASHFREE_ENVIRONMENT === 'production' 
-      ? 'https://api.cashfree.com/pg' 
+    this.baseUrl = process.env.CASHFREE_ENVIRONMENT === 'production'
+      ? 'https://api.cashfree.com/pg'
       : 'https://sandbox.cashfree.com/pg';
 
     console.log('Cashfree Environment:', process.env.CASHFREE_ENVIRONMENT);
@@ -79,13 +78,15 @@ class CashfreeService {
 
       const result = await response.json();
       console.log('Cashfree order created successfully:', result);
-      
+
       // Generate payment URL using the payment session ID
       if (result.payment_session_id) {
-        const environment = process.env.CASHFREE_ENVIRONMENT === 'production' ? 'production' : 'sandbox';
-        result.payment_url = `https://${environment}.cashfree.com/pg/checkout?payment_session_id=${result.payment_session_id}`;
+        const checkoutUrl = process.env.CASHFREE_ENVIRONMENT === 'production'
+          ? 'https://payments.cashfree.com/pay'
+          : 'https://sandbox.cashfree.com/pg/checkout';
+        result.payment_url = `${checkoutUrl}?payment_session_id=${result.payment_session_id}`;
       }
-      
+
       return result;
     } catch (error) {
       console.error('Error creating Cashfree order:', error);
