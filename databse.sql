@@ -93,6 +93,35 @@ CREATE TABLE IF NOT EXISTS sliders (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create payment_orders table
+CREATE TABLE IF NOT EXISTS payment_orders (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id TEXT NOT NULL UNIQUE,
+    payment_session_id TEXT,
+    amount DECIMAL(10,2) NOT NULL,
+    currency TEXT DEFAULT 'INR',
+    status TEXT DEFAULT 'created',
+    customer_name TEXT NOT NULL,
+    customer_email TEXT NOT NULL,
+    customer_phone TEXT NOT NULL,
+    shipping_address TEXT NOT NULL,
+    shipping_city TEXT NOT NULL,
+    shipping_state TEXT NOT NULL,
+    shipping_pincode TEXT NOT NULL,
+    shipping_landmark TEXT,
+    payment_method TEXT,
+    transaction_id TEXT,
+    gateway_response TEXT,
+    cart_items TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create index for ordering
 CREATE INDEX IF NOT EXISTS idx_sliders_order ON sliders ("order", created_at);
 CREATE INDEX IF NOT EXISTS idx_sliders_active ON sliders (is_active);
+
+-- Create indexes for payment_orders
+CREATE INDEX IF NOT EXISTS idx_payment_orders_order_id ON payment_orders (order_id);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_status ON payment_orders (status);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_created_at ON payment_orders (created_at);
