@@ -7,18 +7,26 @@ import { eq } from "drizzle-orm";
 import { otpService } from "./otp-sevice";
 
 // Cashfree configuration
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || 'cashfree_app_id';
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || 'cashfree_secret_key';
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 
-// Determine environment based on credentials or explicit env variable
-const isProduction = process.env.CASHFREE_BASE_URL === 'production' ||
-                    (process.env.CASHFREE_SECRET_KEY && process.env.CASHFREE_SECRET_KEY.includes('prod'));
+// Determine environment based on the CASHFREE_ENVIRONMENT variable
+const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
+const isProduction = CASHFREE_ENVIRONMENT === 'production';
 
 const CASHFREE_BASE_URL = isProduction
   ? 'https://api.cashfree.com'
   : 'https://sandbox.cashfree.com';
 
-const CASHFREE_MODE = isProduction ? 'production' : 'sandbox';
+const CASHFREE_MODE = CASHFREE_ENVIRONMENT;
+
+console.log("Cashfree Environment Configuration:", {
+  environment: CASHFREE_ENVIRONMENT,
+  isProduction,
+  baseUrl: CASHFREE_BASE_URL,
+  hasAppId: !!CASHFREE_APP_ID,
+  hasSecretKey: !!CASHFREE_SECRET_KEY
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -753,8 +761,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if Cashfree is configured
+      console.log("Cashfree configuration check:", {
+        hasAppId: !!CASHFREE_APP_ID,
+        hasSecretKey: !!CASHFREE_SECRET_KEY,
+        appIdValue: CASHFREE_APP_ID,
+        secretKeyLength: CASHFREE_SECRET_KEY?.length,
+        appIdIsDefault: CASHFREE_APP_ID === 'cashfree_app_id',
+        secretKeyIsDefault: CASHFREE_SECRET_KEY === 'cashfree_secret_key'
+      });
+
       if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY ||
-          CASHFREE_APP_ID === 'cashfree_app_id' || CASHFREE_SECRET_KEY === 'cashfree_secret_key') {
+          CASHFREE_APP_ID === 'cashfree_app_id' || CASHFREE_SECRET_KEY === 'cashfree_secret_key' ||
+          CASHFREE_APP_ID.trim() === '' || CASHFREE_SECRET_KEY.trim() === '') {
         console.log("Cashfree not configured properly");
         return res.status(400).json({
           error: "Cashfree payment gateway is not configured",
@@ -838,8 +856,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: parseInt(customerDetails.customerId),
           amount: amount,
           status: 'created',
-          orderData: orderData || {},
-          customerInfo: customerDetails
+          orderData: JSON.stringify(orderData || {}),
+          customerInfo: JSON.stringify(customerDetails)
         });
       } catch (dbError) {
         console.error("Database error storing payment:", dbError);
@@ -875,7 +893,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check Cashfree configuration
       if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY ||
-          CASHFREE_APP_ID === 'cashfree_app_id' || CASHFREE_SECRET_KEY === 'cashfree_secret_key') {
+          CASHFREE_APP_ID === 'cashfree_app_id' || CASHFREE_SECRET_KEY === 'cashfree_secret_key' ||
+          CASHFREE_APP_ID.trim() === '' || CASHFREE_SECRET_KEY.trim() === '') {
         return res.status(400).json({
           error: "Cashfree payment gateway is not configured",
           verified: false
@@ -928,7 +947,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (cashfreePayment.length > 0) {
             const payment = cashfreePayment[0];
-            const orderData = payment.orderData;
+            const orderData = typeof payment.orderData === 'string' 
+              ? JSON.parse(payment.orderData) 
+              : payment.orderData;
 
             // Create rental records for books
             if (orderData.items && Array.isArray(orderData.items)) {
@@ -988,7 +1009,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const payment of completedPayments) {
         try {
-          const orderData = payment.orderData;
+          const orderData = typeof payment.orderData === 'string' 
+            ? JSON.parse(payment.orderData) 
+            : payment.orderData;
 
           // Create rental records for books
           if (orderData.items && Array.isArray(orderData.items)) {

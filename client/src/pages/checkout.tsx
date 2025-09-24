@@ -225,8 +225,12 @@ export default function CheckoutPage() {
           throw new Error(result.error || 'Failed to create payment order');
         }
 
-        // Redirect to Cashfree payment page
-        const paymentUrl = `https://sandbox.cashfree.com/pg/checkout/pay?payment_session_id=${result.paymentSessionId}`;
+        // Redirect to Cashfree payment page - use production URL if configured
+        const cashfreeEnv = result.environment || 'sandbox';
+        const paymentBaseUrl = cashfreeEnv === 'production' 
+          ? 'https://checkout.cashfree.com' 
+          : 'https://sandbox.cashfree.com';
+        const paymentUrl = `${paymentBaseUrl}/pg/checkout/pay?payment_session_id=${result.paymentSessionId}`;
         window.location.href = paymentUrl;
 
       } else {
