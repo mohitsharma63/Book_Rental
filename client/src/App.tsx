@@ -19,8 +19,8 @@ import Terms from "./pages/terms";
 import Wishlist from "./pages/wishlist";
 import Cart from "./pages/cart";
 import Checkout from "@/pages/checkout";
-// import PaymentSuccess from "./pages/payment-success";
-import NotFound from "./pages/not-found";
+import PaymentSuccess from "@/pages/payment-success";
+import NotFound from "@/pages/not-found";
 import { StoreProvider } from "./lib/store-context";
 import { AuthProvider } from "@/lib/auth-context";
 
@@ -69,7 +69,7 @@ function Router() {
           <Checkout />
         </RouteGuard>
       </Route>
-      {/* <Route path="/payment-success" component={PaymentSuccess} /> */}
+      <Route path="/payment-success" component={PaymentSuccess} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,13 +1,13 @@
-
-import type { 
-  User, InsertUser, 
-  Book, InsertBook, 
-  Rental, InsertRental, 
+import type {
+  User, InsertUser,
+  Book, InsertBook,
+  Rental, InsertRental,
   Wishlist, InsertWishlist,
   Category, InsertCategory,
   Contact, InsertContact,
   Review, InsertReview,
-  Slider, InsertSlider
+  Slider, InsertSlider,
+  PaymentOrder, InsertPaymentOrder
 } from "@shared/schema";
 
 export interface IStorage {
@@ -65,4 +65,10 @@ export interface IStorage {
   createSlider(insertSlider: InsertSlider): Promise<Slider>;
   updateSlider(id: number, updateData: Partial<Slider>): Promise<Slider | null>;
   deleteSlider(id: number): Promise<boolean>;
+
+  // Payment Order methods
+  createPaymentOrder(insertPaymentOrder: InsertPaymentOrder): Promise<PaymentOrder>;
+  getPaymentOrder(orderId: string): Promise<PaymentOrder | undefined>;
+  updatePaymentOrder(orderId: string, updateData: Partial<PaymentOrder>): Promise<PaymentOrder>;
+  getAllPaymentOrders(): Promise<PaymentOrder[]>;
 }

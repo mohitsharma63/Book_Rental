@@ -1419,6 +1419,236 @@ export default function Admin() {
           </div>
         );
 
+      case "orders":
+        return (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold">Order Management</h3>
+              <div className="flex items-center space-x-4">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-40" data-testid="select-order-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Orders</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search orders..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 w-64"
+                    data-testid="input-search-orders"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Orders Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.length : 0}</p>
+                      <p className="text-blue-100 text-sm">Total Orders</p>
+                    </div>
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <BookIcon className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.filter(r => r.status === "active").length : 0}</p>
+                      <p className="text-green-100 text-sm">Active Orders</p>
+                    </div>
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <CheckCircle className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.filter(r => r.status === "processing").length : 0}</p>
+                      <p className="text-yellow-100 text-sm">Processing</p>
+                    </div>
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <Clock className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.filter(r => r.status === "overdue").length : 0}</p>
+                      <p className="text-red-100 text-sm">Overdue</p>
+                    </div>
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <AlertTriangle className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Orders Table */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Book</TableHead>
+                        <TableHead>Order Date</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rentalsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8">Loading orders...</TableCell>
+                        </TableRow>
+                      ) : (Array.isArray(rentalData) && rentalData.length > 0) ? (
+                        rentalData
+                          .filter(rental => {
+                            if (filterStatus === "all") return true;
+                            return rental.status === filterStatus;
+                          })
+                          .filter(rental => {
+                            if (!searchQuery) return true;
+                            return (
+                              rental.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              rental.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              rental.bookTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+                            );
+                          })
+                          .map((rental) => (
+                            <TableRow key={rental.id} data-testid={`row-order-${rental.id}`}>
+                              <TableCell className="font-medium">
+                                #{rental.id?.toString().slice(0, 8) || 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{rental.userName || 'Unknown User'}</div>
+                                  <div className="text-sm text-gray-500">
+                                    {users.find(u => u.id === rental.userId)?.email || 'No email'}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-3">
+                                  <img
+                                    src={books.find(b => b.id === rental.bookId)?.imageUrl || '/placeholder-book.jpg'}
+                                    alt="Book cover"
+                                    className="w-10 h-12 object-cover rounded"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/placeholder-book.jpg';
+                                    }}
+                                  />
+                                  <div>
+                                    <div className="font-medium">{rental.bookTitle || 'Unknown Book'}</div>
+                                    <div className="text-sm text-gray-500">
+                                      {books.find(b => b.id === rental.bookId)?.author || 'Unknown Author'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {rental.rentalDate ? new Date(rental.rentalDate).toLocaleDateString() : 'N/A'}
+                              </TableCell>
+                              <TableCell className={rental.status === "overdue" ? "text-red-600 font-medium" : ""}>
+                                {rental.dueDate ? new Date(rental.dueDate).toLocaleDateString() : 'No due date'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={getStatusColor(rental.status || 'unknown')}>
+                                  {rental.status?.charAt(0).toUpperCase() + rental.status?.slice(1) || 'Unknown'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                ₹{rental.totalAmount || '0.00'}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-blue-600 hover:text-blue-800"
+                                    data-testid={`button-view-order-${rental.id}`}
+                                  >
+                                    View
+                                  </Button>
+                                  {rental.status === "overdue" ? (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-red-600 hover:text-red-800" 
+                                      data-testid={`button-remind-order-${rental.id}`}
+                                    >
+                                      Remind
+                                    </Button>
+                                  ) : rental.status === "active" ? (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-green-600 hover:text-green-800" 
+                                      data-testid={`button-complete-order-${rental.id}`}
+                                    >
+                                      Complete
+                                    </Button>
+                                  ) : (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-gray-600 hover:text-gray-800" 
+                                      data-testid={`button-update-order-${rental.id}`}
+                                    >
+                                      Update
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            No orders found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       case "contact":
         return (
           <div className="space-y-6">

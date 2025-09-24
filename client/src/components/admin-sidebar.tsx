@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,7 +14,8 @@ import {
   MessageCircle,
   Tag,
   FolderOpen,
-  Image
+  Image,
+  ShoppingCart
 } from "lucide-react";
 import {
   Sheet,
@@ -33,6 +35,7 @@ const menuItems = [
   { id: "sliders", label: "Sliders", icon: Image },
   { id: "users", label: "Users", icon: Users },
   { id: "rentals", label: "Rentals", icon: Clock },
+  { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "contact", label: "Contact Us", icon: MessageCircle },
 ];

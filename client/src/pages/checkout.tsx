@@ -1,15 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { 
-  Truck, 
-  MapPin,
   ArrowLeft,
   CheckCircle,
   Shield,
@@ -17,65 +12,25 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useStore } from "@/lib/store-context";
-
-interface ShippingInfo {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  apartment: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
+import { useToast } from "@/hooks/use-toast";
 
 export default function Checkout() {
-  const { cartItems } = useStore();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedDelivery, setSelectedDelivery] = useState("standard");
-  const [selectedPayment, setSelectedPayment] = useState("cashfree");
-  const [saveInfo, setSaveInfo] = useState(false);
-  const [billingAddressSame, setBillingAddressSame] = useState(true);
+  const { cartItems, clearCart } = useStore();
+  const { toast } = useToast();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    apartment: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "IN"
+  const [orderCompleted, setOrderCompleted] = useState(false);
+  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    landmark: ''
   });
-
-  const deliveryOptions = [
-    {
-      id: "pickup",
-      name: "Store Pickup",
-      price: 0,
-      description: "Ready in 2 hours",
-      time: "2 hours"
-    },
-    {
-      id: "standard",
-      name: "Standard Delivery",
-      price: 99,
-      description: "2-3 business days",
-      time: "2-3 days"
-    },
-    {
-      id: "express",
-      name: "Express Delivery",
-      price: 199,
-      description: "Next business day",
-      time: "1 day"
-    }
-  ];
 
   const paymentMethods = [
     { id: "cashfree", name: "Cashfree Payment Gateway", icon: "💳", description: "Cards, UPI, Net Banking, Wallets" }
@@ -87,86 +42,151 @@ export default function Checkout() {
     return sum + (item.price * durationMultiplier * item.quantity);
   }, 0);
 
-  const deliveryFee = selectedDelivery === "express" ? 199 : selectedDelivery === "standard" ? 99 : 0;
+  const deliveryFee = 99; // Standard delivery
   const tax = subtotal * 0.18; // 18% GST
   const total = subtotal + deliveryFee + tax;
 
-  const handleShippingChange = (field: keyof ShippingInfo, value: string) => {
-    setShippingInfo(prev => ({ ...prev, [field]: value }));
+  // Load Cashfree SDK
+  useEffect(() => {
+    const loadCashfreeSDK = () => {
+      if ((window as any).Cashfree) {
+        setCashfreeLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.async = true;
+      script.onload = () => {
+        setCashfreeLoaded(true);
+      };
+      script.onerror = () => {
+        console.error('Failed to load Cashfree SDK');
+        toast({
+          title: "Payment System Error",
+          description: "Failed to load payment system. Please refresh the page.",
+          variant: "destructive",
+        });
+      };
+      document.head.appendChild(script);
+    };
+
+    loadCashfreeSDK();
+  }, [toast]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleContinueToPayment = () => {
-    // Validate shipping info
-    const requiredFields = ['firstName', 'lastName', 'email', 'address', 'city', 'state', 'zipCode'];
-    const isValid = requiredFields.every(field => shippingInfo[field as keyof ShippingInfo].trim() !== '');
-    
-    if (isValid) {
-      setCurrentStep(2);
-    } else {
-      alert('Please fill in all required fields');
+  const handlePlaceOrder = async () => {
+    if (!formData.firstName || !formData.email || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const initiateCashfreePayment = async () => {
-    setIsProcessingPayment(true);
-    
+    // Validate PIN code format
+    if (!/^\d{6}$/.test(formData.pincode)) {
+      toast({
+        title: "Invalid PIN Code",
+        description: "Please enter a valid 6-digit PIN code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}${formData.landmark ? `, Near ${formData.landmark}` : ''}`;
+
     try {
-      // Create order on backend
-      const orderResponse = await fetch('/api/create-order', {
+      setIsProcessingPayment(true);
+
+      const orderData = {
+        amount: total,
+        currency: "INR",
+        customerDetails: {
+          customer_id: `customer_${Date.now()}`,
+          customer_name: `${formData.firstName} ${formData.lastName}`,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+        },
+        shippingDetails: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          phone: formData.phone,
+          email: formData.email,
+          address: shippingAddress,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          landmark: formData.landmark
+        },
+        cartItems: cartItems,
+        orderMeta: {
+          return_url: `${window.location.origin}/payment-success?order_id={order_id}`,
+          notify_url: `${window.location.origin}/api/payment-webhook`,
+        }
+      };
+
+      console.log("Creating order with data:", orderData);
+
+      const response = await fetch('/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          amount: total,
-          currency: 'INR',
-          customerDetails: {
-            customer_id: `customer_${Date.now()}`,
-            customer_name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
-            customer_email: shippingInfo.email,
-            customer_phone: shippingInfo.phone,
-          },
-          orderMeta: {
-            return_url: `${window.location.origin}/payment-success?order_id={order_id}`,
-            notify_url: `${window.location.origin}/api/payment-webhook`,
-          }
-        }),
+        body: JSON.stringify(orderData),
       });
 
-      const orderData = await orderResponse.json();
+      const result = await response.json();
+      console.log("Order creation response:", result);
 
-      if (orderData.success) {
+      if (result.success) {
         // Initialize Cashfree checkout
-        const cashfree = (window as any).Cashfree({
-          mode: "sandbox" // Use "production" for live
-        });
+        const cashfree = (window as any).Cashfree;
+        if (!cashfree || !cashfreeLoaded) {
+          throw new Error('Cashfree SDK not loaded. Please wait and try again.');
+        }
 
+        // Initialize Cashfree with proper configuration
         cashfree.checkout({
-          paymentSessionId: orderData.payment_session_id,
-          returnUrl: `${window.location.origin}/payment-success`
+          paymentSessionId: result.payment_session_id,
+          redirectTarget: '_self'
+        }).then(() => {
+          console.log('Cashfree checkout initiated successfully');
+        }).catch((error: any) => {
+          console.error('Cashfree checkout error:', error);
+          throw new Error('Failed to initiate payment. Please try again.');
         });
       } else {
-        throw new Error(orderData.message || 'Failed to create order');
+        throw new Error(result.message || 'Failed to create order');
       }
     } catch (error) {
       console.error('Payment initiation failed:', error);
-      alert('Payment initiation failed. Please try again.');
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : 'Failed to initiate payment. Please try again.',
+        variant: "destructive",
+      });
     } finally {
       setIsProcessingPayment(false);
     }
   };
 
-  const handlePlaceOrder = async () => {
-    await initiateCashfreePayment();
-  };
-
-  const steps = [
-    { number: 1, title: "Shipping", active: currentStep === 1, completed: currentStep > 1 },
-    { number: 2, title: "Payment", active: currentStep === 2, completed: currentStep > 2 },
-    { number: 3, title: "Confirmation", active: currentStep === 3, completed: false }
-  ];
-
-  if (currentStep === 3) {
+  if (orderCompleted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4 text-center">
@@ -194,9 +214,8 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Cashfree Script */}
-      <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
       
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -210,313 +229,214 @@ export default function Checkout() {
           <div></div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center space-x-4">
-            {steps.map((step, index) => (
-              <div key={step.number} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                  step.completed 
-                    ? 'bg-green-500 border-green-500 text-white' 
-                    : step.active 
-                      ? 'border-primary text-primary bg-primary/10' 
-                      : 'border-gray-300 text-gray-300'
-                }`}>
-                  {step.completed ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <span className="font-semibold">{step.number}</span>
-                  )}
-                </div>
-                <span className={`ml-2 font-medium ${
-                  step.active ? 'text-primary' : step.completed ? 'text-green-600' : 'text-gray-400'
-                }`}>
-                  {step.title}
-                </span>
-                {index < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 mx-4 ${
-                    steps[index + 1].completed || steps[index + 1].active ? 'bg-primary' : 'bg-gray-300'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="grid lg:grid-cols-12 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-8">
-            {currentStep === 1 && (
-              <div className="space-y-6">
-                {/* Shipping Information */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg">
-                        <MapPin className="h-5 w-5 text-blue-600" />
-                      </div>
-                      Shipping Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name *</Label>
-                        <Input
-                          id="firstName"
-                          value={shippingInfo.firstName}
-                          onChange={(e) => handleShippingChange('firstName', e.target.value)}
-                          placeholder="John"
-                          className="bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name *</Label>
-                        <Input
-                          id="lastName"
-                          value={shippingInfo.lastName}
-                          onChange={(e) => handleShippingChange('lastName', e.target.value)}
-                          placeholder="Doe"
-                          className="bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={shippingInfo.email}
-                          onChange={(e) => handleShippingChange('email', e.target.value)}
-                          placeholder="john@example.com"
-                          className="bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={shippingInfo.phone}
-                          onChange={(e) => handleShippingChange('phone', e.target.value)}
-                          placeholder="enter phone number"
-                          className="bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Street Address *</Label>
-                      <Input
-                        id="address"
-                        value={shippingInfo.address}
-                        onChange={(e) => handleShippingChange('address', e.target.value)}
-                        placeholder="123 Main Street"
-                        className="bg-gray-50 border-gray-200"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="apartment">Apartment, suite, etc.</Label>
-                      <Input
-                        id="apartment"
-                        value={shippingInfo.apartment}
-                        onChange={(e) => handleShippingChange('apartment', e.target.value)}
-                        placeholder="Apt 4B"
-                        className="bg-gray-50 border-gray-200"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City *</Label>
-                        <Input
-                          id="city"
-                          value={shippingInfo.city}
-                          onChange={(e) => handleShippingChange('city', e.target.value)}
-                          placeholder="Mumbai"
-                          className="bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="state">State *</Label>
-                        <Select value={shippingInfo.state} onValueChange={(value) => handleShippingChange('state', value)}>
-                          <SelectTrigger className="bg-gray-50 border-gray-200">
-                            <SelectValue placeholder="Select state" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="MH">Maharashtra</SelectItem>
-                            <SelectItem value="DL">Delhi</SelectItem>
-                            <SelectItem value="KA">Karnataka</SelectItem>
-                            <SelectItem value="TN">Tamil Nadu</SelectItem>
-                            <SelectItem value="WB">West Bengal</SelectItem>
-                            <SelectItem value="UP">Uttar Pradesh</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="zipCode">PIN Code *</Label>
-                        <Input
-                          id="zipCode"
-                          value={shippingInfo.zipCode}
-                          onChange={(e) => handleShippingChange('zipCode', e.target.value)}
-                          placeholder="400001"
-                          className="bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Delivery Options */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-50 rounded-lg">
-                        <Truck className="h-5 w-5 text-orange-600" />
-                      </div>
-                      Delivery Options
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <RadioGroup value={selectedDelivery} onValueChange={setSelectedDelivery} className="space-y-3">
-                      {deliveryOptions.map((option) => (
-                        <div key={option.id} className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all ${
-                          selectedDelivery === option.id ? 'border-primary bg-primary/5' : 'border-gray-200'
-                        }`}>
-                          <RadioGroupItem value={option.id} id={option.id} />
-                          <div className="flex-1 flex items-center justify-between">
-                            <div>
-                              <Label htmlFor={option.id} className="font-semibold cursor-pointer">
-                                {option.name}
-                              </Label>
-                              <p className="text-sm text-gray-600">{option.description}</p>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-lg">
-                                {option.price === 0 ? "Free" : `₹${option.price}`}
-                              </div>
-                              <div className="text-sm text-gray-500">{option.time}</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-end">
-                  <Button onClick={handleContinueToPayment} size="lg" className="px-8">
-                    Continue to Payment
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                {/* Payment Method */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="p-2 bg-green-50 rounded-lg">
-                        <Wallet className="h-5 w-5 text-green-600" />
-                      </div>
-                      Payment Method
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <RadioGroup value={selectedPayment} onValueChange={setSelectedPayment} className="space-y-3">
-                      {paymentMethods.map((method) => (
-                        <div key={method.id} className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all ${
-                          selectedPayment === method.id ? 'border-primary bg-primary/5' : 'border-gray-200'
-                        }`}>
-                          <RadioGroupItem value={method.id} id={method.id} />
-                          <span className="text-2xl">{method.icon}</span>
-                          <div className="flex-1">
-                            <Label htmlFor={method.id} className="font-semibold cursor-pointer block">
-                              {method.name}
-                            </Label>
-                            <p className="text-sm text-gray-600">{method.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </CardContent>
-                </Card>
-
-                {/* Cashfree Benefits */}
-                <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-green-50">
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <div className="space-y-6">
+              {/* Shipping Information */}
+              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
                       <Shield className="h-5 w-5 text-blue-600" />
-                      Secure Payment with Cashfree
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-lg">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span className="text-sm">256-bit SSL Encryption</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-lg">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span className="text-sm">PCI DSS Compliant</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-lg">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span className="text-sm">100+ Payment Methods</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white rounded-lg">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span className="text-sm">Instant Refunds</span>
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Billing Address */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle>Billing Address</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="billingAddressSame"
-                        checked={billingAddressSame}
-                        onCheckedChange={(checked) => setBillingAddressSame(checked === true)}
+                    Shipping Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <input
+                        id="firstName"
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Enter your first name"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        required
                       />
-                      <Label htmlFor="billingAddressSame">
-                        Same as shipping address
-                      </Label>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <input
+                        id="lastName"
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Enter your last name"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
 
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setCurrentStep(1)}>
-                    Back to Shipping
-                  </Button>
-                  <Button 
-                    onClick={handlePlaceOrder} 
-                    size="lg" 
-                    className="px-8"
-                    disabled={isProcessingPayment}
-                  >
-                    {isProcessingPayment ? "Processing..." : "Pay Now"}
-                  </Button>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <input
+                      id="email"
+                      type="email"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Enter your email address"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number *</Label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Enter your phone number"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Complete Address *</Label>
+                    <textarea
+                      id="address"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[100px] resize-none"
+                      placeholder="House/Flat No, Building Name, Street, Area"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City *</Label>
+                      <input
+                        id="city"
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Enter city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State *</Label>
+                      <input
+                        id="state"
+                        type="text"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Enter state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode">PIN Code *</Label>
+                      <input
+                        id="pincode"
+                        type="text"
+                        pattern="[0-9]{6}"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Enter PIN code"
+                        value={formData.pincode}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="landmark">Landmark (Optional)</Label>
+                    <input
+                      id="landmark"
+                      type="text"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Near landmark for easy delivery"
+                      value={formData.landmark}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Method */}
+              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded-lg">
+                      <Wallet className="h-5 w-5 text-green-600" />
+                    </div>
+                    Payment Method
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RadioGroup value="cashfree" className="space-y-3">
+                    {paymentMethods.map((method) => (
+                      <div key={method.id} className="flex items-center space-x-3 p-4 rounded-lg border-2 border-primary bg-primary/5">
+                        <RadioGroupItem value={method.id} id={method.id} checked />
+                        <span className="text-2xl">{method.icon}</span>
+                        <div className="flex-1">
+                          <Label htmlFor={method.id} className="font-semibold cursor-pointer block">
+                            {method.name}
+                          </Label>
+                          <p className="text-sm text-gray-600">{method.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+
+              {/* Cashfree Benefits */}
+              <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-green-50">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    Secure Payment with Cashfree
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="text-sm">256-bit SSL Encryption</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="text-sm">PCI DSS Compliant</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="text-sm">100+ Payment Methods</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="text-sm">Instant Refunds</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handlePlaceOrder} 
+                  size="lg" 
+                  className="px-8"
+                  disabled={isProcessingPayment || !cashfreeLoaded}
+                >
+                  {isProcessingPayment ? "Processing..." : !cashfreeLoaded ? "Loading Payment System..." : "Pay Now"}
+                </Button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Order Summary Sidebar */}
@@ -556,7 +476,7 @@ export default function Checkout() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Delivery</span>
-                    <span>{deliveryFee === 0 ? "Free" : `₹${deliveryFee.toFixed(2)}`}</span>
+                    <span>₹{deliveryFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>GST (18%)</span>

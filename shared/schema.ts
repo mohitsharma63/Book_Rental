@@ -96,6 +96,29 @@ export const sliders = pgTable("sliders", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const paymentOrders = pgTable("payment_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: text("order_id").notNull().unique(),
+  paymentSessionId: text("payment_session_id"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("INR"),
+  status: text("status").default("created"), // created, paid, failed, refunded
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  shippingAddress: text("shipping_address").notNull(),
+  shippingCity: text("shipping_city").notNull(),
+  shippingState: text("shipping_state").notNull(),
+  shippingPincode: text("shipping_pincode").notNull(),
+  shippingLandmark: text("shipping_landmark"),
+  paymentMethod: text("payment_method"),
+  transactionId: text("transaction_id"),
+  gatewayResponse: text("gateway_response"), // Store full response from Cashfree
+  cartItems: text("cart_items").notNull(), // JSON string of cart items
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   rentals: many(rentals),
@@ -148,6 +171,10 @@ export const slidersRelations = relations(sliders, ({ many }) => ({
   // Add relations if needed in the future
 }));
 
+export const paymentOrdersRelations = relations(paymentOrders, ({ many }) => ({
+  // Add relations if needed in the future
+}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -165,6 +192,8 @@ export type Review = typeof reviews.$inferSelect;
 export type InsertReview = typeof reviews.$inferInsert;
 export type Slider = typeof sliders.$inferSelect;
 export type InsertSlider = typeof sliders.$inferInsert;
+export type PaymentOrder = typeof paymentOrders.$inferSelect;
+export type InsertPaymentOrder = typeof paymentOrders.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
@@ -194,4 +223,13 @@ export const insertSliderSchema = createInsertSchema(sliders, {
   imageUrl: z.string().url("Valid image URL is required"),
   linkUrl: z.string().url().optional().nullable(),
   order: z.number().optional().nullable(),
+});
+export const insertPaymentOrderSchema = createInsertSchema(paymentOrders, {
+  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Amount must be a positive number"
+  }),
+  customerName: z.string().min(1, "Customer name is required"),
+  customerEmail: z.string().email("Valid email is required"),
+  customerPhone: z.string().min(10, "Valid phone number is required"),
+  cartItems: z.string().min(1, "Cart items are required"),
 });

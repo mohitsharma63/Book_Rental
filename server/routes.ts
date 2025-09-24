@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema } from "@shared/schema";
+import { insertBookSchema, insertRentalSchema, insertWishlistSchema, insertUserSchema, insertReviewSchema, insertPaymentOrderSchema } from "@shared/schema";
 import { otpService } from "./otp-sevice";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -683,6 +683,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get user reviews error:", error);
       res.status(500).json({ error: "Failed to fetch user reviews", details: (error as Error).message });
+    }
+  });
+
+  // Payment Order routes
+  app.post("/api/create-order", async (req, res) => {
+    try {
+      const { amount, currency, customerDetails, shippingDetails, orderMeta, cartItems } = req.body;
+
+      console.log("Creating order with data:", req.body);
+
+      // Generate unique order ID
+      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create payment order in database first
+      const paymentOrderData = {
+        orderId,
+        amount: amount.toString(),
+        currency: currency || "INR",
+        status: "created",
+        customerName: customerDetails.customer_name,
+        customerEmail: customerDetails.customer_email,
+        customerPhone: customerDetails.customer_phone,
+        shippingAddress: shippingDetails.address,
+        shippingCity: shippingDetails.city,
+        shippingState: shippingDetails.state,
+        shippingPincode: shippingDetails.pincode,
+        shippingLandmark: shippingDetails.landmark,
+        cartItems: JSON.stringify(cartItems || []),
+      };
+
+      const validatedData = insertPaymentOrderSchema.parse(paymentOrderData);
+      const paymentOrder = await storage.createPaymentOrder(validatedData);
+
+      // Create Cashfree order
+      const { cashfreeService } = await import('./cashfree-service');
+      
+      const cashfreeOrderData = {
+        order_id: orderId,
+        order_amount: parseFloat(amount.toString()),
+        order_currency: currency || "INR",
+        customer_details: {
+          customer_id: customerDetails.customer_id,
+          customer_name: customerDetails.customer_name,
+          customer_email: customerDetails.customer_email,
+          customer_phone: customerDetails.customer_phone,
+        },
+        order_meta: {
+          return_url: orderMeta?.return_url || `${req.protocol}://${req.get('host')}/payment-success?order_id=${orderId}`,
+          notify_url: orderMeta?.notify_url || `${req.protocol}://${req.get('host')}/api/payment-webhook`,
+        }
+      };
+
+      const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
+
+      // Update payment order with Cashfree session ID
+      await storage.updatePaymentOrder(orderId, { 
+        paymentSessionId: cashfreeOrder.payment_session_id 
+      });
+
+      console.log("Payment order created successfully:", paymentOrder);
+
+      res.json({
+        success: true,
+        order_id: orderId,
+        payment_session_id: cashfreeOrder.payment_session_id,
+        cf_order_id: cashfreeOrder.cf_order_id,
+        message: "Order created successfully"
+      });
+    } catch (error) {
+      console.error("Create order error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to create order", 
+        details: (error as Error).message 
+      });
+    }
+  });
+
+  // Payment webhook to handle Cashfree responses
+  app.post("/api/payment-webhook", async (req, res) => {
+    try {
+      console.log("Payment webhook received:", req.body);
+
+      // Cashfree sends different webhook formats, handle both
+      const orderId = req.body.order?.order_id || req.body.order_id;
+      const paymentStatus = req.body.payment?.payment_status || req.body.payment_status;
+      const transactionId = req.body.payment?.cf_payment_id || req.body.transaction_id;
+      const paymentMethod = req.body.payment?.payment_method || req.body.payment_method;
+
+      if (orderId) {
+        // Map Cashfree status to our internal status
+        let internalStatus = "failed";
+        if (paymentStatus === "SUCCESS" || paymentStatus === "PAID") {
+          internalStatus = "paid";
+        } else if (paymentStatus === "PENDING") {
+          internalStatus = "pending";
+        }
+
+        // Update payment order status
+        await storage.updatePaymentOrder(orderId, {
+          status: internalStatus,
+          transactionId: transactionId,
+          paymentMethod: paymentMethod,
+          gatewayResponse: JSON.stringify(req.body)
+        });
+
+        console.log("Payment order updated via webhook:", orderId, paymentStatus, "->", internalStatus);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Payment webhook error:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  // Get all payment orders (for admin)
+  app.get("/api/payment-orders", async (req, res) => {
+    try {
+      const paymentOrders = await storage.getAllPaymentOrders();
+      res.json(paymentOrders);
+    } catch (error) {
+      console.error("Get payment orders error:", error);
+      res.status(500).json({ error: "Failed to fetch payment orders", details: (error as Error).message });
+    }
+  });
+
+  // Get specific payment order
+  app.get("/api/payment-orders/:orderId", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const paymentOrder = await storage.getPaymentOrder(orderId);
+      
+      if (!paymentOrder) {
+        return res.status(404).json({ error: "Payment order not found" });
+      }
+      
+      res.json(paymentOrder);
+    } catch (error) {
+      console.error("Get payment order error:", error);
+      res.status(500).json({ error: "Failed to fetch payment order", details: (error as Error).message });
     }
   });
 

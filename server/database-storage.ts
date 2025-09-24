@@ -9,6 +9,7 @@ import {
   contacts,
   reviews,
   sliders,
+  paymentOrders,
   type Book,
   type User,
   type Rental,
@@ -17,6 +18,7 @@ import {
   type Contact,
   type Review,
   type Slider,
+  type PaymentOrder,
   type InsertBook,
   type InsertUser,
   type InsertRental,
@@ -24,7 +26,8 @@ import {
   type InsertCategory,
   type InsertContact,
   type InsertReview,
-  type InsertSlider
+  type InsertSlider,
+  type InsertPaymentOrder
 } from "@shared/schema";
 import type { IStorage } from "./interfaces";
 
@@ -437,6 +440,68 @@ export class DatabaseStorage implements IStorage {
       return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting slider:", error);
+      throw error;
+    }
+  }
+
+  // Payment Order methods
+  async createPaymentOrder(insertPaymentOrder: InsertPaymentOrder): Promise<PaymentOrder> {
+    try {
+      console.log("DatabaseStorage: Creating payment order with data:", insertPaymentOrder);
+      const [paymentOrder] = await db
+        .insert(paymentOrders)
+        .values(insertPaymentOrder)
+        .returning();
+      console.log("DatabaseStorage: Payment order created:", paymentOrder);
+      return paymentOrder;
+    } catch (error) {
+      console.error("Error creating payment order:", error);
+      throw error;
+    }
+  }
+
+  async getPaymentOrder(orderId: string): Promise<PaymentOrder | undefined> {
+    try {
+      const [paymentOrder] = await db
+        .select()
+        .from(paymentOrders)
+        .where(eq(paymentOrders.orderId, orderId));
+      return paymentOrder || undefined;
+    } catch (error) {
+      console.error("Error getting payment order:", error);
+      throw error;
+    }
+  }
+
+  async updatePaymentOrder(orderId: string, updateData: Partial<PaymentOrder>): Promise<PaymentOrder> {
+    try {
+      console.log("DatabaseStorage: Updating payment order", orderId, "with data:", updateData);
+      const [paymentOrder] = await db
+        .update(paymentOrders)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(eq(paymentOrders.orderId, orderId))
+        .returning();
+      
+      if (!paymentOrder) {
+        throw new Error("Payment order not found");
+      }
+      
+      console.log("DatabaseStorage: Payment order updated:", paymentOrder);
+      return paymentOrder;
+    } catch (error) {
+      console.error("Error updating payment order:", error);
+      throw error;
+    }
+  }
+
+  async getAllPaymentOrders(): Promise<PaymentOrder[]> {
+    try {
+      return await db
+        .select()
+        .from(paymentOrders)
+        .orderBy(desc(paymentOrders.createdAt));
+    } catch (error) {
+      console.error("Error getting all payment orders:", error);
       throw error;
     }
   }
