@@ -689,9 +689,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment Order routes
   app.post("/api/create-order", async (req, res) => {
     try {
-      const { amount, currency, customerDetails, shippingDetails, orderMeta, cartItems } = req.body;
+      const { amount, currency, customer_details, shipping_details, orderMeta, cartItems } = req.body;
 
       console.log("Creating order with data:", req.body);
+
+      // Validate required fields
+      if (!customer_details?.customer_name || !customer_details?.customer_email || !customer_details?.customer_phone) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required customer details",
+          details: "customer_name, customer_email, and customer_phone are required"
+        });
+      }
+
+      if (!shipping_details?.address || !shipping_details?.city || !shipping_details?.state || !shipping_details?.pincode) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required shipping details",
+          details: "address, city, state, and pincode are required"
+        });
+      }
+
+      if (!amount || isNaN(parseFloat(amount.toString()))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid amount",
+          details: "amount must be a valid number"
+        });
+      }
 
       // Generate unique order ID
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -702,16 +727,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: amount.toString(),
         currency: currency || "INR",
         status: "created",
-        customerName: customerDetails.customer_name,
-        customerEmail: customerDetails.customer_email,
-        customerPhone: customerDetails.customer_phone,
-        shippingAddress: shippingDetails.address,
-        shippingCity: shippingDetails.city,
-        shippingState: shippingDetails.state,
-        shippingPincode: shippingDetails.pincode,
-        shippingLandmark: shippingDetails.landmark,
+        customerName: customer_details.customer_name,
+        customerEmail: customer_details.customer_email,
+        customerPhone: customer_details.customer_phone,
+        shippingAddress: shipping_details.address,
+        shippingCity: shipping_details.city,
+        shippingState: shipping_details.state,
+        shippingPincode: shipping_details.pincode,
+        shippingLandmark: shipping_details.landmark || '',
         cartItems: JSON.stringify(cartItems || []),
       };
+
+      console.log("Payment order data being validated:", paymentOrderData);
 
       const validatedData = insertPaymentOrderSchema.parse(paymentOrderData);
       const paymentOrder = await storage.createPaymentOrder(validatedData);
@@ -724,16 +751,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         order_amount: parseFloat(amount.toString()),
         order_currency: currency || "INR",
         customer_details: {
-          customer_id: customerDetails.customer_id,
-          customer_name: customerDetails.customer_name,
-          customer_email: customerDetails.customer_email,
-          customer_phone: customerDetails.customer_phone,
+          customer_id: customer_details.customer_id || `customer_${Date.now()}`,
+          customer_name: customer_details.customer_name,
+          customer_email: customer_details.customer_email,
+          customer_phone: customer_details.customer_phone,
         },
         order_meta: {
           return_url: orderMeta?.return_url || `${req.protocol}://${req.get('host')}/payment-success?order_id=${orderId}`,
           notify_url: orderMeta?.notify_url || `${req.protocol}://${req.get('host')}/api/payment-webhook`,
         }
       };
+
+      console.log("Cashfree order data:", cashfreeOrderData);
 
       const cashfreeOrder = await cashfreeService.createOrder(cashfreeOrderData);
 
@@ -742,12 +771,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentSessionId: cashfreeOrder.payment_session_id 
       });
 
-      console.log("Payment order created successfully:", paymentOrder);
+      console.log("Payment order created successfully:", {
+        orderId: paymentOrder.orderId,
+        sessionId: cashfreeOrder.payment_session_id
+      });
 
       res.json({
         success: true,
         order_id: orderId,
         payment_session_id: cashfreeOrder.payment_session_id,
+        payment_url: cashfreeOrder.payment_url,
         cf_order_id: cashfreeOrder.cf_order_id,
         message: "Order created successfully"
       });

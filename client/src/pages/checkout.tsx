@@ -19,7 +19,6 @@ export default function Checkout() {
   const { toast } = useToast();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
-  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -45,34 +44,6 @@ export default function Checkout() {
   const deliveryFee = 99; // Standard delivery
   const tax = subtotal * 0.18; // 18% GST
   const total = subtotal + deliveryFee + tax;
-
-  // Load Cashfree SDK
-  useEffect(() => {
-    const loadCashfreeSDK = () => {
-      if ((window as any).Cashfree) {
-        setCashfreeLoaded(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-      script.async = true;
-      script.onload = () => {
-        setCashfreeLoaded(true);
-      };
-      script.onerror = () => {
-        console.error('Failed to load Cashfree SDK');
-        toast({
-          title: "Payment System Error",
-          description: "Failed to load payment system. Please refresh the page.",
-          variant: "destructive",
-        });
-      };
-      document.head.appendChild(script);
-    };
-
-    loadCashfreeSDK();
-  }, [toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -110,80 +81,73 @@ export default function Checkout() {
       return;
     }
 
-    const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}${formData.landmark ? `, Near ${formData.landmark}` : ''}`;
+    const customerName = `${formData.firstName}${formData.lastName ? ' ' + formData.lastName : ''}`;
+    const shippingAddress = `${formData.address}\n${formData.city}, ${formData.state} - ${formData.pincode}${formData.landmark ? '\nNear ' + formData.landmark : ''}`;
 
     try {
-      setIsProcessingPayment(true);
+        setIsProcessingPayment(true);
 
-      const orderData = {
-        amount: total,
-        currency: "INR",
-        customerDetails: {
-          customer_id: `customer_${Date.now()}`,
-          customer_name: `${formData.firstName} ${formData.lastName}`,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-        },
-        shippingDetails: {
-          name: `${formData.firstName} ${formData.lastName}`,
-          phone: formData.phone,
-          email: formData.email,
-          address: shippingAddress,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
-          landmark: formData.landmark
-        },
-        cartItems: cartItems,
-        orderMeta: {
-          return_url: `${window.location.origin}/payment-success?order_id={order_id}`,
-          notify_url: `${window.location.origin}/api/payment-webhook`,
-        }
-      };
+        const orderData = {
+          order_id: `order_${Date.now()}`, // Generate a unique order ID
+          amount: parseFloat(total.toFixed(2)),
+          currency: "INR",
+          customer_details: {
+            customer_id: `customer_${Date.now()}`,
+            customer_name: customerName,
+            customer_email: formData.email,
+            customer_phone: formData.phone,
+          },
+          shipping_details: {
+            name: customerName,
+            phone: formData.phone,
+            email: formData.email,
+            address: shippingAddress,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+            landmark: formData.landmark || ''
+          },
+          cartItems: cartItems,
+          orderMeta: {
+            return_url: `${window.location.origin}/payment-success?order_id={order_id}`,
+            notify_url: `${window.location.origin}/api/payment-webhook`,
+          }
+        };
 
-      console.log("Creating order with data:", orderData);
+        console.log("Creating order with data:", orderData);
 
-      const response = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      const result = await response.json();
-      console.log("Order creation response:", result);
-
-      if (result.success) {
-        // Initialize Cashfree checkout
-        const cashfree = (window as any).Cashfree;
-        if (!cashfree || !cashfreeLoaded) {
-          throw new Error('Cashfree SDK not loaded. Please wait and try again.');
-        }
-
-        // Initialize Cashfree with proper configuration
-        cashfree.checkout({
-          paymentSessionId: result.payment_session_id,
-          redirectTarget: '_self'
-        }).then(() => {
-          console.log('Cashfree checkout initiated successfully');
-        }).catch((error: any) => {
-          console.error('Cashfree checkout error:', error);
-          throw new Error('Failed to initiate payment. Please try again.');
+        const response = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
         });
-      } else {
-        throw new Error(result.message || 'Failed to create order');
+
+        const result = await response.json();
+        console.log("Order creation response:", result);
+
+        if (!response.ok) {
+          throw new Error(result.message || `Server error: ${response.status}`);
+        }
+
+        if (result.success && result.payment_url) {
+          // Redirect to Cashfree payment page
+          console.log('Redirecting to payment URL:', result.payment_url);
+          window.location.href = result.payment_url;
+        } else {
+          throw new Error(result.message || 'Failed to create payment session');
+        }
+      } catch (error) {
+        console.error('Payment initiation failed:', error);
+        toast({
+          title: "Payment Failed",
+          description: error instanceof Error ? error.message : 'Failed to initiate payment. Please try again.',
+          variant: "destructive",
+        });
+      } finally {
+        setIsProcessingPayment(false);
       }
-    } catch (error) {
-      console.error('Payment initiation failed:', error);
-      toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : 'Failed to initiate payment. Please try again.',
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingPayment(false);
-    }
   };
 
   if (orderCompleted) {
@@ -214,7 +178,7 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      
+
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -431,9 +395,11 @@ export default function Checkout() {
                   onClick={handlePlaceOrder} 
                   size="lg" 
                   className="px-8"
-                  disabled={isProcessingPayment || !cashfreeLoaded}
+                  disabled={isProcessingPayment}
                 >
-                  {isProcessingPayment ? "Processing..." : !cashfreeLoaded ? "Loading Payment System..." : "Pay Now"}
+                  {isProcessingPayment 
+                    ? "Processing Payment..." 
+                    : `Pay ₹${total.toFixed(2)}`}
                 </Button>
               </div>
             </div>
