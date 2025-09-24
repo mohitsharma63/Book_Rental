@@ -816,10 +816,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the proper domain for URLs
       const protocol = req.get('x-forwarded-proto') || req.protocol;
       const host = req.get('x-forwarded-host') || req.get('host');
-      const baseUrl = `${protocol}://${host}`;
+      
+      const finalProtocol = protocol.includes('http') ? protocol : 'https';
+      const baseUrl = `${finalProtocol}://${host}`;
 
-      // Simplified return URL with only order_id - other data is already stored in database
-      const returnUrl = `${baseUrl}/payment-success?order_id=${orderId}`;
+      // Very simple return URL - all data is stored in database via orderId
+      const returnUrl = `${baseUrl}/payment-success?oid=${orderId}`;
       const notifyUrl = `${baseUrl}/api/payment/webhook`;
 
       console.log('Return URL length:', returnUrl.length);
