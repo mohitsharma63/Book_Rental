@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,7 +30,8 @@ export default function PaymentSuccess() {
           
           // Clear cart on successful payment
           if (order.status === 'paid') {
-            clearCart();
+            // Cart should already be cleared before payment redirect
+            // clearCart();
           }
         }
       } catch (error) {

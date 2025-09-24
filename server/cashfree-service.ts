@@ -39,7 +39,6 @@ class CashfreeService {
     
     // Default to sandbox if environment not specified
     const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
-    console.log("environment",environment)
     this.baseUrl = environment === 'production'
       ? 'https://api.cashfree.com/pg'
       : 'https://sandbox.cashfree.com/pg';
@@ -109,8 +108,8 @@ class CashfreeService {
       if (result.payment_session_id) {
         const environment = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
         const checkoutUrl = environment === 'production'
-          ? 'https://api.cashfree.com/pg'
-          : 'https://sandbox.cashfree.com/pg/checkout';
+          ? 'https://payments.cashfree.com/pay'
+          : 'https://sandbox.cashfree.com/pg/checkout/pay';
         result.payment_url = `${checkoutUrl}?payment_session_id=${result.payment_session_id}`;
       }
 

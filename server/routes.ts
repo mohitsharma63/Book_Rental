@@ -805,32 +805,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment webhook to handle Cashfree responses
   app.post("/api/payment-webhook", async (req, res) => {
     try {
-      console.log("Payment webhook received:", req.body);
+      console.log("Payment webhook received:", JSON.stringify(req.body, null, 2));
 
-      // Cashfree sends different webhook formats, handle both
-      const orderId = req.body.order?.order_id || req.body.order_id;
-      const paymentStatus = req.body.payment?.payment_status || req.body.payment_status;
-      const transactionId = req.body.payment?.cf_payment_id || req.body.transaction_id;
-      const paymentMethod = req.body.payment?.payment_method || req.body.payment_method;
+      // Handle different webhook event types
+      const eventType = req.body.type;
+      const data = req.body.data;
 
-      if (orderId) {
-        // Map Cashfree status to our internal status
-        let internalStatus = "failed";
-        if (paymentStatus === "SUCCESS" || paymentStatus === "PAID") {
-          internalStatus = "paid";
-        } else if (paymentStatus === "PENDING") {
-          internalStatus = "pending";
+      if (eventType === "PAYMENT_SUCCESS_WEBHOOK") {
+        const order = data.order;
+        const payment = data.payment;
+        
+        const orderId = order.order_id;
+        const paymentStatus = payment.payment_status;
+        const transactionId = payment.cf_payment_id;
+        const paymentMethod = payment.payment_method?.type || payment.payment_method;
+
+        if (orderId) {
+          let internalStatus = "failed";
+          if (paymentStatus === "SUCCESS") {
+            internalStatus = "paid";
+          } else if (paymentStatus === "PENDING") {
+            internalStatus = "pending";
+          }
+
+          await storage.updatePaymentOrder(orderId, {
+            status: internalStatus,
+            transactionId: transactionId,
+            paymentMethod: paymentMethod,
+            gatewayResponse: JSON.stringify(req.body)
+          });
+
+          console.log("Payment order updated via webhook:", orderId, paymentStatus, "->", internalStatus);
         }
+      } else {
+        // Handle legacy webhook format
+        const orderId = req.body.order?.order_id || req.body.order_id;
+        const paymentStatus = req.body.payment?.payment_status || req.body.payment_status;
+        const transactionId = req.body.payment?.cf_payment_id || req.body.transaction_id;
+        const paymentMethod = req.body.payment?.payment_method || req.body.payment_method;
 
-        // Update payment order status
-        await storage.updatePaymentOrder(orderId, {
-          status: internalStatus,
-          transactionId: transactionId,
-          paymentMethod: paymentMethod,
-          gatewayResponse: JSON.stringify(req.body)
-        });
+        if (orderId) {
+          let internalStatus = "failed";
+          if (paymentStatus === "SUCCESS" || paymentStatus === "PAID") {
+            internalStatus = "paid";
+          } else if (paymentStatus === "PENDING") {
+            internalStatus = "pending";
+          }
 
-        console.log("Payment order updated via webhook:", orderId, paymentStatus, "->", internalStatus);
+          await storage.updatePaymentOrder(orderId, {
+            status: internalStatus,
+            transactionId: transactionId,
+            paymentMethod: paymentMethod,
+            gatewayResponse: JSON.stringify(req.body)
+          });
+
+          console.log("Payment order updated via webhook:", orderId, paymentStatus, "->", internalStatus);
+        }
       }
 
       res.json({ success: true });

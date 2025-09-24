@@ -134,9 +134,14 @@ export default function Checkout() {
         if (result.success && result.payment_url) {
           // Redirect to Cashfree payment page
           console.log('Redirecting to payment URL:', result.payment_url);
+
+          // Clear cart before redirecting to payment
+          clearCart();
+
+          // Use window.open for better user experience or direct assignment
           window.location.href = result.payment_url;
         } else {
-          throw new Error(result.message || 'Failed to create payment session');
+          throw new Error(result.message || result.details || 'Failed to create payment session');
         }
       } catch (error) {
         console.error('Payment initiation failed:', error);
