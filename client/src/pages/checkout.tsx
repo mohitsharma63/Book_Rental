@@ -485,7 +485,7 @@ export default function CheckoutPage() {
         const orderData = {
           amount: total,
           currency: 'INR',
-          userId: user.id,
+          userId: user.id, // Ensure userId is included for COD orders
           customer_details: {
             customer_id: String(user.id),
             customer_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,

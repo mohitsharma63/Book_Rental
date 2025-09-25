@@ -99,6 +99,7 @@ export const sliders = pgTable("sliders", {
 export const paymentOrders = pgTable("payment_orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orderId: text("order_id").notNull().unique(),
+  userId: varchar("user_id").notNull().references(() => users.id),
   paymentSessionId: text("payment_session_id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("INR"),

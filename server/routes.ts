@@ -1143,13 +1143,14 @@ console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",CASHFREE_APP_ID)
   // COD Order creation endpoint
   app.post("/api/create-order", async (req, res) => {
     try {
-      const { amount, currency, customer_details, shipping_details, cartItems } = req.body;
+      const { amount, currency, customer_details, shipping_details, cartItems, userId } = req.body;
 
       console.log("Creating COD order with data:", {
         amount,
         currency,
         customer: customer_details?.customer_name,
-        itemsCount: cartItems?.length
+        itemsCount: cartItems?.length,
+        userId: userId || customer_details?.customer_id
       });
 
       // Validate required fields
@@ -1159,33 +1160,44 @@ console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",CASHFREE_APP_ID)
         });
       }
 
-      // Get current user from localStorage/session context
+      // Get user ID from multiple sources
+      let userIdToUse = userId || customer_details?.customer_id;
+      
+      // Try to get user from request headers or body
       const user = await getCurrentUserFromRequest(req);
-      if (!user) {
+      if (user) {
+        userIdToUse = user.id;
+      }
+
+      if (!userIdToUse) {
         return res.status(401).json({ error: "User authentication required" });
       }
 
+      // Get full user details
+      const userDetails = await storage.getUser(userIdToUse.toString());
+      if (!userDetails) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
       // Generate unique order ID
-      const orderId = `COD-${Date.now()}-${user.id}`;
+      const orderId = `COD-${Date.now()}-${userIdToUse}`;
 
       // Create payment order record for COD
       const paymentOrderData = {
         orderId: orderId,
-        userId: parseInt(user.id),
-        customerName: customer_details.customer_name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-        customerEmail: customer_details.customer_email || user.email,
-        customerPhone: customer_details.customer_phone || user.phone || '9999999999',
+        userId: userIdToUse.toString(), // Make sure userId is a string to match schema
+        customerName: customer_details.customer_name || `${userDetails.firstName || ''} ${userDetails.lastName || ''}`.trim(),
+        customerEmail: customer_details.customer_email || userDetails.email,
+        customerPhone: customer_details.customer_phone || userDetails.phone || '9999999999',
         amount: amount,
         currency: currency || 'INR',
         status: 'pending' as const,
         paymentMethod: 'cod',
-        shippingAddress: shipping_details?.address || user.address || 'Address not provided',
+        shippingAddress: shipping_details?.address || userDetails.address || 'Address not provided',
         shippingCity: shipping_details?.city || 'City not provided',
         shippingState: shipping_details?.state || 'State not provided',
         shippingPincode: shipping_details?.pincode || '000000',
         shippingLandmark: shipping_details?.landmark || null,
-        customerInfo: JSON.stringify(customer_details),
-        shippingInfo: JSON.stringify(shipping_details),
         cartItems: JSON.stringify(cartItems.map(item => ({
           bookId: item.id,
           bookTitle: item.title,
@@ -1203,7 +1215,7 @@ console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",CASHFREE_APP_ID)
         if (item.id) {
           try {
             const rentalData = {
-              userId: user.id.toString(),
+              userId: userIdToUse.toString(),
               bookId: item.id,
               startDate: new Date(),
               endDate: new Date(Date.now() + (item.rentalDuration || 4) * 7 * 24 * 60 * 60 * 1000), // Convert weeks to milliseconds
