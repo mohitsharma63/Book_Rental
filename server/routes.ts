@@ -29,6 +29,29 @@ const CASHFREE_BASE_URL = isProduction
 
 const CASHFREE_MODE = isProduction ? 'production' : 'sandbox';
 
+// Helper function to get current user from request
+async function getCurrentUserFromRequest(req: any): Promise<any> {
+  try {
+    // Try to get user info from headers (sent from frontend)
+    const userInfo = req.headers['x-user-info'];
+    if (userInfo) {
+      return JSON.parse(userInfo);
+    }
+
+    // Fallback: try to get user from request body if available
+    const userId = req.body.userId || req.body.customer_details?.customer_id;
+    if (userId) {
+      const user = await storage.getUser(userId.toString());
+      return user;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error getting user from request:", error);
+    return null;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // OTP routes
@@ -992,6 +1015,103 @@ console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",CASHFREE_APP_ID)
       res.json({
         verified: false,
         error: "Payment verification failed"
+      });
+    }
+  });
+
+  // COD Order creation endpoint
+  app.post("/api/create-order", async (req, res) => {
+    try {
+      const { amount, currency, customer_details, shipping_details, cartItems } = req.body;
+
+      console.log("Creating COD order with data:", {
+        amount,
+        currency,
+        customer: customer_details?.customer_name,
+        itemsCount: cartItems?.length
+      });
+
+      // Validate required fields
+      if (!amount || !customer_details || !cartItems || !Array.isArray(cartItems)) {
+        return res.status(400).json({
+          error: "Missing required fields: amount, customer_details, and cartItems are required"
+        });
+      }
+
+      // Get current user from localStorage/session context
+      const user = await getCurrentUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: "User authentication required" });
+      }
+
+      // Generate unique order ID
+      const orderId = `COD-${Date.now()}-${user.id}`;
+
+      // Create payment order record for COD
+      const paymentOrderData = {
+        orderId: orderId,
+        userId: parseInt(user.id),
+        customerName: customer_details.customer_name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        customerEmail: customer_details.customer_email || user.email,
+        customerPhone: customer_details.customer_phone || user.phone || '9999999999',
+        amount: amount,
+        currency: currency || 'INR',
+        status: 'pending' as const,
+        paymentMethod: 'cod',
+        shippingAddress: shipping_details?.address || user.address || 'Address not provided',
+        shippingCity: shipping_details?.city || 'City not provided',
+        shippingState: shipping_details?.state || 'State not provided',
+        shippingPincode: shipping_details?.pincode || '000000',
+        shippingLandmark: shipping_details?.landmark || null,
+        customerInfo: JSON.stringify(customer_details),
+        shippingInfo: JSON.stringify(shipping_details),
+        cartItems: JSON.stringify(cartItems.map(item => ({
+          bookId: item.id,
+          bookTitle: item.title,
+          bookImage: item.imageUrl,
+          quantity: item.quantity,
+          price: item.price,
+          rentalDays: (item.rentalDuration || 4) * 7 // Convert weeks to days
+        })))
+      };
+
+      const paymentOrder = await storage.createPaymentOrder(paymentOrderData);
+
+      // Create rental records for each book in the cart
+      for (const item of cartItems) {
+        if (item.id) {
+          try {
+            const rentalData = {
+              userId: user.id.toString(),
+              bookId: item.id,
+              startDate: new Date(),
+              endDate: new Date(Date.now() + (item.rentalDuration || 4) * 7 * 24 * 60 * 60 * 1000), // Convert weeks to milliseconds
+              status: 'pending' as const, // COD orders start as pending
+              totalAmount: parseFloat(item.price?.toString() || "0") * item.quantity
+            };
+
+            await storage.createRental(rentalData);
+            console.log("Rental created for COD order:", item.id);
+          } catch (rentalError) {
+            console.error("Failed to create rental for book:", item.id, rentalError);
+          }
+        }
+      }
+
+      console.log("COD order created successfully:", orderId);
+
+      res.json({
+        success: true,
+        orderId: orderId,
+        paymentMethod: 'cod',
+        message: "COD order created successfully"
+      });
+
+    } catch (error) {
+      console.error("COD order creation error:", error);
+      res.status(500).json({
+        error: "Failed to create COD order",
+        details: (error as Error).message
       });
     }
   });

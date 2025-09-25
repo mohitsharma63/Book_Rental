@@ -485,7 +485,9 @@ export default function CheckoutPage() {
         const orderData = {
           amount: total,
           currency: 'INR',
+          userId: user.id,
           customer_details: {
+            customer_id: String(user.id),
             customer_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
             customer_email: formData.email.trim(),
             customer_phone: formData.phone?.trim() || '9999999999',
@@ -503,6 +505,7 @@ export default function CheckoutPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-user-info': JSON.stringify(user),
           },
           body: JSON.stringify(orderData),
         });

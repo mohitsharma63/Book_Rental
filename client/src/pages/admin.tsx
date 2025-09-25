@@ -26,6 +26,10 @@ export default function Admin() {
   const [editingBook, setEditingBook] = useState<any>(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+  const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
+  const [paymentDateFilter, setPaymentDateFilter] = useState("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
   const [bookFormData, setBookFormData] = useState({
     title: "",
     author: "",
@@ -311,6 +315,26 @@ export default function Admin() {
       } catch (error) {
         console.warn('Contact stats API error:', error);
         return { total: 0, unread: 0, responded: 0, avgResponseTime: '0h' };
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: paymentOrders = [], isLoading: paymentOrdersLoading } = useQuery({
+    queryKey: ['payment-orders'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/payment-orders');
+        if (!res.ok) {
+          console.warn('Payment orders API failed:', res.status, res.statusText);
+          return [];
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.warn('Payment orders API error:', error);
+        return [];
       }
     },
     retry: false,
@@ -1420,22 +1444,49 @@ export default function Admin() {
         );
 
       case "orders":
+        const filteredRentals = (Array.isArray(rentalData) ? rentalData : [])
+          .filter(rental => {
+            if (filterStatus === "all") return true;
+            return rental.status === filterStatus;
+          })
+          .filter(rental => {
+            if (!searchQuery) return true;
+            return (
+              rental.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+              rental.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              rental.bookTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+          });
+
+        const orderStats = {
+          total: Array.isArray(rentals) ? rentals.length : 0,
+          active: Array.isArray(rentals) ? rentals.filter(r => r.status === "active").length : 0,
+          processing: Array.isArray(rentals) ? rentals.filter(r => r.status === "processing").length : 0,
+          overdue: Array.isArray(rentals) ? rentals.filter(r => r.status === "overdue").length : 0,
+          completed: Array.isArray(rentals) ? rentals.filter(r => r.status === "completed").length : 0,
+          totalRevenue: Array.isArray(rentals) ? rentals.reduce((sum, r) => sum + parseFloat(r.totalAmount || '0'), 0) : 0
+        };
+
         return (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">Order Management</h3>
+              <div>
+                <h3 className="text-lg font-semibold">Order Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Showing {filteredRentals.length} of {orderStats.total} total orders
+                </p>
+              </div>
               <div className="flex items-center space-x-4">
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger className="w-40" data-testid="select-order-filter">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Orders</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="all">All Orders ({orderStats.total})</SelectItem>
+                    <SelectItem value="processing">Processing ({orderStats.processing})</SelectItem>
+                    <SelectItem value="active">Active ({orderStats.active})</SelectItem>
+                    <SelectItem value="completed">Completed ({orderStats.completed})</SelectItem>
+                    <SelectItem value="overdue">Overdue ({orderStats.overdue})</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="relative">
@@ -1453,58 +1504,72 @@ export default function Admin() {
             </div>
 
             {/* Orders Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.length : 0}</p>
+                      <p className="text-2xl font-bold">{orderStats.total}</p>
                       <p className="text-blue-100 text-sm">Total Orders</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-lg">
-                      <BookIcon className="h-6 w-6" />
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <BookIcon className="h-5 w-5" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.filter(r => r.status === "active").length : 0}</p>
+                      <p className="text-2xl font-bold">{orderStats.active}</p>
                       <p className="text-green-100 text-sm">Active Orders</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-lg">
-                      <CheckCircle className="h-6 w-6" />
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <CheckCircle className="h-5 w-5" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.filter(r => r.status === "processing").length : 0}</p>
+                      <p className="text-2xl font-bold">{orderStats.processing}</p>
                       <p className="text-yellow-100 text-sm">Processing</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-lg">
-                      <Clock className="h-6 w-6" />
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Clock className="h-5 w-5" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{Array.isArray(rentals) ? rentals.filter(r => r.status === "overdue").length : 0}</p>
+                      <p className="text-2xl font-bold">{orderStats.overdue}</p>
                       <p className="text-red-100 text-sm">Overdue</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-lg">
-                      <AlertTriangle className="h-6 w-6" />
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">₹{orderStats.totalRevenue.toFixed(0)}</p>
+                      <p className="text-purple-100 text-sm">Total Revenue</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
                     </div>
                   </div>
                 </CardContent>
@@ -1521,7 +1586,7 @@ export default function Admin() {
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Book</TableHead>
-                        <TableHead>Order Date</TableHead>
+                        <TableHead>Rental Date</TableHead>
                         <TableHead>Due Date</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Amount</TableHead>
@@ -1531,73 +1596,102 @@ export default function Admin() {
                     <TableBody>
                       {rentalsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8">Loading orders...</TableCell>
+                          <TableCell colSpan={8} className="text-center py-8">
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                              <span>Loading orders...</span>
+                            </div>
+                          </TableCell>
                         </TableRow>
-                      ) : (Array.isArray(rentalData) && rentalData.length > 0) ? (
-                        rentalData
-                          .filter(rental => {
-                            if (filterStatus === "all") return true;
-                            return rental.status === filterStatus;
-                          })
-                          .filter(rental => {
-                            if (!searchQuery) return true;
-                            return (
-                              rental.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              rental.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              rental.bookTitle?.toLowerCase().includes(searchQuery.toLowerCase())
-                            );
-                          })
-                          .map((rental) => (
-                            <TableRow key={rental.id} data-testid={`row-order-${rental.id}`}>
+                      ) : filteredRentals.length > 0 ? (
+                        filteredRentals.map((rental) => {
+                          const book = books.find(b => b.id === rental.bookId);
+                          const user = users.find(u => u.id === rental.userId);
+                          const isOverdue = rental.status === "overdue" || (rental.dueDate && new Date(rental.dueDate) < new Date());
+                          
+                          return (
+                            <TableRow key={rental.id} data-testid={`row-order-${rental.id}`} className="hover:bg-gray-50">
                               <TableCell className="font-medium">
-                                #{rental.id?.toString().slice(0, 8) || 'N/A'}
+                                <div className="flex flex-col">
+                                  <span className="font-mono text-sm">#{rental.id?.toString().slice(-8) || 'N/A'}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {rental.createdAt ? new Date(rental.createdAt).toLocaleDateString() : ''}
+                                  </span>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <div>
-                                  <div className="font-medium">{rental.userName || 'Unknown User'}</div>
-                                  <div className="text-sm text-gray-500">
-                                    {users.find(u => u.id === rental.userId)?.email || 'No email'}
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                    <span className="text-white text-xs font-medium">
+                                      {user?.firstName?.[0] || 'U'}{user?.lastName?.[0] || ''}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">{rental.userName || 'Unknown User'}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {user?.email || 'No email'}
+                                    </div>
                                   </div>
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center space-x-3">
                                   <img
-                                    src={books.find(b => b.id === rental.bookId)?.imageUrl || '/placeholder-book.jpg'}
+                                    src={book?.imageUrl || '/placeholder-book.jpg'}
                                     alt="Book cover"
-                                    className="w-10 h-12 object-cover rounded"
+                                    className="w-10 h-12 object-cover rounded shadow-sm"
                                     onError={(e) => {
                                       e.currentTarget.src = '/placeholder-book.jpg';
                                     }}
                                   />
                                   <div>
-                                    <div className="font-medium">{rental.bookTitle || 'Unknown Book'}</div>
-                                    <div className="text-sm text-gray-500">
-                                      {books.find(b => b.id === rental.bookId)?.author || 'Unknown Author'}
+                                    <div className="font-medium line-clamp-1">{book?.title || 'Unknown Book'}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      by {book?.author || 'Unknown Author'}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {book?.category || 'No category'}
                                     </div>
                                   </div>
                                 </div>
                               </TableCell>
                               <TableCell>
-                                {rental.rentalDate ? new Date(rental.rentalDate).toLocaleDateString() : 'N/A'}
+                                <div className="text-sm">
+                                  {rental.rentalDate ? new Date(rental.rentalDate).toLocaleDateString() : 'N/A'}
+                                </div>
                               </TableCell>
-                              <TableCell className={rental.status === "overdue" ? "text-red-600 font-medium" : ""}>
-                                {rental.dueDate ? new Date(rental.dueDate).toLocaleDateString() : 'No due date'}
+                              <TableCell className={isOverdue ? "text-red-600 font-medium" : ""}>
+                                <div className="text-sm">
+                                  {rental.dueDate ? new Date(rental.dueDate).toLocaleDateString() : 'No due date'}
+                                </div>
+                                {isOverdue && (
+                                  <div className="text-xs text-red-500 font-medium">
+                                    {rental.dueDate ? 
+                                      `${Math.ceil((new Date().getTime() - new Date(rental.dueDate).getTime()) / (1000 * 60 * 60 * 24))} days overdue` 
+                                      : 'Overdue'
+                                    }
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell>
-                                <Badge className={getStatusColor(rental.status || 'unknown')}>
+                                <Badge className={`${getStatusColor(rental.status || 'unknown')} font-medium`}>
                                   {rental.status?.charAt(0).toUpperCase() + rental.status?.slice(1) || 'Unknown'}
                                 </Badge>
                               </TableCell>
                               <TableCell className="font-medium">
-                                ₹{rental.totalAmount || '0.00'}
+                                <div className="text-lg">₹{parseFloat(rental.totalAmount || '0').toFixed(2)}</div>
+                                {book?.pricePerWeek && (
+                                  <div className="text-xs text-muted-foreground">
+                                    ₹{book.pricePerWeek}/week
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell>
-                                <div className="flex space-x-2">
+                                <div className="flex space-x-1">
                                   <Button 
                                     variant="ghost" 
                                     size="sm" 
-                                    className="text-blue-600 hover:text-blue-800"
+                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                     data-testid={`button-view-order-${rental.id}`}
                                   >
                                     View
@@ -1606,7 +1700,7 @@ export default function Admin() {
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
-                                      className="text-red-600 hover:text-red-800" 
+                                      className="text-red-600 hover:text-red-800 hover:bg-red-50" 
                                       data-testid={`button-remind-order-${rental.id}`}
                                     >
                                       Remind
@@ -1615,7 +1709,7 @@ export default function Admin() {
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
-                                      className="text-green-600 hover:text-green-800" 
+                                      className="text-green-600 hover:text-green-800 hover:bg-green-50" 
                                       data-testid={`button-complete-order-${rental.id}`}
                                     >
                                       Complete
@@ -1624,7 +1718,7 @@ export default function Admin() {
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
-                                      className="text-gray-600 hover:text-gray-800" 
+                                      className="text-gray-600 hover:text-gray-800 hover:bg-gray-50" 
                                       data-testid={`button-update-order-${rental.id}`}
                                     >
                                       Update
@@ -1633,17 +1727,581 @@ export default function Admin() {
                                 </div>
                               </TableCell>
                             </TableRow>
-                          ))
+                          );
+                        })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            No orders found.
+                          <TableCell colSpan={8} className="text-center py-12">
+                            <div className="flex flex-col items-center space-y-2">
+                              <BookIcon className="h-8 w-8 text-muted-foreground" />
+                              <div className="text-muted-foreground">
+                                {filterStatus === "all" ? "No orders found" : `No ${filterStatus} orders found`}
+                              </div>
+                              {searchQuery && (
+                                <div className="text-sm text-muted-foreground">
+                                  Try adjusting your search terms
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}
                     </TableBody>
                   </Table>
                 </div>
+                
+                {/* Pagination info */}
+                {filteredRentals.length > 0 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {filteredRentals.length} of {orderStats.total} orders
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Revenue: ₹{orderStats.totalRevenue.toFixed(2)}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "payments":
+
+        const filteredPaymentOrders = paymentOrders.filter(order => {
+          // Status filter
+          if (paymentStatusFilter !== "all") {
+            if (paymentStatusFilter === "pending" && !['pending', 'created'].includes(order.status)) return false;
+            if (paymentStatusFilter === "paid" && !['paid', 'success'].includes(order.status)) return false;
+            if (paymentStatusFilter === "failed" && order.status !== 'failed') return false;
+          }
+
+          // Search filter
+          if (paymentSearchQuery) {
+            const searchLower = paymentSearchQuery.toLowerCase();
+            if (!order.orderId?.toLowerCase().includes(searchLower) &&
+                !order.customerName?.toLowerCase().includes(searchLower) &&
+                !order.customerEmail?.toLowerCase().includes(searchLower) &&
+                !order.customerPhone?.toLowerCase().includes(searchLower)) {
+              return false;
+            }
+          }
+
+          // Date filter
+          if (paymentDateFilter !== "all" && order.createdAt) {
+            const orderDate = new Date(order.createdAt);
+            const now = new Date();
+            switch (paymentDateFilter) {
+              case "today":
+                if (orderDate.toDateString() !== now.toDateString()) return false;
+                break;
+              case "week":
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                if (orderDate < weekAgo) return false;
+                break;
+              case "month":
+                const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                if (orderDate < monthAgo) return false;
+                break;
+            }
+          }
+
+          // Payment method filter
+          if (paymentMethodFilter !== "all" && order.paymentMethod !== paymentMethodFilter) {
+            return false;
+          }
+
+          return true;
+        });
+
+        const paymentStats = {
+          total: paymentOrders.length,
+          pending: paymentOrders.filter(order => order.status === 'pending' || order.status === 'created').length,
+          paid: paymentOrders.filter(order => order.status === 'paid' || order.status === 'success').length,
+          failed: paymentOrders.filter(order => order.status === 'failed').length,
+          totalAmount: paymentOrders.reduce((sum, order) => sum + parseFloat(order.amount || '0'), 0),
+          filteredCount: filteredPaymentOrders.length,
+          filteredAmount: filteredPaymentOrders.reduce((sum, order) => sum + parseFloat(order.amount || '0'), 0)
+        };
+
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Payment Orders</h3>
+                <p className="text-sm text-muted-foreground">
+                  Showing {paymentStats.filteredCount} of {paymentStats.total} orders
+                </p>
+              </div>
+              
+              {/* Enhanced Filter Section */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending ({paymentStats.pending})</SelectItem>
+                    <SelectItem value="paid">Paid ({paymentStats.paid})</SelectItem>
+                    <SelectItem value="failed">Failed ({paymentStats.failed})</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={paymentDateFilter} onValueChange={setPaymentDateFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Methods</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="netbanking">Net Banking</SelectItem>
+                    <SelectItem value="wallet">Wallet</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search orders..."
+                    value={paymentSearchQuery}
+                    onChange={(e) => setPaymentSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 w-64"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setPaymentStatusFilter("all");
+                    setPaymentSearchQuery("");
+                    setPaymentDateFilter("all");
+                    setPaymentMethodFilter("all");
+                  }}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
+
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+            </div>
+
+            {/* Payment Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{paymentStats.total}</p>
+                      <p className="text-blue-100 text-sm">Total Orders</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <BookIcon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{paymentStats.pending}</p>
+                      <p className="text-yellow-100 text-sm">Pending</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{paymentStats.paid}</p>
+                      <p className="text-green-100 text-sm">Paid</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <CheckCircle className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">{paymentStats.failed}</p>
+                      <p className="text-red-100 text-sm">Failed</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <X className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">₹{paymentStats.totalAmount.toFixed(0)}</p>
+                      <p className="text-purple-100 text-sm">Total Revenue</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Payment Orders Table */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Payment Method</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paymentOrdersLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                              <span>Loading payment orders...</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredPaymentOrders.length > 0 ? (
+                        filteredPaymentOrders.map((order) => {
+                          let cartItems = [];
+                          try {
+                            cartItems = JSON.parse(order.cartItems || '[]');
+                          } catch (e) {
+                            cartItems = [];
+                          }
+
+                          return (
+                            <TableRow key={order.id} className="hover:bg-gray-50">
+                              <TableCell className="font-medium">
+                                <div className="flex flex-col">
+                                  <span className="font-mono text-sm">#{order.orderId}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {order.paymentSessionId && `Session: ${order.paymentSessionId.slice(-8)}`}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{order.customerName}</div>
+                                  <div className="text-sm text-muted-foreground">{order.customerEmail}</div>
+                                  <div className="text-xs text-muted-foreground">{order.customerPhone}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {order.paymentMethod?.toUpperCase() || 'Unknown'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                ₹{parseFloat(order.amount || '0').toFixed(2)}
+                                <div className="text-xs text-muted-foreground">{order.currency}</div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={
+                                  order.status === 'paid' || order.status === 'success' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'pending' || order.status === 'created' ? 'bg-yellow-100 text-yellow-800' :
+                                  order.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }>
+                                  {order.status?.charAt(0).toUpperCase() + order.status?.slice(1) || 'Unknown'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex space-x-1">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
+                                        View
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>Payment Order Details</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-4 py-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-2">
+                                            <Label>Order ID</Label>
+                                            <div className="p-2 bg-gray-50 rounded border font-mono text-sm">
+                                              {order.orderId}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Payment Session ID</Label>
+                                            <div className="p-2 bg-gray-50 rounded border font-mono text-xs">
+                                              {order.paymentSessionId || 'N/A'}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Customer Name</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {order.customerName}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Customer Email</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {order.customerEmail}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Phone</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {order.customerPhone}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Amount</Label>
+                                            <div className="p-2 bg-gray-50 rounded border font-medium">
+                                              ₹{parseFloat(order.amount || '0').toFixed(2)} {order.currency}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Status</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              <Badge className={
+                                                order.status === 'paid' || order.status === 'success' ? 'bg-green-100 text-green-800' :
+                                                order.status === 'pending' || order.status === 'created' ? 'bg-yellow-100 text-yellow-800' :
+                                                order.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                                'bg-gray-100 text-gray-800'
+                                              }>
+                                                {order.status?.charAt(0).toUpperCase() + order.status?.slice(1) || 'Unknown'}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Payment Method</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {order.paymentMethod?.toUpperCase() || 'Unknown'}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <Label>Shipping Address</Label>
+                                          <div className="p-3 bg-gray-50 rounded border">
+                                            <div>{order.shippingAddress}</div>
+                                            <div>{order.shippingCity}, {order.shippingState} - {order.shippingPincode}</div>
+                                            {order.shippingLandmark && <div>Landmark: {order.shippingLandmark}</div>}
+                                          </div>
+                                        </div>
+
+                                        {cartItems.length > 0 && (
+                                          <div className="space-y-2">
+                                            <Label>Cart Items</Label>
+                                            <div className="p-3 bg-gray-50 rounded border space-y-2">
+                                              {cartItems.map((item, index) => (
+                                                <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
+                                                  <div>
+                                                    <div className="font-medium">{item.bookTitle || item.title}</div>
+                                                    <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
+                                                  </div>
+                                                  <div className="text-right">
+                                                    <div className="font-medium">₹{item.price}</div>
+                                                    {item.rentalDays && <div className="text-xs text-gray-500">{item.rentalDays} days</div>}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {order.transactionId && (
+                                          <div className="space-y-2">
+                                            <Label>Transaction ID</Label>
+                                            <div className="p-2 bg-gray-50 rounded border font-mono text-sm">
+                                              {order.transactionId}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          <div className="space-y-2">
+                                            <Label>Created At</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label>Updated At</Label>
+                                            <div className="p-2 bg-gray-50 rounded border">
+                                              {order.updatedAt ? new Date(order.updatedAt).toLocaleString() : 'N/A'}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  
+                                  {/* Additional Action Buttons */}
+                                  {(order.status === 'pending' || order.status === 'created') && (
+                                    <>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-green-600 hover:text-green-800"
+                                        onClick={() => {
+                                          if (confirm('Mark this payment as completed?')) {
+                                            // Add mutation for updating payment status
+                                            console.log('Marking payment as paid:', order.id);
+                                          }
+                                        }}
+                                      >
+                                        Mark Paid
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-red-600 hover:text-red-800"
+                                        onClick={() => {
+                                          if (confirm('Mark this payment as failed?')) {
+                                            console.log('Marking payment as failed:', order.id);
+                                          }
+                                        }}
+                                      >
+                                        Mark Failed
+                                      </Button>
+                                    </>
+                                  )}
+                                  
+                                  {order.status === 'failed' && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-blue-600 hover:text-blue-800"
+                                      onClick={() => {
+                                        console.log('Retrying payment:', order.id);
+                                      }}
+                                    >
+                                      Retry
+                                    </Button>
+                                  )}
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-purple-600 hover:text-purple-800"
+                                    onClick={() => {
+                                      const mailtoLink = `mailto:${order.customerEmail}?subject=Regarding Your Order ${order.orderId}&body=Dear ${order.customerName},%0D%0A%0D%0ARegarding your order ${order.orderId}...`;
+                                      window.open(mailtoLink);
+                                    }}
+                                  >
+                                    Email
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-gray-600 hover:text-gray-800"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(order.orderId);
+                                      alert('Order ID copied to clipboard');
+                                    }}
+                                  >
+                                    Copy ID
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-12">
+                            <div className="flex flex-col items-center space-y-2">
+                              <BookIcon className="h-8 w-8 text-muted-foreground" />
+                              <div className="text-muted-foreground">
+                                {paymentSearchQuery || paymentStatusFilter !== "all" || paymentDateFilter !== "all" || paymentMethodFilter !== "all"
+                                  ? "No payment orders match your filters"
+                                  : "No payment orders found"
+                                }
+                              </div>
+                              {(paymentSearchQuery || paymentStatusFilter !== "all" || paymentDateFilter !== "all" || paymentMethodFilter !== "all") && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setPaymentStatusFilter("all");
+                                    setPaymentSearchQuery("");
+                                    setPaymentDateFilter("all");
+                                    setPaymentMethodFilter("all");
+                                  }}
+                                >
+                                  Clear Filters
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {filteredPaymentOrders.length > 0 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {paymentStats.filteredCount} of {paymentStats.total} payment orders
+                      {paymentStatusFilter !== "all" && ` (${paymentStatusFilter})`}
+                      {paymentDateFilter !== "all" && ` (${paymentDateFilter})`}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Filtered Revenue: ₹{paymentStats.filteredAmount.toFixed(2)} | 
+                      Total Revenue: ₹{paymentStats.totalAmount.toFixed(2)}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
