@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, CreditCard, MapPin, User, Package, CheckCircle } from "lucide-react";
@@ -12,17 +13,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 
 interface CartItem {
-  id: number;
-  name: string;
-  price: string;
-  originalPrice?: string;
-  image: string;
+  id: string;
+  title: string;
+  author: string;
+  price: number;
+  imageUrl: string;
   quantity: number;
-  inStock: boolean;
+  rentalDuration: number;
 }
 
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
+  const [location] = useLocation();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -44,6 +46,16 @@ export default function CheckoutPage() {
   const [profileDataLoaded, setProfileDataLoaded] = useState(false);
 
   useEffect(() => {
+    // Check URL parameters for payment processing
+    const searchParams = new URLSearchParams(location.search);
+    const paymentStatus = searchParams.get('payment');
+    const orderIdParam = searchParams.get('orderId');
+
+    if (paymentStatus === 'processing' && orderIdParam) {
+      verifyPayment(orderIdParam);
+      return;
+    }
+
     // Check if user is logged in when accessing checkout
     const user = localStorage.getItem("user");
     if (!user) {
@@ -110,7 +122,7 @@ export default function CheckoutPage() {
           state: state,
           zipCode: zipCode,
           phone: userData.phone || "",
-          paymentMethod: "cod",
+          paymentMethod: "cashfree",
         });
 
         setProfileDataLoaded(true);
@@ -138,18 +150,73 @@ export default function CheckoutPage() {
       }
     }
     setLoading(false);
-  }, [profileDataLoaded]);
+  }, [profileDataLoaded, location]);
+
+  const verifyPayment = async (orderIdParam: string) => {
+    try {
+      const response = await fetch('/api/payments/cashfree/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: orderIdParam }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.verified) {
+        // Payment successful, create the order
+        const pendingOrder = sessionStorage.getItem('pendingOrder');
+        if (pendingOrder) {
+          const orderData = JSON.parse(pendingOrder);
+          setOrderId(orderData.orderId);
+          setOrderPlaced(true);
+
+          // Clear cart and session
+          localStorage.removeItem("cart");
+          sessionStorage.removeItem('pendingOrder');
+          localStorage.setItem("cartCount", "0");
+          window.dispatchEvent(new Event("cartUpdated"));
+
+          toast({
+            title: "Payment Successful!",
+            description: "Your order has been confirmed",
+          });
+        }
+      } else {
+        // Payment failed
+        toast({
+          title: "Payment Failed",
+          description: "Your payment could not be processed. Please try again.",
+          variant: "destructive",
+        });
+
+        // Restore cart from session
+        const pendingOrder = sessionStorage.getItem('pendingOrder');
+        if (pendingOrder) {
+          const orderData = JSON.parse(pendingOrder);
+          setCartItems(orderData.cartItems);
+        }
+        sessionStorage.removeItem('pendingOrder');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      toast({
+        title: "Verification Error",
+        description: "Could not verify payment status. Please contact support.",
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
+  const getCurrentUser = () => {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  };
 
   const calculateSubtotal = () => {
     return cartItems.reduce((total, item) => {
-      // Handle different price formats - string or number
-      let price = 0;
-      if (typeof item.price === 'string') {
-        price = parseInt(item.price.replace(/[₹,]/g, ""));
-      } else if (typeof item.price === 'number') {
-        price = item.price;
-      }
-      return total + (price * item.quantity);
+      const durationMultiplier = item.rentalDuration === 4 ? 4 : item.rentalDuration === 8 ? 7.2 : 4;
+      return total + (item.price * durationMultiplier * item.quantity);
     }, 0);
   };
 
@@ -157,7 +224,7 @@ export default function CheckoutPage() {
   const shipping = subtotal > 599 ? 0 : 99;
   const total = subtotal + shipping;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -165,8 +232,197 @@ export default function CheckoutPage() {
     }));
   };
 
+  const processCashfreePayment = async () => {
+    try {
+      const user = getCurrentUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to continue with payment",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validate form data
+      if (!formData.email || !formData.firstName || !formData.lastName) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validate phone number if provided
+      if (formData.phone && formData.phone.trim()) {
+        const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+        const cleanPhone = formData.phone.replace(/[\s-()]/g, '');
+        if (!phoneRegex.test(cleanPhone)) {
+          toast({
+            title: "Invalid Phone Number",
+            description: "Please enter a valid 10-digit Indian mobile number starting with 6-9",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Generate unique order ID
+      const orderId = `ORD-${Date.now()}-${user.id}`;
+
+      // Create Cashfree order
+      const response = await fetch('/api/payments/cashfree/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: total,
+          orderId: orderId,
+          currency: 'INR',
+          customerDetails: {
+            customerId: String(user.id),
+            customerName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+            customerEmail: formData.email.trim(),
+            customerPhone: formData.phone?.trim() || '9999999999',
+          },
+          orderNote: 'Book Rental Purchase',
+          orderData: {
+            userId: user.id,
+            totalAmount: total,
+            shippingAddress: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+            items: cartItems.map(item => ({
+              bookId: item.id,
+              bookTitle: item.title,
+              bookImage: item.imageUrl,
+              quantity: item.quantity,
+              price: item.price,
+              rentalDays: item.rentalDuration * 7 // Convert weeks to days
+            }))
+          }
+        }),
+      });
+
+      const orderData = await response.json();
+
+      if (!response.ok) {
+        console.error('Cashfree API error:', orderData);
+
+        let errorMessage = "Payment processing failed";
+
+        if (orderData.configError) {
+          errorMessage = "Cashfree is not configured. Please use Cash on Delivery.";
+        } else if (orderData.cashfreeError) {
+          errorMessage = orderData.error || "Cashfree service error. Please try again.";
+        } else {
+          errorMessage = orderData.error || `Payment setup failed (${response.status})`;
+        }
+
+        toast({
+          title: "Payment Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!orderData.paymentSessionId) {
+        console.error("Missing payment session ID:", orderData);
+        toast({
+          title: "Configuration Error",
+          description: "Invalid payment session. Please try Cash on Delivery.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Store order data in session storage for after payment
+      sessionStorage.setItem('pendingOrder', JSON.stringify({
+        orderId: orderData.orderId,
+        paymentSessionId: orderData.paymentSessionId,
+        customerData: formData,
+        cartItems: cartItems,
+        totalAmount: total
+      }));
+
+      // Load Cashfree SDK and redirect to payment
+      return new Promise((resolve) => {
+        const existingScript = document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
+        if (existingScript) {
+          existingScript.remove();
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.onload = () => {
+          try {
+            const cashfree = (window as any).Cashfree({
+              mode: orderData.environment || 'sandbox'
+            });
+
+            console.log("Initiating Cashfree checkout with session ID:", orderData.paymentSessionId);
+            console.log("Using environment mode:", orderData.environment || 'sandbox');
+
+            cashfree.checkout({
+              paymentSessionId: orderData.paymentSessionId,
+              returnUrl: `${window.location.origin}/checkout?payment=processing&orderId=${orderData.orderId}`,
+            });
+
+            resolve(true);
+          } catch (checkoutError) {
+            console.error("Cashfree checkout error:", checkoutError);
+            toast({
+              title: "Payment Error",
+              description: "Failed to initialize payment. Please try again.",
+              variant: "destructive",
+            });
+            resolve(false);
+          }
+        };
+        script.onerror = () => {
+          console.error("Failed to load Cashfree SDK");
+          toast({
+            title: "Payment Error",
+            description: "Failed to load payment system. Please try again.",
+            variant: "destructive",
+          });
+          resolve(false);
+        };
+        document.head.appendChild(script);
+      });
+    } catch (error) {
+      console.error('Cashfree payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Payment processing failed",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const user = getCurrentUser();
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to place an order",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Basic validation
     if (!formData.email || !formData.firstName || !formData.lastName || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
@@ -178,111 +434,93 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Validate phone number if provided
+    if (formData.phone && formData.phone.trim()) {
+      const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+      const cleanPhone = formData.phone.replace(/[\s-()]/g, '');
+      if (!phoneRegex.test(cleanPhone)) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid 10-digit Indian mobile number starting with 6-9",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
-      if (formData.paymentMethod === "cashfree") {
-        // Cashfree payment flow
-        const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        const customerDetails = {
-          customerId: userProfile?.id || `customer_${Date.now()}`,
-          customerName: `${formData.firstName} ${formData.lastName}`,
-          customerEmail: formData.email,
-          customerPhone: formData.phone || '9999999999'
-        };
-
-        const orderData = {
-          items: cartItems.map(item => ({
-            productId: item.id,
-            productName: item.name,
-            productImage: item.image,
-            quantity: item.quantity,
-            price: typeof item.price === 'string' ? parseInt(item.price.replace(/[₹,]/g, "")) : item.price
-          })),
-          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.zipCode}`
-        };
-
-        // Create Cashfree order
-        const response = await fetch('/api/payments/cashfree/create-order', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: total,
-            orderId: orderId,
-            currency: 'INR',
-            customerDetails: customerDetails,
-            orderNote: `Order for ${cartItems.length} items`,
-            orderData: orderData
-          }),
+      // Process payment based on selected method
+      if (formData.paymentMethod === 'cashfree') {
+        toast({
+          title: "Processing Payment",
+          description: "Redirecting to Cashfree...",
         });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to create payment order');
-        }
-
-        // Redirect to Cashfree payment page - use production URL if configured
-        const cashfreeEnv = result.environment || 'sandbox';
-        const paymentBaseUrl = cashfreeEnv === 'production' 
-          ? 'https://checkout.cashfree.com' 
-          : 'https://sandbox.cashfree.com';
-        const paymentUrl = `${paymentBaseUrl}/pg/checkout/pay?payment_session_id=${result.paymentSessionId}`;
-        window.location.href = paymentUrl;
-
+        await processCashfreePayment();
+        // For Cashfree, the order will be created after payment verification
+        return;
       } else {
-        // Cash on Delivery flow
-        const newOrderId = `ORD-${Date.now()}`;
+        // For COD, create order directly
+        const orderData = {
+          amount: total,
+          currency: 'INR',
+          customer_details: {
+            customer_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+            customer_email: formData.email.trim(),
+            customer_phone: formData.phone?.trim() || '9999999999',
+          },
+          shipping_details: {
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.zipCode,
+          },
+          cartItems: cartItems
+        };
 
-        // Create order with your existing API
         const response = await fetch('/api/create-order', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            amount: total,
-            currency: 'INR',
-            customer_details: {
-              customer_name: `${formData.firstName} ${formData.lastName}`,
-              customer_email: formData.email,
-              customer_phone: formData.phone || '9999999999',
-            },
-            shipping_details: {
-              address: formData.address,
-              city: formData.city,
-              state: formData.state,
-              pincode: formData.zipCode,
-            },
-            cartItems: cartItems
-          })
+          body: JSON.stringify(orderData),
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          const newOrderId = `ORD-${Date.now()}`;
+          setOrderId(newOrderId);
+          setOrderPlaced(true);
+
+          // Clear cart
+          localStorage.removeItem("cart");
+          localStorage.setItem("cartCount", "0");
+          window.dispatchEvent(new Event("cartUpdated"));
+
+          toast({
+            title: "Order Placed Successfully!",
+            description: "You will receive a confirmation call shortly",
+          });
+        } else {
           throw new Error('Failed to create order');
         }
-
-        setOrderId(newOrderId);
-        setOrderPlaced(true);
-
-        // Clear cart
-        localStorage.removeItem("cart");
-        localStorage.setItem("cartCount", "0");
-        window.dispatchEvent(new Event("cartUpdated"));
-
-        toast({
-          title: "Order Placed Successfully!",
-          description: "You will receive a confirmation call shortly",
-        });
       }
     } catch (error) {
       console.error('Order placement error:', error);
       toast({
         title: "Order Failed",
-        description: error.message || "There was an error placing your order. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error placing your order. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -318,7 +556,7 @@ export default function CheckoutPage() {
               <p className="font-semibold">3-5 business days</p>
             </div>
             <div className="space-y-3 pt-4">
-              <Link href="/">
+              <Link href="/catalog">
                 <Button className="w-full bg-red-600 hover:bg-red-700">
                   Continue Shopping
                 </Button>
@@ -524,16 +762,17 @@ export default function CheckoutPage() {
                     {cartItems.map((item) => (
                       <div key={item.id} className="flex items-center space-x-4">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.imageUrl}
+                          alt={item.title}
                           className="h-16 w-16 object-cover rounded-lg"
                         />
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.name}</h4>
+                          <h4 className="font-medium text-gray-900">{item.title}</h4>
+                          <p className="text-sm text-gray-600">by {item.author}</p>
                           <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-gray-900">₹{item.price}</p>
+                          <p className="font-semibold text-gray-900">₹{(item.price * ((item.rentalDuration || 4) === 4 ? 4 : (item.rentalDuration || 4) === 8 ? 7.2 : 4) * item.quantity).toFixed(2)}</p>
                         </div>
                       </div>
                     ))}
