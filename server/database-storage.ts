@@ -504,4 +504,60 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  async updatePaymentOrderStatus(orderId: string, status: string, notes?: string): Promise<any> {
+    try {
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      };
+
+      if (notes) {
+        updateData.adminNotes = notes;
+      }
+
+      // Add status-specific timestamps
+      switch (status) {
+        case 'processing':
+          updateData.processingAt = new Date();
+          break;
+        case 'shipped':
+          updateData.shippedAt = new Date();
+          break;
+        case 'delivered':
+          updateData.deliveredAt = new Date();
+          break;
+        case 'paid':
+        case 'success':
+          updateData.paidAt = new Date();
+          break;
+        case 'failed':
+          updateData.failedAt = new Date();
+          break;
+        case 'refunded':
+          updateData.refundedAt = new Date();
+          break;
+        case 'cancelled':
+          updateData.cancelledAt = new Date();
+          break;
+      }
+
+      const result = await db
+        .update(paymentOrders)
+        .set(updateData)
+        .where(eq(paymentOrders.orderId, orderId))
+        .returning();
+
+      if (result.length === 0) {
+        console.warn(`Payment order not found for orderId: ${orderId}`);
+        return null;
+      }
+
+      console.log(`Payment order ${orderId} status updated to ${status}`);
+      return result[0];
+    } catch (error) {
+      console.error("Update payment order status error:", error);
+      throw error;
+    }
+  }
 }

@@ -372,6 +372,89 @@ export default function Admin() {
     },
   });
 
+  // Mutation for updating order status
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status, notes }: { orderId: string; status: string; notes?: string }) => {
+      try {
+        const response = await fetch(`/api/payment-orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status, notes }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn('Update order status API failed:', response.status, errorText);
+          throw new Error(errorText || 'Failed to update order status');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Update order status error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['payment-orders'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update order status:', error);
+      alert('Failed to update order status: ' + error.message);
+    },
+  });
+
+  // Mutation for updating payment order status specifically
+  const updatePaymentStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status, notes }: { orderId: string; status: string; notes?: string }) => {
+      try {
+        const response = await fetch(`/api/payment-orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status, notes }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Failed to update payment status');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Update payment status error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-orders'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update payment status:', error);
+      alert('Failed to update payment status: ' + error.message);
+    },
+  });
+
+  // Helper function to get next status
+  const getNextStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'pending':
+        return 'processing';
+      case 'processing':
+        return 'shipped';
+      case 'shipped':
+        return 'delivered';
+      default:
+        return 'processing';
+    }
+  };
+
+  // Function to update order status
+  const updateOrderStatus = (orderId: string, status: string, notes?: string) => {
+    if (confirm(`Are you sure you want to update this order status to "${status}"?`)) {
+      updateOrderStatusMutation.mutate({ orderId, status, notes });
+    }
+  };
+
   const stats = {
     totalBooks: Array.isArray(books) ? books.length : 0,
     activeUsers: Array.isArray(users) ? users.length : 0,
@@ -1688,14 +1771,189 @@ export default function Admin() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex space-x-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                    data-testid={`button-view-order-${rental.id}`}
-                                  >
-                                    View
-                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                        data-testid={`button-view-order-${rental.id}`}
+                                      >
+                                        View
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>Order Details & Progress</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-6 py-4">
+                                        {/* Order Progress */}
+                                        <div className="space-y-4">
+                                          <h3 className="text-lg font-semibold">Order Progress</h3>
+                                          <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-sm">
+                                              <span>Order Status</span>
+                                              <span className="font-medium">
+                                                {rental.status === 'pending' || rental.status === 'active' ? '0% Complete' :
+                                                 rental.status === 'processing' ? '33% Complete' :
+                                                 rental.status === 'shipped' ? '66% Complete' :
+                                                 rental.status === 'delivered' || rental.status === 'completed' ? '100% Complete' : '0% Complete'}
+                                              </span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                              <div 
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                style={{
+                                                  width: rental.status === 'pending' || rental.status === 'active' ? '0%' :
+                                                         rental.status === 'processing' ? '33%' :
+                                                         rental.status === 'shipped' ? '66%' :
+                                                         rental.status === 'delivered' || rental.status === 'completed' ? '100%' : '0%'
+                                                }}
+                                              ></div>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Progress Steps */}
+                                          <div className="flex justify-between items-center mt-6">
+                                            <div className="flex flex-col items-center space-y-2">
+                                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                                ['processing', 'shipped', 'delivered', 'completed'].includes(rental.status) 
+                                                  ? 'bg-blue-600 text-white' 
+                                                  : 'bg-gray-200 text-gray-500'
+                                              }`}>
+                                                <Clock className="w-5 h-5" />
+                                              </div>
+                                              <span className="text-xs text-center">Processing</span>
+                                            </div>
+                                            <div className="flex-1 h-0.5 bg-gray-200 mx-2">
+                                              <div className={`h-full transition-all duration-300 ${
+                                                ['shipped', 'delivered', 'completed'].includes(rental.status) 
+                                                  ? 'bg-blue-600' 
+                                                  : 'bg-gray-200'
+                                              }`}></div>
+                                            </div>
+                                            <div className="flex flex-col items-center space-y-2">
+                                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                                ['shipped', 'delivered', 'completed'].includes(rental.status) 
+                                                  ? 'bg-purple-600 text-white' 
+                                                  : 'bg-gray-200 text-gray-500'
+                                              }`}>
+                                                <TrendingUp className="w-5 h-5" />
+                                              </div>
+                                              <span className="text-xs text-center">Shipped</span>
+                                            </div>
+                                            <div className="flex-1 h-0.5 bg-gray-200 mx-2">
+                                              <div className={`h-full transition-all duration-300 ${
+                                                ['delivered', 'completed'].includes(rental.status) 
+                                                  ? 'bg-blue-600' 
+                                                  : 'bg-gray-200'
+                                              }`}></div>
+                                            </div>
+                                            <div className="flex flex-col items-center space-y-2">
+                                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                                ['delivered', 'completed'].includes(rental.status) 
+                                                  ? 'bg-green-600 text-white' 
+                                                  : 'bg-gray-200 text-gray-500'
+                                              }`}>
+                                                <CheckCircle className="w-5 h-5" />
+                                              </div>
+                                              <span className="text-xs text-center">Delivered</span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Status Update Section */}
+                                        <div className="space-y-4 border-t pt-4">
+                                          <h3 className="text-lg font-semibold">Update Order Status</h3>
+                                          <div className="flex gap-2 flex-wrap">
+                                            {/* Processing Button */}
+                                            {['pending', 'active'].includes(rental.status) && (
+                                              <Button
+                                                size="sm"
+                                                onClick={() => updateOrderStatus(rental.id, 'processing')}
+                                                className="bg-blue-600 hover:bg-blue-700"
+                                                disabled={updateOrderStatusMutation.isPending}
+                                              >
+                                                {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Processing'}
+                                              </Button>
+                                            )}
+                                            
+                                            {/* Shipped Button */}
+                                            {['pending', 'active', 'processing'].includes(rental.status) && (
+                                              <Button
+                                                size="sm"
+                                                onClick={() => updateOrderStatus(rental.id, 'shipped')}
+                                                className="bg-purple-600 hover:bg-purple-700"
+                                                disabled={updateOrderStatusMutation.isPending}
+                                              >
+                                                {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Shipped'}
+                                              </Button>
+                                            )}
+                                            
+                                            {/* Delivered Button */}
+                                            {['pending', 'active', 'processing', 'shipped'].includes(rental.status) && (
+                                              <Button
+                                                size="sm"
+                                                onClick={() => updateOrderStatus(rental.id, 'delivered')}
+                                                className="bg-green-600 hover:bg-green-700"
+                                                disabled={updateOrderStatusMutation.isPending}
+                                              >
+                                                {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Delivered'}
+                                              </Button>
+                                            )}
+                                            
+                                            {/* Complete Button for delivered orders */}
+                                            {rental.status === 'delivered' && (
+                                              <Button
+                                                size="sm"
+                                                onClick={() => updateOrderStatus(rental.id, 'completed')}
+                                                className="bg-emerald-600 hover:bg-emerald-700"
+                                                disabled={updateOrderStatusMutation.isPending}
+                                              >
+                                                {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Completed'}
+                                              </Button>
+                                            )}
+                                            
+                                            {/* Cancel Button - only for non-completed orders */}
+                                            {!['completed', 'cancelled', 'delivered'].includes(rental.status) && (
+                                              <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => updateOrderStatus(rental.id, 'cancelled')}
+                                                disabled={updateOrderStatusMutation.isPending}
+                                              >
+                                                {updateOrderStatusMutation.isPending ? 'Cancelling...' : 'Cancel Order'}
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Order Details */}
+                                        <div className="space-y-4 border-t pt-4">
+                                          <h3 className="text-lg font-semibold">Order Information</h3>
+                                          <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                              <span className="font-medium">Order ID:</span>
+                                              <div>#{rental.id?.toString().slice(-8) || 'N/A'}</div>
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">Customer:</span>
+                                              <div>{rental.userName || 'Unknown User'}</div>
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">Book:</span>
+                                              <div>{rental.bookTitle || 'Unknown Book'}</div>
+                                            </div>
+                                            <div>
+                                              <span className="font-medium">Amount:</span>
+                                              <div>₹{parseFloat(rental.totalAmount || '0').toFixed(2)}</div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  
                                   {rental.status === "overdue" ? (
                                     <Button 
                                       variant="ghost" 
@@ -1720,8 +1978,9 @@ export default function Admin() {
                                       size="sm" 
                                       className="text-gray-600 hover:text-gray-800 hover:bg-gray-50" 
                                       data-testid={`button-update-order-${rental.id}`}
+                                      onClick={() => updateOrderStatus(rental.id, getNextStatus(rental.status))}
                                     >
-                                      Update
+                                      Update Status
                                     </Button>
                                   )}
                                 </div>
@@ -2095,7 +2354,7 @@ export default function Admin() {
           // Status filter
           if (paymentStatusFilter !== "all") {
             if (paymentStatusFilter === "pending" && !['pending', 'created'].includes(order.status)) return false;
-            if (paymentStatusFilter === "paid" && !['paid', 'success'].includes(order.status)) return false;
+            if (paymentStatusFilter === "paid" && !['paid', 'success', 'completed'].includes(order.status)) return false;
             if (paymentStatusFilter === "failed" && order.status !== 'failed') return false;
           }
 
@@ -2139,8 +2398,8 @@ export default function Admin() {
 
         const paymentStats = {
           total: paymentOrders.length,
-          pending: paymentOrders.filter(order => order.status === 'pending' || order.status === 'created').length,
-          paid: paymentOrders.filter(order => order.status === 'paid' || order.status === 'success').length,
+          pending: paymentOrders.filter(order => ['pending', 'created'].includes(order.status)).length,
+          paid: paymentOrders.filter(order => ['paid', 'success', 'completed'].includes(order.status)).length,
           failed: paymentOrders.filter(order => order.status === 'failed').length,
           totalAmount: paymentOrders.reduce((sum, order) => sum + parseFloat(order.amount || '0'), 0),
           filteredCount: filteredPaymentOrders.length,
@@ -2263,7 +2522,7 @@ export default function Admin() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-2xl font-bold">{paymentStats.paid}</p>
-                      <p className="text-green-100 text-sm">Paid</p>
+                      <p className="text-green-100 text-sm">Completed</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
                       <CheckCircle className="h-5 w-5" />
@@ -2506,74 +2765,6 @@ export default function Admin() {
                                       </div>
                                     </DialogContent>
                                   </Dialog>
-                                  
-                                  {/* Additional Action Buttons */}
-                                  {(order.status === 'pending' || order.status === 'created') && (
-                                    <>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-green-600 hover:text-green-800"
-                                        onClick={() => {
-                                          if (confirm('Mark this payment as completed?')) {
-                                            // Add mutation for updating payment status
-                                            console.log('Marking payment as paid:', order.id);
-                                          }
-                                        }}
-                                      >
-                                        Mark Paid
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-red-600 hover:text-red-800"
-                                        onClick={() => {
-                                          if (confirm('Mark this payment as failed?')) {
-                                            console.log('Marking payment as failed:', order.id);
-                                          }
-                                        }}
-                                      >
-                                        Mark Failed
-                                      </Button>
-                                    </>
-                                  )}
-                                  
-                                  {order.status === 'failed' && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="text-blue-600 hover:text-blue-800"
-                                      onClick={() => {
-                                        console.log('Retrying payment:', order.id);
-                                      }}
-                                    >
-                                      Retry
-                                    </Button>
-                                  )}
-                                  
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="text-purple-600 hover:text-purple-800"
-                                    onClick={() => {
-                                      const mailtoLink = `mailto:${order.customerEmail}?subject=Regarding Your Order ${order.orderId}&body=Dear ${order.customerName},%0D%0A%0D%0ARegarding your order ${order.orderId}...`;
-                                      window.open(mailtoLink);
-                                    }}
-                                  >
-                                    Email
-                                  </Button>
-                                  
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="text-gray-600 hover:text-gray-800"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(order.orderId);
-                                      alert('Order ID copied to clipboard');
-                                    }}
-                                  >
-                                    Copy ID
-                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>

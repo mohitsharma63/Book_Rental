@@ -323,6 +323,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update order status endpoint
+  app.put("/api/payment-orders/:orderId/status", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const { status, notes } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
+      // Validate status for payment orders
+      const validPaymentStatuses = ['pending', 'created', 'paid', 'success', 'failed', 'refunded', 'cancelled', 'processing', 'shipped', 'delivered', 'completed', 'active'];
+      if (!validPaymentStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid payment status" });
+      }
+
+      const paymentOrder = await storage.updatePaymentOrderStatus(orderId, status, notes);
+
+      if (!paymentOrder) {
+        return res.status(404).json({ error: "Payment order not found" });
+      }
+
+      console.log(`Payment order ${orderId} status updated to ${status} by admin`);
+
+      res.json(paymentOrder);
+    } catch (error) {
+      console.error("Update payment order status error:", error);
+      res.status(500).json({ error: "Failed to update payment order status", details: (error as Error).message });
+    }
+  });
+
 
 
   // Users routes

@@ -1,7 +1,7 @@
-import type { 
-  User, InsertUser, 
-  Book, InsertBook, 
-  Rental, InsertRental, 
+import type {
+  User, InsertUser,
+  Book, InsertBook,
+  Rental, InsertRental,
   Wishlist, InsertWishlist,
   Category, InsertCategory,
   Contact, InsertContact,
@@ -90,14 +90,14 @@ export class MemStorage implements IStorage {
   }
 
   async getBooksByCategory(category: string): Promise<Book[]> {
-    return Array.from(this.books.values()).filter(book => 
+    return Array.from(this.books.values()).filter(book =>
       book.category.toLowerCase() === category.toLowerCase()
     );
   }
 
   async searchBooks(query: string): Promise<Book[]> {
     const searchTerm = query.toLowerCase();
-    return Array.from(this.books.values()).filter(book => 
+    return Array.from(this.books.values()).filter(book =>
       book.title.toLowerCase().includes(searchTerm) ||
       book.author.toLowerCase().includes(searchTerm) ||
       book.category.toLowerCase().includes(searchTerm)
@@ -106,8 +106,8 @@ export class MemStorage implements IStorage {
 
   async createBook(insertBook: InsertBook): Promise<Book> {
     const id = randomUUID();
-    const book: Book = { 
-      ...insertBook, 
+    const book: Book = {
+      ...insertBook,
       id,
       createdAt: new Date(),
       description: insertBook.description || null,
@@ -155,8 +155,8 @@ export class MemStorage implements IStorage {
 
   async createRental(insertRental: InsertRental): Promise<Rental> {
     const id = randomUUID();
-    const rental: Rental = { 
-      ...insertRental, 
+    const rental: Rental = {
+      ...insertRental,
       id,
       createdAt: new Date(),
       status: insertRental.status || "active",
@@ -183,8 +183,8 @@ export class MemStorage implements IStorage {
 
   async addToWishlist(insertWishlist: InsertWishlist): Promise<Wishlist> {
     const id = randomUUID();
-    const wishlistItem: Wishlist = { 
-      ...insertWishlist, 
+    const wishlistItem: Wishlist = {
+      ...insertWishlist,
       id,
       createdAt: new Date(),
     };
@@ -353,8 +353,8 @@ export class MemStorage implements IStorage {
   async updateCategory(id: number, updates: Partial<Omit<Category, 'id' | 'createdAt'>>): Promise<Category | null> {
     const categoryIndex = this.categories.findIndex(c => c.id === id);
     if (categoryIndex !== -1) {
-      this.categories[categoryIndex] = { 
-        ...this.categories[categoryIndex], 
+      this.categories[categoryIndex] = {
+        ...this.categories[categoryIndex],
         ...updates,
         isActive: updates.isActive ?? this.categories[categoryIndex].isActive
       };
@@ -447,6 +447,57 @@ export class MemStorage implements IStorage {
 
   async deleteSlider(id: number): Promise<boolean> {
     return this.sliders.delete(id.toString());
+  }
+
+  async updatePaymentOrder(orderId: string, updateData: any): Promise<any> {
+    try {
+      const result = await this.db
+        .update(paymentOrders)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(paymentOrders.orderId, orderId))
+        .returning();
+
+      return result[0] || null;
+    } catch (error) {
+      console.error("Update payment order error:", error);
+      throw error;
+    }
+  }
+
+  async updatePaymentOrderStatus(orderId: string, status: string, notes?: string): Promise<any> {
+    try {
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      };
+
+      // Add status-specific timestamps
+      if (status === 'processing') {
+        updateData.processingAt = new Date();
+      } else if (status === 'shipped') {
+        updateData.shippedAt = new Date();
+      } else if (status === 'delivered') {
+        updateData.deliveredAt = new Date();
+      }
+
+      if (notes) {
+        updateData.adminNotes = notes;
+      }
+
+      const result = await this.db
+        .update(paymentOrders)
+        .set(updateData)
+        .where(eq(paymentOrders.orderId, orderId))
+        .returning();
+
+      return result[0] || null;
+    } catch (error) {
+      console.error("Update payment order status error:", error);
+      throw error;
+    }
   }
 }
 

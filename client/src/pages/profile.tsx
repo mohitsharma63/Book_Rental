@@ -283,7 +283,7 @@ export default function Profile() {
   const handleViewDetails = (order: any) => {
     // Transform payment order to match the expected order format for the dialog
     let transformedOrder = order;
-    
+
     // If this is a payment order, transform it to match the rental format
     if (order.orderId && order.cartItems) {
       let cartItems = [];
@@ -292,7 +292,7 @@ export default function Profile() {
       } catch (e) {
         cartItems = [];
       }
-      
+
       transformedOrder = {
         id: order.orderId,
         date: order.createdAt,
@@ -304,18 +304,19 @@ export default function Profile() {
           title: item.bookTitle || item.title || 'Unknown Book',
           author: item.author || 'Unknown Author',
           image: item.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200',
-          rentalPeriod: item.rentalPeriodLabel || `${item.rentalDuration || 4} weeks`,
+          rentalPeriod: item.rentalPeriod || `${item.rentalDuration || 4} weeks`,
           price: `₹${item.price || 0}`
         }))
       };
     }
-    
+
     setSelectedOrder(transformedOrder);
     setShowOrderDialog(true);
   };
 
   const handleTrackOrder = (order: any) => {
     setSelectedOrder(order);
+    setShowOrderDialog(true); // Assuming tracking also opens a dialog or similar view
   };
 
   const handleDownloadInvoice = (order: any) => {
@@ -732,22 +733,56 @@ Generated on: ${currentDate}
                           </div>
 
                           <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleViewDetails(order)}
                             >
                               View Details
                             </Button>
-                            {order.status === 'paid' && (
-                              <Button 
-                                variant="outline" 
+                            {order.status === 'paid' || order.status === 'shipped' || order.status === 'processing' ? (
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleTrackOrder(order)}
                               >
                                 Track Order
                               </Button>
-                            )}
+                            ) : null}
+                          </div>
+                        </div>
+                        {/* Order Progress Bar */}
+                        <div className="mt-4 space-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground">Order Progress</span>
+                            <span className="font-medium text-primary">
+                              {order.status === 'pending' ? '25% Complete' :
+                               order.status === 'processing' ? '25% Complete' :
+                               order.status === 'shipped' ? '75% Complete' :
+                               order.status === 'delivered' || order.status === 'completed' ? '100% Complete' : '0% Complete'}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                              style={{
+                                width: order.status === 'pending' ? '25%' :
+                                       order.status === 'processing' ? '25%' :
+                                       order.status === 'shipped' ? '75%' :
+                                       order.status === 'delivered' || order.status === 'completed' ? '100%' : '0%'
+                              }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span className={order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed' ? 'text-primary font-medium' : ''}>
+                              Processing
+                            </span>
+                            <span className={order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed' ? 'text-primary font-medium' : ''}>
+                              Shipped
+                            </span>
+                            <span className={order.status === 'delivered' || order.status === 'completed' ? 'text-green-600 font-medium' : ''}>
+                              Delivered
+                            </span>
                           </div>
                         </div>
                       </Card>
