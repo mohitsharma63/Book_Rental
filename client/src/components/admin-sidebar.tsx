@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
-  Clock, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  Clock,
   BarChart3,
   Settings,
   LogOut,
@@ -15,7 +15,9 @@ import {
   FolderOpen,
   Image,
   ShoppingCart,
-  CreditCard
+  CreditCard,
+  Truck,
+  RotateCcw
 } from "lucide-react";
 import {
   Sheet,
@@ -36,13 +38,15 @@ const menuItems = [
   { id: "users", label: "Users", icon: Users },
   { id: "rentals", label: "Rentals", icon: Clock },
   { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "deliveries", label: "Deliveries", icon: Truck },
+  { id: "returns", label: "Returns", icon: RotateCcw },
   { id: "payments", label: "Payments", icon: CreditCard },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "contact", label: "Contact Us", icon: MessageCircle },
 ];
 
-function SidebarContent({ activeTab, onTabChange, onClose }: { 
-  activeTab: string; 
+function SidebarContent({ activeTab, onTabChange, onClose }: {
+  activeTab: string;
   onTabChange: (tab: string) => void;
   onClose?: () => void;
 }) {
@@ -121,8 +125,8 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-80">
-            <SidebarContent 
-              activeTab={activeTab} 
+            <SidebarContent
+              activeTab={activeTab}
               onTabChange={onTabChange}
               onClose={() => setIsMobileOpen(false)}
             />

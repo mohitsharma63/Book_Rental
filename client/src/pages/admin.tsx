@@ -1766,6 +1766,329 @@ export default function Admin() {
           </div>
         );
 
+      case "deliveries":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Delivery Management</h3>
+              <div className="flex items-center space-x-4">
+                <Select>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Deliveries</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="picked_up">Picked Up</SelectItem>
+                    <SelectItem value="in_transit">In Transit</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Delivery Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">45</p>
+                      <p className="text-blue-100 text-sm">Total Deliveries</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <BookIcon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">12</p>
+                      <p className="text-orange-100 text-sm">Pending</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">8</p>
+                      <p className="text-purple-100 text-sm">In Transit</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">23</p>
+                      <p className="text-green-100 text-sm">Delivered</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <CheckCircle className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">2</p>
+                      <p className="text-red-100 text-sm">Failed</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <X className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Deliveries Table */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tracking ID</TableHead>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Estimated Delivery</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { 
+                          trackingId: "TRK123456789",
+                          orderId: "ORD-2024-001", 
+                          customer: "John Doe", 
+                          address: "Mumbai, Maharashtra",
+                          status: "in_transit",
+                          estimatedDelivery: "2024-01-25"
+                        },
+                        { 
+                          trackingId: "TRK123456790",
+                          orderId: "ORD-2024-002", 
+                          customer: "Jane Smith", 
+                          address: "Delhi, Delhi",
+                          status: "delivered",
+                          estimatedDelivery: "2024-01-24"
+                        }
+                      ].map((delivery) => (
+                        <TableRow key={delivery.trackingId}>
+                          <TableCell className="font-mono">{delivery.trackingId}</TableCell>
+                          <TableCell>{delivery.orderId}</TableCell>
+                          <TableCell>{delivery.customer}</TableCell>
+                          <TableCell>{delivery.address}</TableCell>
+                          <TableCell>
+                            <Badge className={
+                              delivery.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              delivery.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
+                              delivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }>
+                              {delivery.status.replace('_', ' ').charAt(0).toUpperCase() + delivery.status.replace('_', ' ').slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{delivery.estimatedDelivery}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button variant="ghost" size="sm" className="text-blue-600">
+                                Track
+                              </Button>
+                              <Button variant="ghost" size="sm" className="text-green-600">
+                                Update
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "returns":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Return Management</h3>
+              <div className="flex items-center space-x-4">
+                <Select>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Returns</SelectItem>
+                    <SelectItem value="requested">Requested</SelectItem>
+                    <SelectItem value="picked_up">Picked Up</SelectItem>
+                    <SelectItem value="received">Received</SelectItem>
+                    <SelectItem value="processed">Processed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Return Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">18</p>
+                      <p className="text-blue-100 text-sm">Total Returns</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <BookIcon className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">5</p>
+                      <p className="text-orange-100 text-sm">Pending Pickup</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">12</p>
+                      <p className="text-green-100 text-sm">Processed</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <CheckCircle className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-bold">₹2,450</p>
+                      <p className="text-purple-100 text-sm">Refunds Processed</p>
+                    </div>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Returns Table */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Return ID</TableHead>
+                        <TableHead>Book</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Requested Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { 
+                          returnId: "RTN123456789",
+                          book: "The Alchemist", 
+                          customer: "John Doe", 
+                          reason: "completed",
+                          status: "processed",
+                          requestedDate: "2024-01-20"
+                        },
+                        { 
+                          returnId: "RTN123456790",
+                          book: "Atomic Habits", 
+                          customer: "Jane Smith", 
+                          reason: "early_return",
+                          status: "requested",
+                          requestedDate: "2024-01-22"
+                        }
+                      ].map((returnItem) => (
+                        <TableRow key={returnItem.returnId}>
+                          <TableCell className="font-mono">{returnItem.returnId}</TableCell>
+                          <TableCell>{returnItem.book}</TableCell>
+                          <TableCell>{returnItem.customer}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {returnItem.reason.replace('_', ' ').charAt(0).toUpperCase() + returnItem.reason.replace('_', ' ').slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={
+                              returnItem.status === 'processed' ? 'bg-green-100 text-green-800' :
+                              returnItem.status === 'received' ? 'bg-blue-100 text-blue-800' :
+                              returnItem.status === 'picked_up' ? 'bg-purple-100 text-purple-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }>
+                              {returnItem.status.charAt(0).toUpperCase() + returnItem.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{returnItem.requestedDate}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button variant="ghost" size="sm" className="text-blue-600">
+                                View
+                              </Button>
+                              {returnItem.status === 'requested' && (
+                                <Button variant="ghost" size="sm" className="text-green-600">
+                                  Approve
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       case "payments":
 
         const filteredPaymentOrders = paymentOrders.filter(order => {

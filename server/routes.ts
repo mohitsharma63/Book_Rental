@@ -765,6 +765,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delivery routes
+  app.post("/api/deliveries", async (req, res) => {
+    try {
+      const deliveryData = req.body;
+      const delivery = await storage.createDelivery(deliveryData);
+      res.status(201).json(delivery);
+    } catch (error) {
+      console.error("Create delivery error:", error);
+      res.status(500).json({ error: "Failed to create delivery", details: (error as Error).message });
+    }
+  });
+
+  app.get("/api/deliveries", async (req, res) => {
+    try {
+      const deliveries = await storage.getAllDeliveries();
+      res.json(deliveries);
+    } catch (error) {
+      console.error("Get deliveries error:", error);
+      res.status(500).json({ error: "Failed to fetch deliveries", details: (error as Error).message });
+    }
+  });
+
+  app.get("/api/deliveries/order/:orderId", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const delivery = await storage.getDeliveryByOrderId(orderId);
+      
+      if (!delivery) {
+        return res.status(404).json({ error: "Delivery not found" });
+      }
+
+      res.json(delivery);
+    } catch (error) {
+      console.error("Get delivery by order error:", error);
+      res.status(500).json({ error: "Failed to fetch delivery", details: (error as Error).message });
+    }
+  });
+
+  app.get("/api/deliveries/:id/tracking", async (req, res) => {
+    try {
+      const deliveryId = parseInt(req.params.id);
+      const tracking = await storage.getDeliveryTracking(deliveryId);
+      res.json(tracking);
+    } catch (error) {
+      console.error("Get delivery tracking error:", error);
+      res.status(500).json({ error: "Failed to fetch delivery tracking", details: (error as Error).message });
+    }
+  });
+
+  app.put("/api/deliveries/:id/status", async (req, res) => {
+    try {
+      const deliveryId = parseInt(req.params.id);
+      const { status, location, description } = req.body;
+      
+      const delivery = await storage.updateDeliveryStatus(deliveryId, status, location, description);
+      res.json(delivery);
+    } catch (error) {
+      console.error("Update delivery status error:", error);
+      res.status(500).json({ error: "Failed to update delivery status", details: (error as Error).message });
+    }
+  });
+
+  // Return routes
+  app.post("/api/returns", async (req, res) => {
+    try {
+      const returnData = req.body;
+      const returnRecord = await storage.createReturn(returnData);
+      res.status(201).json(returnRecord);
+    } catch (error) {
+      console.error("Create return error:", error);
+      res.status(500).json({ error: "Failed to create return", details: (error as Error).message });
+    }
+  });
+
+  app.get("/api/returns", async (req, res) => {
+    try {
+      const { userId } = req.query;
+      
+      let returns;
+      if (userId) {
+        returns = await storage.getReturnsByUser(userId as string);
+      } else {
+        returns = await storage.getAllReturns();
+      }
+      
+      res.json(returns);
+    } catch (error) {
+      console.error("Get returns error:", error);
+      res.status(500).json({ error: "Failed to fetch returns", details: (error as Error).message });
+    }
+  });
+
+  app.get("/api/returns/:id", async (req, res) => {
+    try {
+      const returnId = parseInt(req.params.id);
+      const returnRecord = await storage.getReturn(returnId);
+      
+      if (!returnRecord) {
+        return res.status(404).json({ error: "Return not found" });
+      }
+      
+      res.json(returnRecord);
+    } catch (error) {
+      console.error("Get return error:", error);
+      res.status(500).json({ error: "Failed to fetch return", details: (error as Error).message });
+    }
+  });
+
+  app.put("/api/returns/:id/status", async (req, res) => {
+    try {
+      const returnId = parseInt(req.params.id);
+      const { status, adminNotes } = req.body;
+      
+      const returnRecord = await storage.updateReturnStatus(returnId, status, adminNotes);
+      res.json(returnRecord);
+    } catch (error) {
+      console.error("Update return status error:", error);
+      res.status(500).json({ error: "Failed to update return status", details: (error as Error).message });
+    }
+  });
+
   // Cashfree Payment Routes
   app.post('/api/payments/cashfree/create-order', async (req, res) => {
     try {

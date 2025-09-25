@@ -1,4 +1,3 @@
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Router, Switch } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
@@ -31,6 +30,8 @@ import Admin from "@/pages/admin";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
+import TrackOrder from "@/pages/track-order";
+import ReturnRequest from "@/pages/return-request";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,7 +62,7 @@ function App() {
                     <Route path="/otp-verification" component={OtpVerification} />
                     <Route path="/terms" component={Terms} />
                     <Route path="/privacy" component={Privacy} />
-                    
+
                     {/* Protected Routes */}
                     <Route path="/cart">
                       <RouteGuard requireAuth={true} redirectTo="/login">
@@ -73,11 +74,10 @@ function App() {
                         <Checkout />
                       </RouteGuard>
                     </Route>
-                    <Route path="/payment-success">
-                      <RouteGuard requireAuth={true} redirectTo="/login">
-                        <PaymentSuccess />
-                      </RouteGuard>
-                    </Route>
+                    <Route path="/payment-success" component={PaymentSuccess} />
+                    <Route path="/track-order/:orderId" component={TrackOrder} />
+                    <Route path="/return-request/:rentalId" component={ReturnRequest} />
+                    <Route path="/contact" component={Contact} />
                     <Route path="/profile">
                       <RouteGuard requireAuth={true} redirectTo="/login">
                         <Profile />
@@ -96,7 +96,7 @@ function App() {
                         <Admin />
                       </RouteGuard>
                     </Route>
-                    
+
                     {/* 404 Route */}
                     <Route component={NotFound} />
                   </Switch>
