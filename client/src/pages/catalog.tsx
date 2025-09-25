@@ -27,12 +27,17 @@ export default function Catalog() {
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
   const [_, navigate] = useLocation();
 
-  // Get category from URL parameters
+  // Get category and search from URL parameters
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get('category');
+    const searchParam = urlParams.get('search');
+    
     if (categoryParam) {
       setSelectedCategories([categoryParam]);
+    }
+    if (searchParam) {
+      setSearchQuery(searchParam);
     }
   }, []);
 
@@ -163,9 +168,9 @@ export default function Catalog() {
 
   const sortedBooks = [...filteredBooks].sort((a, b) => {
     if (sortBy === "price-low") {
-      return (a as any).price - (b as any).price;
+      return parseFloat(a.pricePerWeek || '0') - parseFloat(b.pricePerWeek || '0');
     } else if (sortBy === "price-high") {
-      return (b as any).price - (a as any).price;
+      return parseFloat(b.pricePerWeek || '0') - parseFloat(a.pricePerWeek || '0');
     } else if (sortBy === "rating") {
       return (parseFloat(b.rating as string || '0')) - (parseFloat(a.rating as string || '0'));
     } else if (sortBy === "newest") {

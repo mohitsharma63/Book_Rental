@@ -1,6 +1,6 @@
 import { useAuth } from "@/lib/auth-context";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface RouteGuardProps {
@@ -16,12 +16,38 @@ export function RouteGuard({
 }: RouteGuardProps) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (requireAuth && !isAuthenticated) {
+    // Wait a moment for auth context to load user from localStorage
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && requireAuth && !isAuthenticated) {
       setLocation(redirectTo);
     }
-  }, [isAuthenticated, requireAuth, redirectTo, setLocation]);
+  }, [isAuthenticated, requireAuth, redirectTo, setLocation, isLoading]);
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="text-lg font-medium">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (requireAuth && !isAuthenticated) {
     return (

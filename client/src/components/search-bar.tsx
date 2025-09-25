@@ -42,8 +42,15 @@ export function SearchBar({ onSearch, onCategoryFilter }: SearchBarProps) {
   };
 
   const handleCategoryClick = (category: string) => {
-    setActiveCategory(category);
-    onCategoryFilter?.(category);
+    if (activeCategory === category) {
+      // If clicking the same category, clear the filter
+      setActiveCategory("");
+      onCategoryFilter?.("");
+    } else {
+      // Set new category filter
+      setActiveCategory(category);
+      onCategoryFilter?.(category);
+    }
   };
 
   return (

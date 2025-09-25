@@ -147,8 +147,8 @@ export default function BookDetail() {
   const calculatePrice = () => {
     const basePrice = parseFloat(book?.pricePerWeek || "0");
     const duration = parseInt(selectedRentalPeriod);
-    if (duration === 4) return basePrice * 4; // 1 month
-    if (duration === 8) return basePrice * 7.2; // 2 months with 10% discount
+    if (duration === 4) return basePrice; // 1 month = weekly price
+    if (duration === 8) return basePrice * 1.8; // 2 months with 10% discount (2 * 0.9)
     return basePrice;
   };
 
@@ -245,8 +245,8 @@ export default function BookDetail() {
   }
 
   const rentalPeriods = [
-    { weeks: "4", price: (parseFloat(book.pricePerWeek) * 4).toFixed(2), label: "1 Month" },
-    { weeks: "8", price: (parseFloat(book.pricePerWeek) * 7.2).toFixed(2), label: "2 Months", discount: "10% off" }, // 8 weeks with 10% discount
+    { weeks: "4", price: parseFloat(book.pricePerWeek).toFixed(2), label: "1 Month" },
+    { weeks: "8", price: (parseFloat(book.pricePerWeek) * 1.8).toFixed(2), label: "2 Months", discount: "10% off" },
   ];
 
   // Use dynamic reviews data or fallback to empty array

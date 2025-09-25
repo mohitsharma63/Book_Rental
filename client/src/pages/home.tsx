@@ -43,19 +43,22 @@ export default function Home() {
 
   // Filter books for display
   const filteredBooks = books.filter(book => {
-    if (searchQuery && !book.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !book.author.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    if (categoryFilter && book.category !== categoryFilter) {
-      return false;
-    }
-    return true;
+    const matchesSearch = !searchQuery || 
+      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = !categoryFilter || book.category === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
   });
 
   // Get featured books (first 3 or books marked as featured)
+  // If search is active, show filtered results, otherwise show featured books
   const featuredBooks = books.filter(book => book.featured).slice(0, 3);
-  const displayFeaturedBooks = featuredBooks.length > 0 ? featuredBooks : books.slice(0, 3);
+  const displayFeaturedBooks = (searchQuery || categoryFilter) 
+    ? filteredBooks.slice(0, 8) // Show more results when filtering
+    : (featuredBooks.length > 0 ? featuredBooks : books.slice(0, 3));
 
   // Fetch active sliders for homepage
   const { data: slidersData = [], isLoading: slidersLoading } = useQuery({
@@ -620,18 +623,40 @@ export default function Home() {
         onCategoryFilter={setCategoryFilter}
       />
 
-      {/* Featured Books */}
+      {/* Featured Books / Search Results */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <div>
-            {/* <h3 className="text-2xl font-bold mb-2" data-testid="text-featured-title">
-              Featured Books
-            </h3> */}
+            <h3 className="text-2xl font-bold mb-2" data-testid="text-featured-title">
+              {searchQuery || categoryFilter ? "Search Results" : "Featured Books"}
+            </h3>
+            {(searchQuery || categoryFilter) && (
+              <div className="flex items-center gap-4 mt-2">
+                <p className="text-sm text-muted-foreground">
+                  {displayFeaturedBooks.length} book{displayFeaturedBooks.length !== 1 ? 's' : ''} found
+                  {searchQuery && ` for "${searchQuery}"`}
+                  {categoryFilter && ` in "${categoryFilter}"`}
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setCategoryFilter("");
+                  }}
+                  className="h-8 px-3"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
-          <Badge variant="secondary" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Trending Now
-          </Badge>
+          {!searchQuery && !categoryFilter && (
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Trending Now
+            </Badge>
+          )}
         </div>
 
         {isLoading ? (
@@ -650,11 +675,10 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : displayFeaturedBooks.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mobile-grid-2">
             {displayFeaturedBooks.map((book, index) => (
               <div key={book.id} className="relative">
-
                 <BookCard
                   book={book}
                   onRent={() => handleRentNow(book)}
@@ -663,15 +687,40 @@ export default function Home() {
               </div>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+              <SearchIcon className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h4 className="text-lg font-semibold mb-2 text-muted-foreground">No books found</h4>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
+              {searchQuery || categoryFilter
+                ? "Try adjusting your search terms or browse our categories"
+                : "No books are currently available"}
+            </p>
+            {(searchQuery || categoryFilter) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategoryFilter("");
+                }}
+              >
+                Clear Search
+              </Button>
+            )}
+          </div>
         )}
 
-        <div className="text-center mt-8">
-          <Link href="/catalog">
-            <Button variant="outline" className="px-8">
-              View All Featured Books
-            </Button>
-          </Link>
-        </div>
+        {displayFeaturedBooks.length > 0 && (
+          <div className="text-center mt-8">
+            <Link href={`/catalog${categoryFilter ? `?category=${encodeURIComponent(categoryFilter)}` : ''}${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`}>
+              <Button variant="outline" className="px-8">
+                {searchQuery || categoryFilter ? "View All Results in Catalog" : "View All Featured Books"}
+              </Button>
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* Popular Categories */}

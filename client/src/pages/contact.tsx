@@ -289,25 +289,7 @@ export default function Contact() {
         </div>
       </div>
 
-      {/* FAQ Section */}
-    
-      {/* CTA Section */}
-      <div className="mt-16 bg-primary/5 rounded-lg p-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Still Have Questions?</h2>
-        <p className="text-muted-foreground mb-6">
-          Our support team is always ready to help you with any questions or concerns.
-        </p>
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button size="lg">
-            <Phone className="h-4 w-4 mr-2" />
-            Call Us Now
-          </Button>
-          <Button variant="outline" size="lg">
-            <Mail className="h-4 w-4 mr-2" />
-            Email Support
-          </Button>
-        </div>
-      </div>
+      
     </main>
   );
 }

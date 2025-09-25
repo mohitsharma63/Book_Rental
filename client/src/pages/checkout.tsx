@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, CreditCard, MapPin, User, Package, CheckCircle } from "lucide-react";
@@ -215,17 +214,14 @@ export default function CheckoutPage() {
 
   const calculateSubtotal = () => {
     return cartItems.reduce((total, item) => {
-      const baseMonthlyPrice = parseFloat(item.price) || 0;
-      let totalPrice = 0;
+      const baseMonthlyPrice = parseFloat(item.price?.toString() || "0");
+      let totalPrice;
 
-      if (item.rentalDuration === 4) {
-        // 1 Month - no discount
+      if ((item.rentalDuration || 4) === 4) {
         totalPrice = baseMonthlyPrice;
-      } else if (item.rentalDuration === 8) {
-        // 2 Months - 10% discount
-        totalPrice = baseMonthlyPrice * 2 * 0.9;
+      } else if ((item.rentalDuration || 4) === 8) {
+        totalPrice = baseMonthlyPrice * 1.8; // 2 months with 10% discount
       } else {
-        // Default to 1 month
         totalPrice = baseMonthlyPrice;
       }
 
@@ -786,13 +782,13 @@ export default function CheckoutPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900">₹{(() => {
-                            const baseMonthlyPrice = parseFloat(item.price) || 0;
-                            let totalPrice = 0;
+                            const baseMonthlyPrice = parseFloat(item.price?.toString() || "0");
+                            let totalPrice;
 
                             if ((item.rentalDuration || 4) === 4) {
                               totalPrice = baseMonthlyPrice;
                             } else if ((item.rentalDuration || 4) === 8) {
-                              totalPrice = baseMonthlyPrice * 2 * 0.9;
+                              totalPrice = baseMonthlyPrice * 1.8; // 2 months with 10% discount
                             } else {
                               totalPrice = baseMonthlyPrice;
                             }
@@ -826,9 +822,9 @@ export default function CheckoutPage() {
                     disabled={loading}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
-                    {loading ? 'Processing...' : 
-                     formData.paymentMethod === 'cashfree' ? 
-                     `Pay Online - ₹${total.toLocaleString()}` : 
+                    {loading ? 'Processing...' :
+                     formData.paymentMethod === 'cashfree' ?
+                     `Pay Online - ₹${total.toLocaleString()}` :
                      `Place Order - ₹${total.toLocaleString()}`}
                   </Button>
 
