@@ -61,8 +61,22 @@ export default function Cart() {
   };
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const durationMultiplier = item.rentalDuration === 4 ? 4 : item.rentalDuration === 8 ? 7.2 : 4;
-    return sum + (item.price * durationMultiplier * item.quantity);
+    // Calculate price based on rental duration and apply discounts
+    const baseMonthlyPrice = parseFloat(item.price) || 0;
+    let totalPrice = 0;
+
+    if (item.rentalDuration === 4) {
+      // 1 Month - no discount
+      totalPrice = baseMonthlyPrice;
+    } else if (item.rentalDuration === 8) {
+      // 2 Months - 10% discount
+      totalPrice = baseMonthlyPrice * 2 * 0.9;
+    } else {
+      // Default to 1 month if no duration specified
+      totalPrice = baseMonthlyPrice;
+    }
+
+    return sum + (totalPrice * item.quantity);
   }, 0);
 
   const deliveryFee = selectedDelivery === "express" ? 199 : selectedDelivery === "standard" ? 99 : 0;
@@ -228,7 +242,20 @@ export default function Cart() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Price</label>
                             <div className="text-2xl font-bold text-primary">
-                              ₹{(item.price * ((item.rentalDuration || 4) === 4 ? 4 : (item.rentalDuration || 4) === 8 ? 7.2 : 4) * item.quantity).toFixed(2)}
+                              ₹{(() => {
+                                const baseMonthlyPrice = parseFloat(item.price) || 0;
+                                let totalPrice = 0;
+
+                                if (item.rentalDuration === 4) {
+                                  totalPrice = baseMonthlyPrice;
+                                } else if (item.rentalDuration === 8) {
+                                  totalPrice = baseMonthlyPrice * 2 * 0.9;
+                                } else {
+                                  totalPrice = baseMonthlyPrice;
+                                }
+
+                                return (totalPrice * item.quantity).toFixed(2);
+                              })()}
                             </div>
                           </div>
                         </div>

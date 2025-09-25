@@ -34,7 +34,7 @@ interface StoreContextType {
   addToWishlist: (item: WishlistItem) => void;
   removeFromWishlist: (id: string) => void;
   updateCartQuantity: (id: string, quantity: number) => void;
-  updateCartItemRentalDuration: (id: string, newPeriod: string) => void;
+  updateCartItemRentalDuration: (id: string, newPeriod: string, newDuration: number) => void;
   clearCart: () => void;
   clearWishlist: () => void;
   clearAllData: () => void;
@@ -131,39 +131,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const updateCartItemRentalDuration = (id: string, newPeriod: string) => {
+  const updateCartItemRentalDuration = (id: string, newPeriod: string, newDuration: number) => {
     setCartItems(prev =>
       prev.map(item => {
         if (item.id === id) {
-          let periodWeeks: number;
-          let periodLabel: string;
-          let discount = 0;
-
-          switch (newPeriod) {
-            case '1 Month':
-              periodWeeks = 4;
-              periodLabel = '1 Month';
-              discount = 0;
-              break;
-            case '2 Months (10% off)':
-              periodWeeks = 8;
-              periodLabel = '2 Months';
-              discount = 0.1;
-              break;
-            default: // Default to 1 week if something unexpected happens
-              periodWeeks = 1;
-              periodLabel = '1 Week';
-              discount = 0;
-          }
-
-          const basePrice = item.price; // Assuming item.price is the price for 1 week
-          const discountedPrice = basePrice * (1 - discount);
-
           return {
             ...item,
-            rentalDuration: periodWeeks,
-            rentalPeriodLabel: periodLabel, // Set the label
-            price: discountedPrice // Update price based on discount
+            rentalDuration: newDuration,
+            rentalPeriodLabel: newPeriod
           };
         }
         return item;

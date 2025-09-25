@@ -215,8 +215,21 @@ export default function CheckoutPage() {
 
   const calculateSubtotal = () => {
     return cartItems.reduce((total, item) => {
-      const durationMultiplier = item.rentalDuration === 4 ? 4 : item.rentalDuration === 8 ? 7.2 : 4;
-      return total + (item.price * durationMultiplier * item.quantity);
+      const baseMonthlyPrice = parseFloat(item.price) || 0;
+      let totalPrice = 0;
+
+      if (item.rentalDuration === 4) {
+        // 1 Month - no discount
+        totalPrice = baseMonthlyPrice;
+      } else if (item.rentalDuration === 8) {
+        // 2 Months - 10% discount
+        totalPrice = baseMonthlyPrice * 2 * 0.9;
+      } else {
+        // Default to 1 month
+        totalPrice = baseMonthlyPrice;
+      }
+
+      return total + (totalPrice * item.quantity);
     }, 0);
   };
 
@@ -772,7 +785,20 @@ export default function CheckoutPage() {
                           <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-gray-900">₹{(item.price * ((item.rentalDuration || 4) === 4 ? 4 : (item.rentalDuration || 4) === 8 ? 7.2 : 4) * item.quantity).toFixed(2)}</p>
+                          <p className="font-semibold text-gray-900">₹{(() => {
+                            const baseMonthlyPrice = parseFloat(item.price) || 0;
+                            let totalPrice = 0;
+
+                            if ((item.rentalDuration || 4) === 4) {
+                              totalPrice = baseMonthlyPrice;
+                            } else if ((item.rentalDuration || 4) === 8) {
+                              totalPrice = baseMonthlyPrice * 2 * 0.9;
+                            } else {
+                              totalPrice = baseMonthlyPrice;
+                            }
+
+                            return (totalPrice * item.quantity).toFixed(2);
+                          })()}</p>
                         </div>
                       </div>
                     ))}
