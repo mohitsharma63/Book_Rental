@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +54,12 @@ export default function Profile() {
     phone: "",
     address: ""
   });
+
+  // State for filters and search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('newest');
+
 
   const queryClient = useQueryClient();
 
@@ -133,6 +139,80 @@ export default function Profile() {
     setEditFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Fetch user rentals (This part seems to be replaced by payment orders logic, but keeping it for now as per original code)
+  const { data: rentals = [], isLoading: rentalsLoading } = useQuery({
+    queryKey: ['rentals', currentUserId],
+    queryFn: async () => {
+      if (!currentUserId) {
+        throw new Error('No user ID available');
+      }
+      const response = await fetch(`/api/users/${currentUserId}/rentals`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user rentals');
+      }
+      const rentals = await response.json();
+
+      // Transform rentals to match order format
+      return rentals.map((rental: any) => ({
+        id: rental.id,
+        date: rental.rentalDate,
+        status: rental.status === 'completed' ? 'delivered' :
+                rental.status === 'overdue' ? 'overdue' : rental.status,
+        books: [{
+          title: rental.book?.title || 'Unknown Book',
+          author: rental.book?.author || 'Unknown Author',
+          image: rental.book?.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200',
+          rentalPeriod: rental.dueDate ?
+            `${Math.ceil((new Date(rental.dueDate).getTime() - new Date(rental.rentalDate).getTime()) / (1000 * 60 * 60 * 24 * 7))} weeks` :
+            '2 weeks',
+          price: `₹${rental.totalAmount}`
+        }],
+        totalAmount: `₹${rental.totalAmount}`,
+        deliveryDate: rental.rentalDate,
+        returnDate: rental.returnDate || rental.dueDate
+      }));
+    },
+    enabled: !!currentUserId
+  });
+
+  // Fetch user's payment orders
+  const { data: paymentOrders = [], isLoading: paymentOrdersLoading } = useQuery({
+    queryKey: ['user-payment-orders', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/payment-orders?userId=${user.id}`);
+      if (!res.ok) throw new Error('Failed to fetch payment orders');
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  // Filter and sort payment orders
+  const filteredPaymentOrders = useMemo(() => {
+    let filtered = paymentOrders.filter(order => {
+      const matchesSearch = searchQuery === '' ||
+        order.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    // Sort orders
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+
+      return sortOrder === 'newest'
+        ? dateB.getTime() - dateA.getTime()
+        : dateA.getTime() - dateB.getTime();
+    });
+
+    return filtered;
+  }, [paymentOrders, searchQuery, statusFilter, sortOrder]);
+
+
   // Show loading if user is not available or data is loading
   if (!user || userLoading || !currentUserId) {
     return (
@@ -159,74 +239,10 @@ export default function Profile() {
     );
   }
 
-  // Static order data
-  const orders = [
-    {
-      id: "ORD-2024-001",
-      date: "2024-01-20",
-      status: "delivered",
-      books: [
-        {
-          title: "The Alchemist",
-          author: "Paulo Coelho",
-          image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
-          rentalPeriod: "2 weeks",
-          price: "₹299"
-        }
-      ],
-      totalAmount: "₹299",
-      deliveryDate: "2024-01-22",
-      returnDate: "2024-02-05"
-    },
-    {
-      id: "ORD-2024-002",
-      date: "2024-01-15",
-      status: "active",
-      books: [
-        {
-          title: "Dune",
-          author: "Frank Herbert",
-          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
-          rentalPeriod: "3 weeks",
-          price: "₹450"
-        },
-        {
-          title: "1984",
-          author: "George Orwell",
-          image: "https://images.unsplash.com/photo-1495640388908-05fa85288e61?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
-          rentalPeriod: "2 weeks",
-          price: "₹350"
-        }
-      ],
-      totalAmount: "₹800",
-      deliveryDate: "2024-01-17",
-      returnDate: "2024-02-07"
-    },
-    {
-      id: "ORD-2024-003",
-      date: "2024-01-10",
-      status: "returned",
-      books: [
-        {
-          title: "The Great Gatsby",
-          author: "F. Scott Fitzgerald",
-          image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
-          rentalPeriod: "1 week",
-          price: "₹199"
-        }
-      ],
-      totalAmount: "₹199",
-      deliveryDate: "2024-01-12",
-      returnDate: "2024-01-19"
-    }
-  ];
-
-  // Static reading history
- 
-
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "delivered":
+      case "completed":
         return "bg-green-100 text-green-800";
       case "active":
         return "bg-blue-100 text-blue-800";
@@ -236,6 +252,12 @@ export default function Profile() {
         return "bg-yellow-100 text-yellow-800";
       case "shipped":
         return "bg-purple-100 text-purple-800";
+      case "paid":
+        return "bg-blue-100 text-blue-800";
+      case "pending":
+        return "bg-orange-100 text-orange-800";
+      case "failed":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -248,8 +270,8 @@ export default function Profile() {
       case "shipped":
         return 75;
       case "delivered":
-        return 100;
-      case "active":
+      case "completed":
+      case "paid":
         return 100;
       case "returned":
         return 100;
@@ -259,7 +281,36 @@ export default function Profile() {
   };
 
   const handleViewDetails = (order: any) => {
-    setSelectedOrder(order);
+    // Transform payment order to match the expected order format for the dialog
+    let transformedOrder = order;
+    
+    // If this is a payment order, transform it to match the rental format
+    if (order.orderId && order.cartItems) {
+      let cartItems = [];
+      try {
+        cartItems = JSON.parse(order.cartItems || '[]');
+      } catch (e) {
+        cartItems = [];
+      }
+      
+      transformedOrder = {
+        id: order.orderId,
+        date: order.createdAt,
+        status: order.status,
+        totalAmount: `₹${order.amount}`,
+        deliveryDate: new Date(order.createdAt).toLocaleDateString(),
+        returnDate: null,
+        books: cartItems.map((item: any) => ({
+          title: item.bookTitle || item.title || 'Unknown Book',
+          author: item.author || 'Unknown Author',
+          image: item.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200',
+          rentalPeriod: item.rentalPeriodLabel || `${item.rentalDuration || 4} weeks`,
+          price: `₹${item.price || 0}`
+        }))
+      };
+    }
+    
+    setSelectedOrder(transformedOrder);
     setShowOrderDialog(true);
   };
 
@@ -421,7 +472,6 @@ Generated on: ${currentDate}
               )}
             </TabsTrigger>
 
-            
 
             <TabsTrigger
               value="wishlist"
@@ -438,7 +488,7 @@ Generated on: ${currentDate}
               )}
             </TabsTrigger>
 
-            
+
           </TabsList>
 
           {/* Overview Tab */}
@@ -582,207 +632,141 @@ Generated on: ${currentDate}
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
-            <div className="space-y-6">
-              {/* Enhanced Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900">Order History</h3>
-                  <p className="text-muted-foreground mt-1">Track and manage all your book rentals</p>
+                  <h3 className="text-lg font-semibold">Order History</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Track and manage all your book rentals
+                  </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 px-3 py-1">
-                    12 Total Orders
-                  </Badge>
-                  <Badge variant="secondary" className="bg-green-50 text-green-700 px-3 py-1">
-                    8 Completed
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-blue-600 font-medium">
+                      {paymentOrders.length} Total Orders
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-green-600 font-medium">
+                      {paymentOrders.filter(order => order.status === 'paid' || order.status === 'completed').length} Completed
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Advanced Filters */}
-              <Card className="bg-gradient-to-r from-gray-50 to-white border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Search */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search orders, books..."
-                        className="pl-10 border-gray-200 focus:border-primary"
-                      />
-                    </div>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search orders, books..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
 
-                    {/* Status Filter */}
-                    <Select defaultValue="all">
-                      <SelectTrigger className="border-gray-200 focus:border-primary">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="processing">Processing</SelectItem>
-                        <SelectItem value="shipped">Shipped</SelectItem>
-                        <SelectItem value="delivered">Delivered</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="flex gap-2">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                    {/* Date Range Filter */}
-                    <Select defaultValue="all-time">
-                      <SelectTrigger className="border-gray-200 focus:border-primary">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all-time">All Time</SelectItem>
-                        <SelectItem value="last-week">Last Week</SelectItem>
-                        <SelectItem value="last-month">Last Month</SelectItem>
-                        <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-                        <SelectItem value="last-year">Last Year</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Sort By */}
-                    <Select defaultValue="newest">
-                      <SelectTrigger className="border-gray-200 focus:border-primary">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="newest">Newest First</SelectItem>
-                        <SelectItem value="oldest">Oldest First</SelectItem>
-                        <SelectItem value="amount-high">Amount: High to Low</SelectItem>
-                        <SelectItem value="amount-low">Amount: Low to High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Enhanced Order Cards */}
-              <div className="space-y-4">
-                {[
-                  { id: 1, status: "Delivered", statusColor: "bg-green-100 text-green-800 border-green-200", amount: 299, date: "2024-01-22", book: "The Alchemist", author: "Paulo Coelho", progress: 100 },
-                  { id: 2, status: "In Transit", statusColor: "bg-blue-100 text-blue-800 border-blue-200", amount: 199, date: "2024-01-18", book: "Atomic Habits", author: "James Clear", progress: 75 },
-                  { id: 3, status: "Processing", statusColor: "bg-orange-100 text-orange-800 border-orange-200", amount: 149, date: "2024-01-15", book: "The Psychology of Money", author: "Morgan Housel", progress: 25 }
-                ].map((order) => (
-                  <Card key={order.id} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm bg-white">
-                    <CardContent className="p-6">
-                      {/* Order Header */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-3">
-                            <h4 className="font-bold text-lg text-gray-900">ORD-2024-00{order.id}</h4>
-                            <Badge className={`${order.statusColor} font-medium px-3 py-1`}>
-                              {order.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            Ordered on {order.date}
-                          </p>
-                        </div>
-                        <div className="text-right mt-4 md:mt-0">
-                          <p className="text-2xl font-bold text-primary">₹{order.amount}</p>
-                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 p-0 h-auto" onClick={() => handleViewDetails({
-                              id: `ORD-2024-00${order.id}`,
-                              date: order.date,
-                              status: order.status.toLowerCase(),
-                              books: [{
-                                title: order.book,
-                                author: order.author,
-                                image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
-                                rentalPeriod: "2 weeks",
-                                price: `₹${order.amount}`
-                              }],
-                              totalAmount: `₹${order.amount}`,
-                              deliveryDate: order.date,
-                              returnDate: order.status === "Delivered" ? "2024-02-05" : null
-                            })}>
-                         
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Order Progress */}
-                      <div className="mb-6">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-gray-700">Order Progress</span>
-                          <span className="text-sm font-medium text-primary">{order.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-primary to-blue-500 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${order.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Book Details */}
-                      <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
-                        <div className="w-16 h-20 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-lg flex items-center justify-center shadow-sm">
-                          <BookOpen className="h-8 w-8 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-gray-900 text-lg">{order.book}</h5>
-                          <p className="text-muted-foreground flex items-center gap-1 mt-1">
-                            <User className="h-4 w-4" />
-                            by {order.author}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <Badge variant="outline" className="text-xs bg-white">
-                              <Clock className="h-3 w-3 mr-1" />
-                              2 weeks rental
-                            </Badge>
-                            <span className="text-sm font-semibold text-primary">₹{order.amount}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 mt-4">
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="hover:bg-primary hover:text-white transition-colors"
-                          onClick={() => handleViewDetails({
-                            id: `ORD-2024-00${order.id}`,
-                            date: order.date,
-                            status: order.status.toLowerCase(),
-                            books: [{
-                              title: order.book,
-                              author: order.author,
-                              image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200",
-                              rentalPeriod: "2 weeks",
-                              price: `₹${order.amount}`
-                            }],
-                            totalAmount: `₹${order.amount}`,
-                            deliveryDate: order.date,
-                            returnDate: order.status === "Delivered" ? "2024-02-05" : null
-                          })}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        {order.status === "Delivered" && (
-                          <Button variant="outline" size="sm" className="hover:bg-green-500 hover:text-white transition-colors">
-                            <RotateCcw className="h-4 w-4 mr-1" />
-                            Reorder
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                  <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Load More */}
-              <div className="flex justify-center mt-8">
-                <Button variant="outline" size="lg" className="px-8 hover:bg-primary hover:text-white transition-colors">
-                  Load More Orders
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
+              {paymentOrdersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredPaymentOrders.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredPaymentOrders.map((order) => {
+                    let cartItems = [];
+                    try {
+                      cartItems = JSON.parse(order.cartItems || '[]');
+                    } catch (e) {
+                      cartItems = [];
+                    }
+
+                    return (
+                      <Card key={order.id} className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="font-semibold">Order #{order.orderId}</h4>
+                              <Badge variant={
+                                order.status === 'paid' || order.status === 'completed' ? 'default' :
+                                order.status === 'pending' ? 'secondary' : 'destructive'
+                              }>
+                                {order.status}
+                              </Badge>
+                              {order.paymentMethod && (
+                                <Badge variant="outline">
+                                  {order.paymentMethod.toUpperCase()}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              <p>Order Date: {new Date(order.createdAt).toLocaleDateString()}</p>
+                              <p>Amount: ₹{order.amount}</p>
+                              <p>Books: {cartItems.length} item(s)</p>
+                              {cartItems.length > 0 && (
+                                <p>Books: {cartItems.map(item => item.bookTitle || item.title).join(', ')}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewDetails(order)}
+                            >
+                              View Details
+                            </Button>
+                            {order.status === 'paid' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleTrackOrder(order)}
+                              >
+                                Track Order
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card className="p-12 text-center">
+                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No orders found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchQuery || statusFilter !== 'all'
+                      ? "No orders match your current filters"
+                      : "You haven't made any book rentals yet"}
+                  </p>
+                  <Button>Browse Books</Button>
+                </Card>
+              )}
+            </TabsContent>
 
 
           {/* Wishlist Tab */}
@@ -807,8 +791,7 @@ Generated on: ${currentDate}
             </Card>
           </TabsContent>
 
-       
-          
+
         </Tabs>
 
         {/* Order Details Dialog */}
@@ -969,7 +952,7 @@ Generated on: ${currentDate}
         </Dialog>
 
         {/* Order Tracking Dialog */}
-       
+
       </div>
     </div>
   );

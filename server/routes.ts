@@ -737,8 +737,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/payment-orders", async (req, res) => {
     try {
-      const paymentOrders = await storage.getAllPaymentOrders();
-      res.json(paymentOrders);
+      const { userId } = req.query;
+      
+      if (userId) {
+        // Filter payment orders by user ID
+        const allPaymentOrders = await storage.getAllPaymentOrders();
+        const userPaymentOrders = allPaymentOrders.filter(order => order.userId === userId);
+        res.json(userPaymentOrders);
+      } else {
+        // Return all payment orders (for admin)
+        const paymentOrders = await storage.getAllPaymentOrders();
+        res.json(paymentOrders);
+      }
     } catch (error) {
       console.error("Get payment orders error:", error);
       res.status(500).json({ error: "Failed to fetch payment orders", details: (error as Error).message });
@@ -791,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { orderId } = req.params;
       const delivery = await storage.getDeliveryByOrderId(orderId);
-      
+
       if (!delivery) {
         return res.status(404).json({ error: "Delivery not found" });
       }
@@ -818,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const deliveryId = parseInt(req.params.id);
       const { status, location, description } = req.body;
-      
+
       const delivery = await storage.updateDeliveryStatus(deliveryId, status, location, description);
       res.json(delivery);
     } catch (error) {
@@ -842,14 +852,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/returns", async (req, res) => {
     try {
       const { userId } = req.query;
-      
+
       let returns;
       if (userId) {
         returns = await storage.getReturnsByUser(userId as string);
       } else {
         returns = await storage.getAllReturns();
       }
-      
+
       res.json(returns);
     } catch (error) {
       console.error("Get returns error:", error);
@@ -861,11 +871,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const returnId = parseInt(req.params.id);
       const returnRecord = await storage.getReturn(returnId);
-      
+
       if (!returnRecord) {
         return res.status(404).json({ error: "Return not found" });
       }
-      
+
       res.json(returnRecord);
     } catch (error) {
       console.error("Get return error:", error);
@@ -877,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const returnId = parseInt(req.params.id);
       const { status, adminNotes } = req.body;
-      
+
       const returnRecord = await storage.updateReturnStatus(returnId, status, adminNotes);
       res.json(returnRecord);
     } catch (error) {
@@ -1162,7 +1172,7 @@ console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",CASHFREE_APP_ID)
 
       // Get user ID from multiple sources
       let userIdToUse = userId || customer_details?.customer_id;
-      
+
       // Try to get user from request headers or body
       const user = await getCurrentUserFromRequest(req);
       if (user) {
