@@ -478,6 +478,8 @@ export default function Admin() {
     switch (status.toLowerCase()) {
       case "available":
         return "bg-green-100 text-green-800";
+      case "not available":
+        return "bg-red-100 text-red-800";
       case "rented":
         return "bg-yellow-100 text-yellow-800";
       case "active":
@@ -1154,13 +1156,30 @@ export default function Admin() {
                             </TableCell>
                             <TableCell className="text-muted-foreground">{book.category}</TableCell>
                             <TableCell>
-                              <Badge className={getStatusColor(book.availableCopies > 0 ? "Available" : "Rented")}>
-                                {book.availableCopies > 0 ? "Available" : "Rented"}
+                              <Badge className={getStatusColor(book.availableCopies > 0 ? "Available" : "Not Available")}>
+                                {book.availableCopies > 0 ? "Available" : "Not Available"}
                               </Badge>
                             </TableCell>
                             <TableCell>₹{book.pricePerWeek}/month</TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={book.availableCopies > 0 ? "text-green-600 hover:text-green-800" : "text-orange-600 hover:text-orange-800"}
+                                  onClick={() => {
+                                    const newAvailability = book.availableCopies > 0 ? 0 : book.totalCopies;
+                                    updateBookMutation.mutate({ 
+                                      id: book.id, 
+                                      bookData: { 
+                                        availableCopies: newAvailability 
+                                      } 
+                                    });
+                                  }}
+                                  disabled={updateBookMutation.isPending}
+                                >
+                                  {book.availableCopies > 0 ? "Set Unavailable" : "Set Available"}
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"

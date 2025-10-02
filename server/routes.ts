@@ -249,14 +249,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Updating book with ID:", req.params.id);
       console.log("Update data:", req.body);
 
-      // Keep pricePerWeek as string for schema validation, convert others as needed
-      const transformedData = {
-        ...req.body,
-        pricePerWeek: req.body.pricePerWeek.toString(),
-        totalCopies: parseInt(req.body.totalCopies),
-        publishedYear: req.body.publishedYear ? parseInt(req.body.publishedYear) : null,
-        pages: req.body.pages ? parseInt(req.body.pages) : null,
-      };
+      // Build transformed data only with provided fields
+      const transformedData: any = {};
+
+      // Only include fields that are actually in the request and valid
+      if (req.body.availableCopies !== undefined && req.body.availableCopies !== null && req.body.availableCopies !== '') {
+        const val = parseInt(req.body.availableCopies);
+        if (!isNaN(val)) {
+          transformedData.availableCopies = val;
+        }
+      }
+      if (req.body.totalCopies !== undefined && req.body.totalCopies !== null && req.body.totalCopies !== '') {
+        const val = parseInt(req.body.totalCopies);
+        if (!isNaN(val)) {
+          transformedData.totalCopies = val;
+        }
+      }
+      if (req.body.pricePerWeek !== undefined && req.body.pricePerWeek !== null && req.body.pricePerWeek !== '') {
+        transformedData.pricePerWeek = req.body.pricePerWeek.toString();
+      }
+      if (req.body.publishedYear !== undefined && req.body.publishedYear !== null && req.body.publishedYear !== '') {
+        const val = parseInt(req.body.publishedYear);
+        if (!isNaN(val)) {
+          transformedData.publishedYear = val;
+        }
+      }
+      if (req.body.pages !== undefined && req.body.pages !== null && req.body.pages !== '') {
+        const val = parseInt(req.body.pages);
+        if (!isNaN(val)) {
+          transformedData.pages = val;
+        }
+      }
+      
+      // String fields - only include if provided
+      ['title', 'author', 'isbn', 'category', 'description', 'imageUrl', 'publisher', 'language', 'condition', 'format'].forEach(field => {
+        if (req.body[field] !== undefined) {
+          transformedData[field] = req.body[field];
+        }
+      });
 
       const book = await storage.updateBook(req.params.id, transformedData);
       console.log("Book updated successfully:", book.id);

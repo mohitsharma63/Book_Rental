@@ -44,7 +44,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
 
   const getStatusText = (availableCopies: number) => {
     if (availableCopies > 0) return "Available";
-    return "Rented";
+    return "Not Available";
   };
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
@@ -227,16 +227,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
           </Link>
         </div>
 
-        {/* Stock indicator */}
-        {book.availableCopies > 0 && book.availableCopies <= 3 && (
-          <div className="flex items-center gap-2 pt-1">
-            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-            <span className="text-xs text-orange-600 font-medium">
-              Only {book.availableCopies} left
-            </span>
-          </div>
-        )}
-      </CardContent>
+        </CardContent>
       </Card>
   );
 }
