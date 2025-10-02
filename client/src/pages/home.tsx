@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { BookCard } from "@/components/book-card";
 import { SearchBar } from "@/components/search-bar";
 import { Book } from "@/lib/types";
-import { WandSparkles, Heart, Search as SearchIcon, Rocket, Star, TrendingUp, Clock, Users, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { WandSparkles, Heart, Search as SearchIcon, Rocket, Star, TrendingUp, Clock, Users, ChevronLeft, ChevronRight, Sparkles, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { useStore } from "@/lib/store-context";
 
@@ -47,9 +47,9 @@ export default function Home() {
       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.category.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesCategory = !categoryFilter || book.category === categoryFilter;
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -140,7 +140,7 @@ export default function Home() {
   const handleAddToWishlist = (book: Book) => {
     // Check if book is already in wishlist
     const existingWishlistItem = wishlistItems.find(item => item.bookId === book.id);
-    
+
     if (existingWishlistItem) {
       // Remove from wishlist
       removeFromWishlist(existingWishlistItem.id);
@@ -224,10 +224,10 @@ export default function Home() {
         </div>
       ) : slidersData.length > 0 ? (
         <div 
-          className="relative rounded-xl mb-8 overflow-hidden group shadow-2xl"
+          className="relative w-full rounded-xl mb-8 overflow-hidden group shadow-2xl"
           onMouseEnter={() => setCurrentSlide(currentSlide)} // Pause auto-slide on hover
         >
-          <div className="relative h-72 sm:h-96 lg:h-[32rem]">
+          <div className="relative h-72 sm:h-96 lg:h-[32rem] w-full">
             {slidersData.map((slider, index) => (
               <div
                 key={slider.id}
@@ -240,7 +240,7 @@ export default function Home() {
                 <img
                   src={slider.imageUrl}
                   alt={slider.title || "Slider"}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  className="w-full h-full"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
                 <div className="absolute inset-0 flex items-center justify-start">
@@ -335,9 +335,11 @@ export default function Home() {
                   Start Browsing
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-primary">
-                View Popular Books
-              </Button>
+              <Link href="/contact">
+                <Button variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-primary">
+                  Request a Book
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -725,8 +727,19 @@ export default function Home() {
 
       {/* Popular Categories */}
 
+      {/* Floating Request Book Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <Link href="/contact">
+          <Button 
+            size="lg" 
+            className="shadow-2xl hover:shadow-xl transition-all duration-300 hover:scale-110 rounded-full px-6 py-6 bg-gradient-to-r from-primary to-accent"
+          >
+            <MessageCircle className="h-5 w-5 mr-2" />
+            Request a Book
+          </Button>
+        </Link>
+      </div>
 
-     
     </main>
     </>
   );

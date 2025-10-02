@@ -124,8 +124,8 @@ export default function Terms() {
           as they contain important information about your rights and obligations.
         </p>
         <div className="mt-6 text-sm text-muted-foreground">
-          <p>Last updated: January 15, 2024</p>
-          <p>Effective date: January 15, 2024</p>
+          <p>Last updated: Oct 2, 2025</p>
+          <p>Effective date: Oct 2, 2025</p>
         </div>
       </div>
 

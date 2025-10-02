@@ -122,7 +122,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm text-muted-foreground">
-            <p>© 2024 BookLoop. All rights reserved.</p>
+            <p>© 2025 BookLoop. All rights reserved.</p>
             <div className="flex space-x-4">
               <Link href="/privacy">
                 <Button variant="ghost" className="h-auto p-0 text-xs footer-link">

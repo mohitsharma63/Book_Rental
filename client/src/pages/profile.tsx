@@ -86,7 +86,7 @@ export default function Profile() {
         email: user.email,
         phone: user.phone ,
         address: user.address || "Mylapore,chennai,600004",
-        joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "January 15, 2024",
+        joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Oct 2, 2025",
         avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150",
         membership: user.isAdmin ? "Admin" : "Premium",
 

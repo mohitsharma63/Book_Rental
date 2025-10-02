@@ -161,7 +161,8 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
           <img 
             src={book.imageUrl || "/placeholder-book.jpg"} 
             alt={`${book.title} cover`}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full book-card-image transition-transform duration-300 group-hover:scale-105"
+            style={{ objectFit: 'contain', objectPosition: 'center' }}
             data-testid={`img-book-cover-${book.id}`}
             onError={(e) => {
               e.currentTarget.src = "/placeholder-book.jpg";

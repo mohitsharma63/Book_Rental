@@ -177,6 +177,23 @@
   left: 100%;
 }
 
+/* Slider container - full width */
+.slider-container {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Book card image proper fit */
+.book-card-image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #f8f9fa !important;
+}
+
 /* Enhanced mobile profile tabs */
 @media (max-width: 640px) {
   .profile-tabs [role="tablist"] {
