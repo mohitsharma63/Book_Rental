@@ -103,7 +103,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         description: `${book.title} quantity increased by ${quantity}`,
         variant: "default",
         action: (
-          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
             View Cart
           </a>
         ),
@@ -125,7 +125,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         description: `${book.title} added to your cart`,
         variant: "default",
         action: (
-          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ">
             View Cart
           </a>
         ),
@@ -155,6 +155,14 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
       </div>
     );
   };
+
+  const incrementQuantity = () => {
+  setQuantity(prev => Math.min(book.availableCopies, prev + 1));
+};
+
+const decrementQuantity = () => {
+  setQuantity(prev => Math.max(1, prev - 1));
+};
 
 
   return (
@@ -237,39 +245,64 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         <div className="space-y-3 pt-2">
           {/* Quantity Selector */}
           {book.availableCopies > 0 && (
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-sm font-medium text-gray-700">Quantity</span>
-              <div className="flex items-center bg-white rounded-lg border border-gray-300 shadow-sm">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setQuantity(prev => Math.max(1, prev - 1));
-                  }}
-                  className="h-10 w-10 flex items-center justify-center rounded-l-lg hover:bg-gray-100  transition-colors active:bg-gray-200"
-                >
-                  <Minus className="h-4 w-4 text-gray-700" />
-                </button>
-                <div className="h-10 w-12 flex items-center justify-center border-x border-gray-300 bg-gray-50">
-                  <span className="font-semibold text-base text-gray-900">
-                    {quantity}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setQuantity(prev => Math.min(book.availableCopies, prev + 1));
-                  }}
-                  className="h-10 w-10 flex items-center justify-center rounded-r-lg hover:bg-gray-100  transition-colors active:bg-gray-200"
-                >
-                  <Plus className="h-4 w-4 text-gray-700" />
-                </button>
-              </div>
-            </div>
-          )}
+  <div className="flex items-center justify-between gap-2">
+    <span className="text-sm font-medium text-gray-700">Qty:</span>
+    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setQuantity(prev => Math.max(1, prev - 1));
+        }} 
+        className="h-9 w-9 rounded-none hover:bg-gray-100 "
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      <input 
+        type="number" 
+        onChange={(e) => {
+          e.stopPropagation();
+          const val = parseInt(e.target.value);
+          if (!isNaN(val) && val >= 1 && val <= book.availableCopies) {
+            setQuantity(val);
+          } else if (e.target.value === '') {
+            setQuantity(1);
+          }
+        }} 
+        onBlur={(e) => {
+          const val = parseInt(e.target.value);
+          if (isNaN(val) || val < 1) {
+            setQuantity(1);
+          } else if (val > book.availableCopies) {
+            setQuantity(book.availableCopies);
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        className="w-14 text-center text-sm font-medium py-1.5 border-x border-gray-300 focus:outline-none focus:bg-gray-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+        min="1"
+        max={book.availableCopies}
+      />
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setQuantity(prev => Math.min(book.availableCopies, prev + 1));
+        }} 
+        className="h-9 w-9 rounded-none hover:bg-gray-100"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+    <span className="text-xs text-gray-500 font-medium">
+      / {book.availableCopies}
+    </span>
+  </div>
+)}
 
           <Button 
             className={`w-full font-medium transition-all duration-200 shadow-md ${
@@ -277,7 +310,6 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
                 ? "bg-green-600 hover:bg-green-700 text-white hover:shadow-lg" 
                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
             }`}
-            disabled={book.availableCopies === 0}
             onClick={handleAddToCart}
             data-testid={`button-rent-${book.id}`}
           >
