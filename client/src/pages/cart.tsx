@@ -20,7 +20,8 @@ export default function Cart() {
   const updateQuantity = (id: string, change: number) => {
     const item = cartItems.find(item => item.id === id);
     if (item) {
-      updateCartQuantity(id, item.quantity + change);
+      const newQuantity = Math.max(1, item.quantity + change);
+      updateCartQuantity(id, newQuantity);
     }
   };
 
@@ -220,18 +221,28 @@ export default function Cart() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => updateQuantity(item.id, -1)}
-                                disabled={item.quantity === 1}
-                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  updateQuantity(item.id, -1);
+                                }}
+                                disabled={item.quantity <= 1}
+                                className="h-8 w-8 p-0 hover:bg-gray-200"
+                                data-testid={`decrease-quantity-${item.id}`}
                               >
                                 <Minus className="h-4 w-4" />
                               </Button>
-                              <span className="px-4 py-2 font-medium min-w-[3rem] text-center">{item.quantity}</span>
+                              <span className="px-4 py-2 font-medium min-w-[3rem] text-center" data-testid={`quantity-${item.id}`}>
+                                {item.quantity}
+                              </span>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => updateQuantity(item.id, 1)}
-                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  updateQuantity(item.id, 1);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-gray-200"
+                                data-testid={`increase-quantity-${item.id}`}
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>

@@ -32,7 +32,8 @@ export default function BookDetail() {
 
   const { addToCart, addToWishlist, removeFromWishlist, wishlistItems } = useStore();
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [selectedRentalPeriod, setSelectedRentalPeriod] = useState("1");
+  const [selectedRentalPeriod, setSelectedRentalPeriod] = useState("4"); // Default to 1 month (4 weeks)
+  const [quantity, setQuantity] = useState(1); // State for quantity selector
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -147,9 +148,9 @@ export default function BookDetail() {
   const calculatePrice = () => {
     const basePrice = parseFloat(book?.pricePerWeek || "0");
     const duration = parseInt(selectedRentalPeriod);
-    if (duration === 4) return basePrice; // 1 month = weekly price
+    if (duration === 4) return basePrice * 1; // 1 month = weekly price
     if (duration === 8) return basePrice * 1.8; // 2 months with 10% discount (2 * 0.9)
-    return basePrice;
+    return basePrice * (duration / 4); // For other durations, assume weekly price multiplied by number of months
   };
 
   const handleWishlistClick = () => {
@@ -190,8 +191,10 @@ export default function BookDetail() {
     }
   };
 
+  // Modified handleRentClick to use quantity
   const handleRentClick = () => {
     if (!book || book.availableCopies === 0) return;
+    
     const selectedPeriod = rentalPeriods.find(p => p.weeks === selectedRentalPeriod);
     const cartItem = {
       id: `cart-${book.id}-${Date.now()}`,
@@ -202,8 +205,8 @@ export default function BookDetail() {
       price: parseFloat(book.pricePerWeek), // Base price per week
       rentalDuration: parseInt(selectedRentalPeriod),
       rentalPeriodLabel: selectedPeriod?.label || "1 Month",
-      quantity: 1,
-      available: true
+      quantity: quantity, // Use the selected quantity
+      available: book.availableCopies > 0
     };
     addToCart(cartItem);
     toast({
@@ -211,6 +214,17 @@ export default function BookDetail() {
       description: `"${book.title}" has been added to your cart for ${selectedPeriod?.label || "1 Month"}!`,
       variant: "default",
     });
+  };
+
+  // Helper to update quantity, ensuring it doesn't exceed available copies
+  const updateQuantity = (newQuantity: number) => {
+    if (book && newQuantity > 0 && newQuantity <= book.availableCopies) {
+      setQuantity(newQuantity);
+    } else if (newQuantity === 0) {
+      setQuantity(0); // Allow setting to 0 if needed, though cart logic might handle it
+    } else if (book && newQuantity > book.availableCopies) {
+      setQuantity(book.availableCopies); // Cap at available copies
+    }
   };
 
 
@@ -430,7 +444,10 @@ export default function BookDetail() {
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-primary/50'
                     }`}
-                    onClick={() => setSelectedRentalPeriod(period.weeks)}
+                    onClick={() => {
+                      setSelectedRentalPeriod(period.weeks);
+                      setQuantity(1); // Reset quantity when period changes
+                    }}
                   >
                     <div className="text-center">
                       <h4 className="font-semibold mb-1">{period.label}</h4>
@@ -447,6 +464,42 @@ export default function BookDetail() {
                 ))}
               </div>
 
+              {/* Quantity Selector */}
+              <div className="mb-4 flex items-center justify-center">
+                <span className="mr-4 text-muted-foreground">Quantity:</span>
+                <div className="flex items-center border border-border rounded-md">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => updateQuantity(quantity - 1)} 
+                    disabled={quantity <= 1}
+                    className="rounded-r-none"
+                  >
+                    -
+                  </Button>
+                  <input 
+                    type="number" 
+                    value={quantity} 
+                    onChange={(e) => updateQuantity(parseInt(e.target.value) || 1)} 
+                    className="w-16 text-center p-2 border-x border-border focus:outline-none" 
+                    min="1"
+                    max={book.availableCopies}
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => updateQuantity(quantity + 1)} 
+                    disabled={quantity >= book.availableCopies}
+                    className="rounded-l-none"
+                  >
+                    +
+                  </Button>
+                </div>
+                <span className="ml-4 text-sm text-muted-foreground">
+                  (Available: {book.availableCopies})
+                </span>
+              </div>
+
               <div className="flex gap-4">
                 <Button 
                   size="lg" 
@@ -457,7 +510,7 @@ export default function BookDetail() {
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   {book.availableCopies > 0 ? `Rent for ₹${calculatePrice().toFixed(2)}` : "Out of Stock"}
                 </Button>
-               
+
               </div>
 
               <div className="mt-4 p-4 bg-muted/30 rounded-lg">

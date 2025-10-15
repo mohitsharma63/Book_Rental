@@ -55,10 +55,10 @@ export default function Home() {
 
   // Get featured books (first 3 or books marked as featured)
   // If search is active, show filtered results, otherwise show featured books
-  const featuredBooks = books.filter(book => book.featured).slice(0, 3);
+  const featuredBooks = books.filter(book => book.featured).slice(0, 4);
   const displayFeaturedBooks = (searchQuery || categoryFilter) 
     ? filteredBooks.slice(0, 8) // Show more results when filtering
-    : (featuredBooks.length > 0 ? featuredBooks : books.slice(0, 3));
+    : (featuredBooks.length > 0 ? featuredBooks : books.slice(0, 4 ));
 
   // Fetch active sliders for homepage
   const { data: slidersData = [], isLoading: slidersLoading } = useQuery({

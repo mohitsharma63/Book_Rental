@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Book, Rental } from "@/lib/types";
@@ -30,6 +31,10 @@ export default function Admin() {
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
   const [paymentDateFilter, setPaymentDateFilter] = useState("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [bookStatusFilter, setBookStatusFilter] = useState("all");
+  const [bookCategoryFilter, setBookCategoryFilter] = useState("all");
   const [bookFormData, setBookFormData] = useState({
     title: "",
     author: "",
@@ -125,9 +130,16 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ['admin-books'] });
       setShowAddBookDialog(false);
       resetBookForm();
+      // Clear filters and reset to first page to show the newly added book
+      setSearchQuery("");
+      setBookStatusFilter("all");
+      setBookCategoryFilter("all");
+      setCurrentPage(1);
+      alert('Book added successfully!');
     },
     onError: (error) => {
       console.error('Failed to add book:', error);
+      alert('Failed to add book: ' + error.message);
     },
   });
 
@@ -712,21 +724,40 @@ export default function Admin() {
         return renderDashboard();
 
       case "books":
+        const filteredBooks = books
+          .filter(book => 
+            book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            book.category.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+          .filter(book => {
+            if (bookStatusFilter === "all") return true;
+            if (bookStatusFilter === "available") return book.availableCopies > 0;
+            if (bookStatusFilter === "unavailable") return book.availableCopies === 0;
+            return true;
+          })
+          .filter(book => {
+            if (bookCategoryFilter === "all") return true;
+            return book.category === bookCategoryFilter;
+          });
+
+        const totalPages = Math.ceil(filteredBooks.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
+
+        // Get unique categories for filter
+        const uniqueCategories = Array.from(new Set(books.map(b => b.category)));
+
         return (
           <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <h3 className="text-lg font-semibold">Book Inventory</h3>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Search books..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 w-64"
-                    data-testid="input-search-books"
-                  />
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Book Inventory</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredBooks.length)} of {filteredBooks.length} books
+                  </p>
                 </div>
                 <Dialog open={showAddBookDialog} onOpenChange={setShowAddBookDialog}>
                   <DialogTrigger asChild>
@@ -1115,6 +1146,82 @@ export default function Admin() {
 
                 {/* User Details Dialog - This was moved outside the Card */}
               </div>
+              
+              {/* Filter and Search Section */}
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <div className="relative flex-1 max-w-md">
+                  <Input
+                    type="text"
+                    placeholder="Search books..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-10 pr-4"
+                    data-testid="input-search-books"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                </div>
+
+                <Select value={bookStatusFilter} onValueChange={(value) => {
+                  setBookStatusFilter(value);
+                  setCurrentPage(1);
+                }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="unavailable">Unavailable</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={bookCategoryFilter} onValueChange={(value) => {
+                  setBookCategoryFilter(value);
+                  setCurrentPage(1);
+                }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {uniqueCategories.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 per page</SelectItem>
+                    <SelectItem value="10">10 per page</SelectItem>
+                    <SelectItem value="25">25 per page</SelectItem>
+                    <SelectItem value="50">50 per page</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setBookStatusFilter("all");
+                    setBookCategoryFilter("all");
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
+              </div>
             </div>
 
             <Card>
@@ -1135,8 +1242,8 @@ export default function Admin() {
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8">Loading books...</TableCell>
                         </TableRow>
-                      ) : (Array.isArray(books) && books.length > 0) ? (
-                        books.slice(0, 10).map((book) => (
+                      ) : paginatedBooks.length > 0 ? (
+                        paginatedBooks.map((book) => (
                           <TableRow key={book.id} data-testid={`row-book-${book.id}`}>
                             <TableCell>
                               <div className="flex items-center">
@@ -1166,19 +1273,27 @@ export default function Admin() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className={book.availableCopies > 0 ? "text-green-600 hover:text-green-800" : "text-orange-600 hover:text-orange-800"}
+                                  className={book.availableCopies > 0 ? "text-green-600 hover:text-green-800 hover:bg-green-50" : "text-orange-600 hover:text-orange-800 hover:bg-orange-50"}
                                   onClick={() => {
                                     const newAvailability = book.availableCopies > 0 ? 0 : book.totalCopies;
-                                    updateBookMutation.mutate({ 
-                                      id: book.id, 
-                                      bookData: { 
-                                        availableCopies: newAvailability 
-                                      } 
-                                    });
+                                    const action = book.availableCopies > 0 ? "unavailable" : "available";
+                                    if (confirm(`Are you sure you want to set "${book.title}" as ${action}?`)) {
+                                      updateBookMutation.mutate({ 
+                                        id: book.id, 
+                                        bookData: { 
+                                          availableCopies: newAvailability 
+                                        } 
+                                      }, {
+                                        onSuccess: () => {
+                                          alert(`Book availability updated to ${action}!`);
+                                        }
+                                      });
+                                    }
                                   }}
                                   disabled={updateBookMutation.isPending}
+                                  data-testid={`button-availability-${book.id}`}
                                 >
-                                  {book.availableCopies > 0 ? "Set Unavailable" : "Set Available"}
+                                  {updateBookMutation.isPending && editingBook?.id === book.id ? "Updating..." : book.availableCopies > 0 ? "Set Unavailable" : "Set Available"}
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -1207,13 +1322,70 @@ export default function Admin() {
                       ) : (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            No books found. Add some books to get started.
+                            {searchQuery || bookStatusFilter !== "all" || bookCategoryFilter !== "all" 
+                              ? "No books match your filters. Try adjusting your search criteria."
+                              : "No books found. Add some books to get started."
+                            }
                           </TableCell>
                         </TableRow>
                       )}
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* Pagination */}
+                {filteredBooks.length > 0 && totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1} to {Math.min(endIndex, filteredBooks.length)} of {filteredBooks.length} books
+                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Show first page, last page, current page, and pages around current
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          } else if (page === currentPage - 2 || page === currentPage + 2) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
+                        })}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

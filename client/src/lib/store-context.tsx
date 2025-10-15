@@ -56,9 +56,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        // Only set if it's a valid array, otherwise keep empty
+        // Only set if it's a valid array, and filter out items with 0 or invalid price
         if (Array.isArray(parsedCart)) {
-          setCartItems(parsedCart);
+          const validItems = parsedCart.filter(item => {
+            const price = parseFloat(item.price?.toString() || '0');
+            return price > 0;
+          });
+          setCartItems(validItems);
         }
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
@@ -94,21 +98,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (item: CartItem) => {
     setCartItems(prev => {
-      // Check for existing item by bookId instead of exact id match
-      const existingItem = prev.find(cartItem => cartItem.bookId === item.bookId);
+      // Don't add items with invalid price (0 or null/undefined)
+      const price = parseFloat(item.price?.toString() || '0');
+      if (price <= 0) {
+        console.warn('Cannot add item with price 0 or invalid price to cart');
+        return prev;
+      }
+      
+      // Check for existing item by bookId AND rental duration
+      const existingItem = prev.find(cartItem => 
+        cartItem.bookId === item.bookId && 
+        cartItem.rentalDuration === (item.rentalDuration || 4)
+      );
+      
       if (existingItem) {
-        // Update existing item properties but keep quantity as 1
+        // Increment quantity of existing item
         return prev.map(cartItem =>
-          cartItem.bookId === item.bookId
-            ? { 
-                ...cartItem, 
-                rentalDuration: item.rentalDuration || cartItem.rentalDuration,
-                rentalPeriodLabel: item.rentalPeriodLabel || cartItem.rentalPeriodLabel,
-                quantity: 1 // Always set to 1, don't increment
-              }
+          cartItem.id === existingItem.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
       }
+      
       // Ensure rental duration and label are properly set for new items
       return [...prev, { 
         ...item, 
@@ -124,9 +135,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCartQuantity = (id: string, quantity: number) => {
+    if (quantity < 1) return; // Don't allow quantity less than 1
+
     setCartItems(prev =>
       prev.map(item =>
-        item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item
+        item.id === id ? { ...item, quantity } : item
       )
     );
   };

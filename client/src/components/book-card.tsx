@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
+import { Star, Plus, Minus } from "lucide-react";
 import { Book } from "@/lib/types";
 import { Heart, BookOpen, ShoppingCart } from "lucide-react";
 import { Link } from "wouter";
@@ -18,6 +18,7 @@ interface BookCardProps {
 export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
   const { addToCart, addToWishlist, removeFromWishlist, wishlistItems, cartItems, updateCartQuantity } = useStore();
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [quantity, setQuantity] = useState(1); // State for quantity
   const { toast } = useToast();
 
   // Check if book is already in wishlist and update state immediately
@@ -86,26 +87,44 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
     onWishlist?.();
   };
 
-  const handleAddToCart = () => {
-    if (book.availableCopies > 0) {
-      const cartItem = {
-        id: `cart-${book.id}-${Date.now()}`,
-        bookId: book.id,
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (book.availableCopies === 0) return;
+
+    const existingCartItem = cartItems.find(item => item.id === book.id);
+
+    if (existingCartItem) {
+      // If item exists in cart, update its quantity with the selected quantity
+      updateCartQuantity(book.id, existingCartItem.quantity + quantity);
+      toast({
+        title: "Cart Updated",
+        description: `${book.title} quantity increased by ${quantity}`,
+        variant: "default",
+      });
+    } else {
+      // Add new item to cart with selected quantity
+      addToCart({
+        id: book.id,
         title: book.title,
         author: book.author,
-        imageUrl: book.imageUrl || "/placeholder-book.jpg",
-        price: parseFloat(book.pricePerWeek),
-        rentalDuration: 4,
-        quantity: 1,
-        available: true
-      };
-      addToCart(cartItem);
+        price: book.monthlyRentalPrice,
+        imageUrl: book.imageUrl,
+        quantity: quantity, // Use selected quantity
+        rentalDuration: 4, // Default to 1 month (4 weeks)
+        rentalPeriodLabel: "1 Month"
+      });
       toast({
         title: "Added to Cart",
-        description: `"${book.title}" has been added to your cart!`,
+        description: `${quantity} ${quantity === 1 ? 'copy' : 'copies'} of ${book.title} added to your cart`,
         variant: "default",
       });
     }
+
+    // Reset quantity to 1 after adding to cart
+    setQuantity(1);
+
     onRent?.();
   };
 
@@ -205,11 +224,47 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-3 pt-2">
+          {/* Quantity Selector */}
+          {book.availableCopies > 0 && (
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-sm font-medium text-gray-700">Quantity</span>
+              <div className="flex items-center bg-white rounded-lg border border-gray-300 shadow-sm">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQuantity(prev => Math.max(1, prev - 1));
+                  }}
+                  className="h-10 w-10 flex items-center justify-center rounded-l-lg hover:bg-gray-100  transition-colors active:bg-gray-200"
+                >
+                  <Minus className="h-4 w-4 text-gray-700" />
+                </button>
+                <div className="h-10 w-12 flex items-center justify-center border-x border-gray-300 bg-gray-50">
+                  <span className="font-semibold text-base text-gray-900">
+                    {quantity}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQuantity(prev => Math.min(book.availableCopies, prev + 1));
+                  }}
+                  className="h-10 w-10 flex items-center justify-center rounded-r-lg hover:bg-gray-100  transition-colors active:bg-gray-200"
+                >
+                  <Plus className="h-4 w-4 text-gray-700" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <Button 
-            className={`w-full font-medium transition-all duration-200 ${
+            className={`w-full font-medium transition-all duration-200 shadow-md ${
               book.availableCopies > 0 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
+                ? "bg-green-600 hover:bg-green-700 text-white hover:shadow-lg" 
                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
             }`}
             disabled={book.availableCopies === 0}
@@ -217,7 +272,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
             data-testid={`button-rent-${book.id}`}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
-            {book.availableCopies > 0 ? "Rent Now" : "Not Available"}
+            {book.availableCopies > 0 ? "Add to Cart" : "Not Available"}
           </Button>
 
           <Link href={`/book/${book.id}`} className="block w-full">
