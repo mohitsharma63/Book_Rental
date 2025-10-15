@@ -17,6 +17,25 @@ export default function Cart() {
   const [selectedDelivery, setSelectedDelivery] = useState("standard");
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
+  // Remove duplicates on component mount
+  useEffect(() => {
+    const seen = new Map<string, string>();
+    const duplicateIds: string[] = [];
+    
+    cartItems.forEach(item => {
+      const key = `${item.bookId}-${item.rentalDuration}`;
+      if (seen.has(key)) {
+        // Found duplicate, mark for removal
+        duplicateIds.push(item.id);
+      } else {
+        seen.set(key, item.id);
+      }
+    });
+    
+    // Remove all duplicates
+    duplicateIds.forEach(id => removeFromCart(id));
+  }, [cartItems, removeFromCart]);
+
   const updateQuantity = (id: string, change: number) => {
     const item = cartItems.find(item => item.id === id);
     if (item) {
@@ -132,7 +151,7 @@ export default function Cart() {
                   Shopping Cart
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart
+                  {cartItems.reduce((total, item) => total + item.quantity, 0)} {cartItems.reduce((total, item) => total + item.quantity, 0) === 1 ? 'item' : 'items'} in your cart
                 </p>
               </div>
             </div>
@@ -161,10 +180,10 @@ export default function Cart() {
             {/* Cart Items */}
             <div className="lg:col-span-8 space-y-4">
               {cartItems.map((item) => (
-                <Card key={item.id} className="overflow-hidden border-0 shadow-sm bg-white/80 backdrop-blur">
-                  <CardContent className="p-6">
-                    <div className="flex gap-6">
-                      <div className="relative">
+                <Card key={item.id} className="overflow-visible border shadow-sm bg-white">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                      <div className="relative flex-shrink-0 w-24 mx-auto sm:mx-0">
                         <img
                           src={item.imageUrl}
                           alt={`${item.title} cover`}
@@ -182,22 +201,22 @@ export default function Cart() {
                           </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex-1 space-y-4">
+
+                      <div className="flex-1 space-y-4 min-w-0">
                         <div>
-                          <h3 className="font-semibold text-lg text-gray-900">{item.title}</h3>
-                          <p className="text-gray-600">{item.author}</p>
+                          <h3 className="font-semibold text-lg text-gray-900 truncate">{item.title}</h3>
+                          <p className="text-gray-600 truncate">{item.author}</p>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {/* Rental Duration */}
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             <div className="text-sm text-muted-foreground">Rental Period</div>
                             <Select
                               value={item.rentalPeriodLabel || "1 Month"}
                               onValueChange={(value) => handleRentalPeriodChange(item.id, value)}
                             >
-                              <SelectTrigger className="bg-gray-50 border-gray-200">
+                              <SelectTrigger className="bg-gray-50 border-gray-200 w-full">
                                 <SelectValue placeholder={item.rentalPeriodLabel || "1 Month"}>
                                   {item.rentalPeriodLabel || 
                                     (item.rentalDuration === 4 ? "1 Month" :
@@ -214,10 +233,10 @@ export default function Cart() {
 
                           {/* Quantity */}
                           <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label className="text-sm text-muted-foreground">
                               Quantity
                             </label>
-                            <div className="flex items-center bg-gray-50 rounded-lg p-1">
+                            <div className="flex items-center bg-gray-50 rounded-lg p-1 w-fit">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -226,7 +245,7 @@ export default function Cart() {
                                   updateQuantity(item.id, -1);
                                 }}
                                 disabled={item.quantity <= 1}
-                                className="h-8 w-8 p-0 hover:bg-gray-200"
+                                className="h-8 w-8 p-0 "
                                 data-testid={`decrease-quantity-${item.id}`}
                               >
                                 <Minus className="h-4 w-4" />
@@ -241,7 +260,7 @@ export default function Cart() {
                                   e.preventDefault();
                                   updateQuantity(item.id, 1);
                                 }}
-                                className="h-8 w-8 p-0 hover:bg-gray-200"
+                                className="h-8 w-8 p-0 "
                                 data-testid={`increase-quantity-${item.id}`}
                               >
                                 <Plus className="h-4 w-4" />
@@ -251,7 +270,7 @@ export default function Cart() {
 
                           {/* Price */}
                           <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Price</label>
+                            <label className="text-sm text-muted-foreground">Price</label>
                             <div className="text-2xl font-bold text-primary">
                               ₹{(() => {
                                 const baseMonthlyPrice = parseFloat(item.price) || 0;
@@ -275,14 +294,64 @@ export default function Cart() {
                   </CardContent>
                 </Card>
               ))}
-
-              {/* Delivery Options */}
-              
             </div>
 
             {/* Order Summary Sidebar */}
             <div className="lg:col-span-4 space-y-6">
-             
+              {/* Delivery Options */}
+              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl">Delivery Options</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {deliveryOptions.map((option) => (
+                    <div
+                      key={option.id}
+                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedDelivery === option.id
+                          ? "bg-primary/10 border-2 border-primary"
+                          : "bg-gray-50 border border-gray-200"
+                      }`}
+                      onClick={() => setSelectedDelivery(option.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{option.icon}</span>
+                        <div>
+                          <p className="font-medium text-gray-800">{option.name}</p>
+                          <p className="text-xs text-gray-500">{option.description}</p>
+                        </div>
+                      </div>
+                      <span className="font-medium text-gray-800">
+                        {option.price === 0 ? "Free" : `₹${option.price.toFixed(2)}`}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Promo Code */}
+              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl">Promo Code</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Enter promo code"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      className="flex-1 bg-gray-50 border-gray-200"
+                    />
+                    <Button onClick={applyPromoCode} disabled={!!appliedPromo}>
+                      Apply
+                    </Button>
+                  </div>
+                  {appliedPromo && (
+                    <p className="text-sm text-green-600 mt-2">Promo code "{appliedPromo}" applied!</p>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Order Summary */}
               <Card className="border-0 shadow-sm bg-white/80 backdrop-blur sticky top-8">
@@ -327,8 +396,6 @@ export default function Cart() {
                   </div>
                 </CardContent>
               </Card>
-
-              
             </div>
           </div>
         )}

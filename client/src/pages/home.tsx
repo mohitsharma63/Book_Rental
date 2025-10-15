@@ -9,6 +9,7 @@ import { Book } from "@/lib/types";
 import { WandSparkles, Heart, Search as SearchIcon, Rocket, Star, TrendingUp, Clock, Users, ChevronLeft, ChevronRight, Sparkles, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { useStore } from "@/lib/store-context";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -259,12 +260,12 @@ export default function Home() {
                       <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-delay-2">
                         {slider.linkUrl ? (
                           <a href={slider.linkUrl} target="_blank" rel="noopener noreferrer">
-                            <Button className="w-full sm:w-auto bg-white text-primary hover:bg-gray-100 hover:scale-105 transition-all duration-300 px-8 py-3 text-lg font-semibold">
+                            <Button className="w-full sm:w-auto bg-white text-primary  hover:scale-105 transition-all duration-300 px-8 py-3 text-lg font-semibold">
                               {slider.buttonText || "Learn More"}
                             </Button>
                           </a>
                         ) : slider.buttonText && (
-                          <Button className="w-full sm:w-auto bg-white text-primary hover:bg-gray-100 hover:scale-105 transition-all duration-300 px-8 py-3 text-lg font-semibold">
+                          <Button className="w-full sm:w-auto bg-white text-primary  hover:scale-105 transition-all duration-300 px-8 py-3 text-lg font-semibold">
                             {slider.buttonText}
                           </Button>
                         )}
@@ -331,7 +332,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Link href="/catalog">
-                <Button className="w-full sm:w-auto bg-white text-primary hover:bg-gray-100">
+                <Button className="w-full sm:w-auto bg-white text-primary ">
                   Start Browsing
                 </Button>
               </Link>
@@ -365,7 +366,7 @@ export default function Home() {
         </div>
 
         {categoriesLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="group">
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-sm border border-gray-200/50 p-6 text-center animate-pulse hover:shadow-lg transition-all duration-300">
@@ -374,7 +375,7 @@ export default function Home() {
                     <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full animate-pulse"></div>
                   </div>
                   <div className="space-y-2">
-                    <div className="h-5 bg-gray-200 rounded-md w-3/4 mx-auto animate-pulse"></div>
+                    <div className="h-5 bg-gray-200 rounded-md w-3/4 animate-pulse"></div>
                     <div className="h-4 bg-gray-200 rounded-full w-16 mx-auto animate-pulse"></div>
                   </div>
                 </div>
@@ -382,13 +383,75 @@ export default function Home() {
             ))}
           </div>
         ) : categories.length > 0 ? (
-          categories.length > 5 ? (
+          <>
+          {/* Mobile Horizontal Scroll */}
+          <div className="sm:hidden mobile-category-carousel">
+            {categories.map((category, index) => {
+              const Icon = category.icon;
+              return (
+                <Link
+                  key={category.name}
+                  href={`/catalog?category=${encodeURIComponent(category.name)}`}
+                >
+                  <div className="mobile-category-card">
+                    <div className="relative mb-3">
+                      {category.imageUrl ? (
+                        <div className="relative w-16 h-16 mx-auto mobile-category-icon">
+                          <img
+                            src={category.imageUrl}
+                            alt={category.name}
+                            className="w-full h-full rounded-2xl object-cover shadow-md"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              const fallbackContainer = target.nextElementSibling as HTMLElement;
+                              if (fallbackContainer) {
+                                target.style.display = 'none';
+                                fallbackContainer.style.display = 'flex';
+                              }
+                            }}
+                          />
+                          <div className={`hidden w-full h-full rounded-2xl bg-gradient-to-br ${category.color} items-center justify-center shadow-md absolute top-0 left-0`}>
+                            <Icon className="text-white" size={28} strokeWidth={2.5} />
+                          </div>
+                          <div className={`absolute -top-1 -right-1 min-w-6 h-6 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center px-1.5 shadow-lg border-2 border-white mobile-category-badge`}>
+                            <span className="text-xs font-bold text-white">
+                              {category.count}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center shadow-md mobile-category-icon`}>
+                            <Icon className="text-white" size={28} strokeWidth={2.5} />
+                          </div>
+                          <div className="absolute -top-1 -right-1 min-w-6 h-6 bg-white rounded-full flex items-center justify-center px-1.5 shadow-lg border-2 border-gray-100 mobile-category-badge">
+                            <span className={`text-xs font-bold ${category.textColor}`}>
+                              {category.count}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="font-semibold text-sm line-clamp-2">
+                      {category.name}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1 count">
+                      {category.count} book{category.count !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Desktop View - Hidden on Mobile */}
+          {categories.length > 5 ? (
             // Carousel for more than 5 categories
-            <div className="relative">
-              <div className="overflow-hidden">
+            <div className="relative hidden sm:block">
+              <ScrollArea className="w-full whitespace-nowrap">
                 <div 
-                  className="flex transition-transform duration-500 ease-in-out gap-4 sm:gap-6"
-                  style={{ transform: `translateX(-${(categorySlide * 100) / Math.min(5, categories.length)}%)` }}
+                  className="flex transition-transform duration-500 ease-in-out gap-4 sm:gap-6 pb-4"
+                  style={{ transform: `translateX(-${categorySlide * 100}%)` }}
                 >
                   {categories.map((category, index) => {
                     const Icon = category.icon;
@@ -396,7 +459,7 @@ export default function Home() {
                       <Link
                         key={category.name}
                         href={`/catalog?category=${encodeURIComponent(category.name)}`}
-                        className="flex-none w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-1rem)] lg:w-[calc(25%-1.125rem)] xl:w-[calc(20%-1.2rem)]"
+                        className="inline-block w-full flex-none md:w-1/3 lg:w-1/4 xl:w-1/5"
                       >
                         <div 
                           className="group relative"
@@ -469,7 +532,8 @@ export default function Home() {
                     );
                   })}
                 </div>
-              </div>
+                <ScrollBar orientation="horizontal" className="h-3" />
+              </ScrollArea>
 
               {/* Navigation arrows for categories */}
 
@@ -488,8 +552,8 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 bg-white/90 backdrop-blur-sm hover:bg-white shadow-lg border border-gray-200/50 text-gray-700 hover:text-primary z-10"
-                    onClick={() => setCategorySlide(Math.min(Math.max(0, categories.length - 5), categorySlide + 1))}
-                    disabled={categorySlide >= Math.max(0, categories.length - 5)}
+                    onClick={() => setCategorySlide(Math.min(Math.max(0, categories.length - Math.ceil(categories.length / 5)), categorySlide + 1))}
+                    disabled={categorySlide >= Math.max(0, categories.length - Math.ceil(categories.length / 5))}
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
@@ -499,7 +563,7 @@ export default function Home() {
               {/* Dots indicator for categories */}
               {categories.length > 5 && (
                 <div className="flex justify-center mt-6 gap-2">
-                  {Array.from({ length: Math.max(1, categories.length - 4) }).map((_, index) => (
+                  {Array.from({ length: Math.max(1, Math.ceil(categories.length / 5)) }).map((_, index) => (
                     <button
                       key={index}
                       className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -514,8 +578,8 @@ export default function Home() {
               )}
             </div>
           ) : (
-            // Grid for 5 or fewer categories
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            // Grid for 5 or fewer categories - Hidden on Mobile, Grid on Desktop
+            <div className="hidden sm:grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {categories.map((category, index) => {
                 const Icon = category.icon;
                 return (
@@ -594,7 +658,8 @@ export default function Home() {
                 );
               })}
             </div>
-          )
+          )}
+          </>
         ) : (
           <div className="text-center py-12">
             <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
@@ -724,8 +789,6 @@ export default function Home() {
           </div>
         )}
       </section>
-
-      {/* Popular Categories */}
 
       {/* Floating Request Book Button */}
       <div className="fixed bottom-6 right-6 z-40">

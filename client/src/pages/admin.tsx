@@ -1969,7 +1969,7 @@ export default function Admin() {
                           const isOverdue = rental.status === "overdue" || (rental.dueDate && new Date(rental.dueDate) < new Date());
                           
                           return (
-                            <TableRow key={rental.id} data-testid={`row-order-${rental.id}`} className="hover:bg-gray-50">
+                            <TableRow key={rental.id} data-testid={`row-order-${rental.id}`} className="">
                               <TableCell className="font-medium">
                                 <div className="flex flex-col">
                                   <span className="font-mono text-sm">#{rental.id?.toString().slice(-8) || 'N/A'}</span>
@@ -2252,7 +2252,7 @@ export default function Admin() {
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
-                                      className="text-gray-600 hover:text-gray-800 hover:bg-gray-50" 
+                                      className="text-gray-600 hover:text-gray-800 " 
                                       data-testid={`button-update-order-${rental.id}`}
                                       onClick={() => updateOrderStatus(rental.id, getNextStatus(rental.status))}
                                     >
@@ -2872,7 +2872,7 @@ export default function Admin() {
                           }
 
                           return (
-                            <TableRow key={order.id} className="hover:bg-gray-50">
+                            <TableRow key={order.id} className="">
                               <TableCell className="font-medium">
                                 <div className="flex flex-col">
                                   <span className="font-mono text-sm">#{order.orderId}</span>

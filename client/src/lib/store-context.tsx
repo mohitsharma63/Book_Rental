@@ -98,33 +98,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (item: CartItem) => {
     setCartItems(prev => {
-      // Don't add items with invalid price (0 or null/undefined)
+      // Don't add items with invalid price
       const price = parseFloat(item.price?.toString() || '0');
       if (price <= 0) {
         console.warn('Cannot add item with price 0 or invalid price to cart');
         return prev;
       }
       
-      // Check for existing item by bookId AND rental duration
-      const existingItem = prev.find(cartItem => 
+      // Strict check: prevent any duplicate with same bookId and rental duration
+      const existingItemIndex = prev.findIndex(cartItem => 
         cartItem.bookId === item.bookId && 
         cartItem.rentalDuration === (item.rentalDuration || 4)
       );
       
-      if (existingItem) {
-        // Increment quantity of existing item
-        return prev.map(cartItem =>
-          cartItem.id === existingItem.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
+      if (existingItemIndex !== -1) {
+        // Item already exists, do NOT add duplicate - caller should use updateCartQuantity
+        console.warn('Item already exists in cart, use updateCartQuantity instead');
+        return prev;
       }
-      
-      // Ensure rental duration and label are properly set for new items
+
+      // Add new item only if it doesn't exist
       return [...prev, { 
         ...item, 
         rentalDuration: item.rentalDuration || 4, 
-        quantity: 1, 
+        quantity: item.quantity || 1, 
         rentalPeriodLabel: item.rentalPeriodLabel || '1 Month' 
       }];
     });

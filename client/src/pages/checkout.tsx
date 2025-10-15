@@ -735,108 +735,137 @@ export default function CheckoutPage() {
                     onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
                     className="space-y-3"
                   >
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="cashfree" id="cashfree" />
-                      <Label htmlFor="cashfree" className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Pay Online</p>
-                            <p className="text-sm text-gray-500">Credit/Debit Card, UPI, Net Banking</p>
-                          </div>
+                    <Label 
+                      htmlFor="cashfree" 
+                      className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        formData.paymentMethod === 'cashfree' 
+                          ? 'border-green-600 bg-green-50' 
+                          : 'border-gray-200 hover:border-gray-300 '
+                      }`}
+                    >
+                      <div className="relative flex items-center justify-center mt-1">
+                        <RadioGroupItem value="cashfree" id="cashfree" className="sr-only" />
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          formData.paymentMethod === 'cashfree' 
+                            ? 'border-green-600 bg-green-600' 
+                            : 'border-gray-300'
+                        }`}>
+                          {formData.paymentMethod === 'cashfree' && (
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-semibold text-gray-900">Pay Online</p>
                           <CreditCard className="h-5 w-5 text-gray-400" />
                         </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="cod" id="cod" />
-                      <Label htmlFor="cod" className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Cash on Delivery</p>
-                            <p className="text-sm text-gray-500">Pay when you receive your order</p>
-                          </div>
+                        <p className="text-sm text-gray-600">Credit/Debit Card, UPI, Net Banking</p>
+                      </div>
+                    </Label>
+                    
+                    <Label 
+                      htmlFor="cod" 
+                      className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        formData.paymentMethod === 'cod' 
+                          ? 'border-green-600 bg-green-50' 
+                          : 'border-gray-200 hover:border-gray-300 '
+                      }`}
+                    >
+                      <div className="relative flex items-center justify-center mt-1">
+                        <RadioGroupItem value="cod" id="cod" className="sr-only" />
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          formData.paymentMethod === 'cod' 
+                            ? 'border-green-600 bg-green-600' 
+                            : 'border-gray-300'
+                        }`}>
+                          {formData.paymentMethod === 'cod' && (
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          )}
                         </div>
-                      </Label>
-                    </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 mb-1">Cash on Delivery</p>
+                        <p className="text-sm text-gray-600">Pay when you receive your order</p>
+                      </div>
+                    </Label>
                   </RadioGroup>
                 </CardContent>
               </Card>
             </div>
 
             {/* Order Summary */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {cartItems.map((item) => (
-                      <div key={item.id} className="flex items-center space-x-4">
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="h-16 w-16 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.title}</h4>
-                          <p className="text-sm text-gray-600">by {item.author}</p>
-                          <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">₹{(() => {
-                            const baseMonthlyPrice = parseFloat(item.price?.toString() || "0");
-                            let totalPrice;
-
-                            if ((item.rentalDuration || 4) === 4) {
-                              totalPrice = baseMonthlyPrice;
-                            } else if ((item.rentalDuration || 4) === 8) {
-                              totalPrice = baseMonthlyPrice * 1.8; // 2 months with 10% discount
-                            } else {
-                              totalPrice = baseMonthlyPrice;
-                            }
-
-                            return (totalPrice * item.quantity).toFixed(2);
-                          })()}</p>
-                        </div>
+            <Card className="mobile-order-summary">
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex items-center space-x-4">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-16 w-16 object-cover rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{item.title}</h4>
+                        <p className="text-sm text-gray-600">by {item.author}</p>
+                        <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">₹{(() => {
+                          const baseMonthlyPrice = parseFloat(item.price?.toString() || "0");
+                          let totalPrice;
+
+                          if ((item.rentalDuration || 4) === 4) {
+                            totalPrice = baseMonthlyPrice;
+                          } else if ((item.rentalDuration || 4) === 8) {
+                            totalPrice = baseMonthlyPrice * 1.8; // 2 months with 10% discount
+                          } else {
+                            totalPrice = baseMonthlyPrice;
+                          }
+
+                          return (totalPrice * item.quantity).toFixed(2);
+                        })()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-gray-200 mt-6 pt-6 space-y-2">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toLocaleString()}</span>
                   </div>
-
-                  <div className="border-t border-gray-200 mt-6 pt-6 space-y-2">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Subtotal</span>
-                      <span>₹{subtotal.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Shipping</span>
-                      <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
-                      <span>Total</span>
-                      <span>₹{total.toLocaleString()}</span>
-                    </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Shipping</span>
+                    <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
                   </div>
+                  <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
+                    <span>Total</span>
+                    <span>₹{total.toLocaleString()}</span>
+                  </div>
+                </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full mt-6 bg-red-600 hover:bg-red-700"
-                    size="lg"
-                    disabled={loading}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    {loading ? 'Processing...' :
-                     formData.paymentMethod === 'cashfree' ?
-                     `Pay Online - ₹${total.toLocaleString()}` :
-                     `Place Order - ₹${total.toLocaleString()}`}
-                  </Button>
+                <Button
+                  type="submit"
+                  className="w-full mt-6 bg-red-600 hover:bg-red-700"
+                  size="lg"
+                  disabled={loading}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {loading ? 'Processing...' :
+                    formData.paymentMethod === 'cashfree' ?
+                      `Pay Online - ₹${total.toLocaleString()}` :
+                      `Place Order - ₹${total.toLocaleString()}`}
+                </Button>
 
-                  <p className="text-xs text-gray-500 mt-4 text-center">
-                    By placing your order, you agree to our Terms of Service and Privacy Policy.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+                <p className="text-xs text-gray-500 mt-4 text-center">
+                  By placing your order, you agree to our Terms of Service and Privacy Policy.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </form>
       </div>

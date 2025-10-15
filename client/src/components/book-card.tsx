@@ -93,49 +93,41 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
 
     if (book.availableCopies === 0) return;
 
-    const existingCartItem = cartItems.find(item => item.id === book.id);
+    // Check if item already exists in cart with same book and rental duration
+    const existingCartItem = cartItems.find(
+      item => item.bookId === book.id && item.rentalDuration === 4
+    );
 
-    if (existingCartItem) {
-      // If item exists in cart, update its quantity with the selected quantity
-      updateCartQuantity(book.id, existingCartItem.quantity + quantity);
-      toast({
-        title: "Cart Updated",
-        description: `${book.title} quantity increased by ${quantity}`,
-        variant: "default",
-        action: (
-          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-            View Cart
-          </a>
-        ),
-      });
-    } else {
-      // Add new item to cart with selected quantity
-      addToCart({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        price: book.monthlyRentalPrice,
-        imageUrl: book.imageUrl,
-        quantity: quantity, // Use selected quantity
-        rentalDuration: 4, // Default to 1 month (4 weeks)
-        rentalPeriodLabel: "1 Month"
-      });
-      toast({
-        title: `${quantity} ${quantity === 1 ? 'Item' : 'Items'} added`,
-        description: `${book.title} added to your cart`,
-        variant: "default",
-        action: (
-          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ">
-            View Cart
-          </a>
-        ),
-      });
-    }
+   
 
-    // Reset quantity to 1 after adding to cart
-    setQuantity(1);
+    const cartItem = {
+      id: `cart-${book.id}-4-${Date.now()}`,
+      bookId: book.id,
+      title: book.title,
+      author: book.author,
+      price: parseFloat(book.pricePerWeek),
+      imageUrl: book.imageUrl,
+      quantity: quantity,
+      rentalDuration: 4,
+      rentalPeriodLabel: "1 Month",
+      available: book.availableCopies > 0
+    };
 
-    onRent?.();
+    addToCart(cartItem);
+
+    toast({
+      title: "Added to Cart",
+      description: `"${book.title}" (${quantity}) added to your cart`,
+      variant: "default",
+      action: (
+        <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+          View Cart
+        </a>
+      ),
+    });
+
+   
+
   };
 
   const renderStars = (rating: number = 4.5) => {
@@ -157,7 +149,7 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
   };
 
   const incrementQuantity = () => {
-  setQuantity(prev => Math.min(book.availableCopies, prev + 1));
+  setQuantity(prev => Math.min( prev + 1));
 };
 
 const decrementQuantity = () => {
@@ -169,7 +161,7 @@ const decrementQuantity = () => {
     <Card className="group relative overflow-hidden bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-xl hover:-translate-y-1" data-testid={`card-book-${book.id}`}>
       {/* Status Badge */}
       <div className="absolute top-3 left-3 z-20">
-        <Badge 
+        <Badge
           className={`text-xs px-2 py-1 font-medium border ${getStatusColor(book.availableCopies)}`}
           data-testid={`status-book-${book.id}`}
         >
@@ -195,8 +187,8 @@ const decrementQuantity = () => {
       {/* Book Image */}
       <Link href={`/book/${book.id}`}>
         <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-          <img 
-            src={book.imageUrl || "/placeholder-book.jpg"} 
+          <img
+            src={book.imageUrl || "/placeholder-book.jpg"}
             alt={`${book.title} cover`}
             className="w-full h-full book-card-image transition-transform duration-300 group-hover:scale-105"
             style={{ objectFit: 'contain', objectPosition: 'center' }}
@@ -245,69 +237,70 @@ const decrementQuantity = () => {
         <div className="space-y-3 pt-2">
           {/* Quantity Selector */}
           {book.availableCopies > 0 && (
-  <div className="flex items-center justify-between gap-2">
-    <span className="text-sm font-medium text-gray-700">Qty:</span>
-    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setQuantity(prev => Math.max(1, prev - 1));
-        }} 
-        className="h-9 w-9 rounded-none hover:bg-gray-100 "
-      >
-        <Minus className="h-4 w-4" />
-      </Button>
-      <input 
-        type="number" 
-        onChange={(e) => {
-          e.stopPropagation();
-          const val = parseInt(e.target.value);
-          if (!isNaN(val) && val >= 1 && val <= book.availableCopies) {
-            setQuantity(val);
-          } else if (e.target.value === '') {
-            setQuantity(1);
-          }
-        }} 
-        onBlur={(e) => {
-          const val = parseInt(e.target.value);
-          if (isNaN(val) || val < 1) {
-            setQuantity(1);
-          } else if (val > book.availableCopies) {
-            setQuantity(book.availableCopies);
-          }
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-        className="w-14 text-center text-sm font-medium py-1.5 border-x border-gray-300 focus:outline-none focus:bg-gray-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-        min="1"
-        max={book.availableCopies}
-      />
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setQuantity(prev => Math.min(book.availableCopies, prev + 1));
-        }} 
-        className="h-9 w-9 rounded-none hover:bg-gray-100"
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
+  <div className="flex items-center justify-between gap-3">
+    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Qty:</span>
+    <div className="flex items-center gap-2 flex-1 justify-end">
+      <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setQuantity(prev => Math.max(1, prev - 1));
+          }}
+          className="h-8 w-8 rounded-none "
+        >
+          <Minus className="h-3 w-3" />
+        </Button>
+        <input
+          type="number"
+          value={quantity}
+          onChange={(e) => {
+            e.stopPropagation();
+            const val = parseInt(e.target.value);
+            if (!isNaN(val) && val >= 1 && val <= book.availableCopies) {
+              setQuantity(val);
+            } else if (e.target.value === '') {
+              setQuantity(1);
+            }
+          }}
+          onBlur={(e) => {
+            const val = parseInt(e.target.value);
+            if (isNaN(val) || val < 1) {
+              setQuantity(1);
+            } else if (val > book.availableCopies) {
+              setQuantity(book.availableCopies);
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="w-12 text-center text-sm font-medium py-1.5 border-x border-gray-300 focus:outline-none focus:bg-gray-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          min="1"
+          max={book.availableCopies}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setQuantity(prev => Math.min( prev + 1));
+          }}
+          className="h-8 w-8 rounded-none "
+        >
+          <Plus className="h-3 w-3" />
+        </Button>
+      </div>
+     
     </div>
-    <span className="text-xs text-gray-500 font-medium">
-      / {book.availableCopies}
-    </span>
   </div>
 )}
 
-          <Button 
+          <Button
             className={`w-full font-medium transition-all duration-200 shadow-md ${
-              book.availableCopies > 0 
-                ? "bg-green-600 hover:bg-green-700 text-white hover:shadow-lg" 
+              book.availableCopies > 0
+                ? "bg-green-600 hover:bg-green-700 text-white hover:shadow-lg"
                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
             }`}
             onClick={handleAddToCart}
@@ -318,7 +311,7 @@ const decrementQuantity = () => {
           </Button>
 
           <Link href={`/book/${book.id}`} className="block w-full">
-            <Button variant="outline" className="w-full font-medium border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
+            <Button variant="outline" className="w-full font-medium border-gray-300 text-gray-700  hover:border-gray-400 transition-all duration-200">
               <BookOpen className="h-4 w-4 mr-2" />
               View Details
             </Button>
