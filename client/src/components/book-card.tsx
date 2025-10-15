@@ -102,6 +102,11 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         title: "Cart Updated",
         description: `${book.title} quantity increased by ${quantity}`,
         variant: "default",
+        action: (
+          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+            View Cart
+          </a>
+        ),
       });
     } else {
       // Add new item to cart with selected quantity
@@ -116,9 +121,14 @@ export function BookCard({ book, onRent, onWishlist }: BookCardProps) {
         rentalPeriodLabel: "1 Month"
       });
       toast({
-        title: "Added to Cart",
-        description: `${quantity} ${quantity === 1 ? 'copy' : 'copies'} of ${book.title} added to your cart`,
+        title: `${quantity} ${quantity === 1 ? 'Item' : 'Items'} added`,
+        description: `${book.title} added to your cart`,
         variant: "default",
+        action: (
+          <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+            View Cart
+          </a>
+        ),
       });
     }
 

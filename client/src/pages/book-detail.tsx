@@ -19,7 +19,9 @@ import {
   ShoppingCart,
   ArrowLeft,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Minus, // Added Minus icon
+  Plus // Added Plus icon
 } from "lucide-react";
 import { Link } from "wouter";
 import { useStore } from "@/lib/store-context";
@@ -194,7 +196,7 @@ export default function BookDetail() {
   // Modified handleRentClick to use quantity
   const handleRentClick = () => {
     if (!book || book.availableCopies === 0) return;
-    
+
     const selectedPeriod = rentalPeriods.find(p => p.weeks === selectedRentalPeriod);
     const cartItem = {
       id: `cart-${book.id}-${Date.now()}`,
@@ -210,9 +212,14 @@ export default function BookDetail() {
     };
     addToCart(cartItem);
     toast({
-      title: "Added to Cart",
-      description: `"${book.title}" has been added to your cart for ${selectedPeriod?.label || "1 Month"}!`,
+      title: `${quantity} ${quantity === 1 ? 'Item' : 'Items'} added`,
+      description: `${book.title} added to your cart for ${selectedPeriod?.label || "1 Month"}`,
       variant: "default",
+      action: (
+        <a href="/cart" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+          View Cart
+        </a>
+      ),
     });
   };
 

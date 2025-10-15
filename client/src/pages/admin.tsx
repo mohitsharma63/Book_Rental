@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoriesManager } from "@/components/categories-manager";
 import { SliderManager } from "@/components/slider-manager";
+import { Switch } from "@/components/ui/switch";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -1270,31 +1271,115 @@ export default function Admin() {
                             <TableCell>₹{book.pricePerWeek}/month</TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={book.availableCopies > 0 ? "text-green-600 hover:text-green-800 hover:bg-green-50" : "text-orange-600 hover:text-orange-800 hover:bg-orange-50"}
-                                  onClick={() => {
-                                    const newAvailability = book.availableCopies > 0 ? 0 : book.totalCopies;
-                                    const action = book.availableCopies > 0 ? "unavailable" : "available";
-                                    if (confirm(`Are you sure you want to set "${book.title}" as ${action}?`)) {
-                                      updateBookMutation.mutate({ 
-                                        id: book.id, 
-                                        bookData: { 
-                                          availableCopies: newAvailability 
-                                        } 
-                                      }, {
-                                        onSuccess: () => {
-                                          alert(`Book availability updated to ${action}!`);
-                                        }
-                                      });
-                                    }
-                                  }}
-                                  disabled={updateBookMutation.isPending}
-                                  data-testid={`button-availability-${book.id}`}
-                                >
-                                  {updateBookMutation.isPending && editingBook?.id === book.id ? "Updating..." : book.availableCopies > 0 ? "Set Unavailable" : "Set Available"}
-                                </Button>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <div className="flex items-center gap-2">
+                                      <Switch
+                                        checked={book.availableCopies > 0}
+                                        disabled={updateBookMutation.isPending && editingBook?.id === book.id}
+                                        data-testid={`toggle-availability-${book.id}`}
+                                        className="data-[state=checked]:bg-green-600"
+                                      />
+                                      <span className={`text-sm font-medium ${
+                                        book.availableCopies > 0 ? 'text-green-700' : 'text-gray-500'
+                                      }`}>
+                                        {updateBookMutation.isPending && editingBook?.id === book.id ? (
+                                          <span className="flex items-center gap-1">
+                                            <Clock className="h-3 w-3 animate-spin" />
+                                            Updating...
+                                          </span>
+                                        ) : book.availableCopies > 0 ? (
+                                          'Available'
+                                        ) : (
+                                          'Unavailable'
+                                        )}
+                                      </span>
+                                    </div>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-2 text-xl">
+                                        <div className={`p-2 rounded-full ${book.availableCopies > 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+                                          {book.availableCopies > 0 ? (
+                                            <X className="h-5 w-5 text-red-600" />
+                                          ) : (
+                                            <CheckCircle className="h-5 w-5 text-green-600" />
+                                          )}
+                                        </div>
+                                        Confirm Availability Change
+                                      </DialogTitle>
+                                    </DialogHeader>
+                                    <div className="py-4 space-y-4">
+                                      <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
+                                        <p className="text-sm text-gray-600 mb-2">Book Title:</p>
+                                        <p className="font-semibold text-gray-900">"{book.title}"</p>
+                                      </div>
+                                      
+                                      <div className={`p-4 rounded-lg border ${book.availableCopies > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                                        <div className="flex items-start gap-3">
+                                          <div className={`mt-0.5 ${book.availableCopies > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            <AlertTriangle className="h-5 w-5" />
+                                          </div>
+                                          <div>
+                                            <p className={`font-medium mb-1 ${book.availableCopies > 0 ? 'text-red-800' : 'text-green-800'}`}>
+                                              {book.availableCopies > 0 ? 'Mark as Unavailable' : 'Mark as Available'}
+                                            </p>
+                                            <p className={`text-sm ${book.availableCopies > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                              {book.availableCopies > 0 
+                                                ? 'This will prevent users from renting this book. The book will be hidden from the catalog.'
+                                                : 'This will make the book visible and available for users to rent in the catalog.'
+                                              }
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-2">
+                                      <DialogTrigger asChild>
+                                        <Button variant="outline" className="min-w-24">
+                                          Cancel
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          variant={book.availableCopies > 0 ? "destructive" : "default"}
+                                          className={`min-w-32 font-medium ${
+                                            book.availableCopies > 0 
+                                              ? 'bg-red-600 hover:bg-red-700' 
+                                              : 'bg-green-600 hover:bg-green-700'
+                                          }`}
+                                          onClick={() => {
+                                            const newAvailability = book.availableCopies > 0 ? 0 : book.totalCopies;
+                                            const action = book.availableCopies > 0 ? "unavailable" : "available";
+                                            updateBookMutation.mutate({ 
+                                              id: book.id, 
+                                              bookData: { 
+                                                availableCopies: newAvailability 
+                                              } 
+                                            }, {
+                                              onSuccess: () => {
+                                                alert(`Book availability updated to ${action}!`);
+                                              }
+                                            });
+                                          }}
+                                          disabled={updateBookMutation.isPending}
+                                        >
+                                          {book.availableCopies > 0 ? (
+                                            <>
+                                              <X className="h-4 w-4 mr-2" />
+                                              Set Unavailable
+                                            </>
+                                          ) : (
+                                            <>
+                                              <CheckCircle className="h-4 w-4 mr-2" />
+                                              Set Available
+                                            </>
+                                          )}
+                                        </Button>
+                                      </DialogTrigger>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
                                 <Button
                                   variant="ghost"
                                   size="sm"
