@@ -99,36 +99,9 @@ export default function Cart() {
     return sum + (totalPrice * item.quantity);
   }, 0);
 
-  const deliveryFee = selectedDelivery === "express" ? 199 : selectedDelivery === "standard" ? 99 : 0;
   const promoDiscount = appliedPromo === "BOOKWORM10" ? subtotal * 0.1 : 0;
-  const total = subtotal + deliveryFee - promoDiscount;
+  const total = subtotal  - promoDiscount;
 
-  const deliveryOptions = [
-    {
-      id: "pickup",
-      name: "Store Pickup",
-      price: 0,
-      description: "Ready in 2 hours",
-      icon: "🏪",
-      highlight: false
-    },
-    {
-      id: "standard",
-      name: "Standard Delivery",
-      price: 99,
-      description: "2-3 business days",
-      icon: "📦",
-      highlight: true
-    },
-    {
-      id: "express",
-      name: "Express Delivery",
-      price: 199,
-      description: "Next business day",
-      icon: "⚡",
-      highlight: false
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -298,36 +271,7 @@ export default function Cart() {
 
             {/* Order Summary Sidebar */}
             <div className="lg:col-span-4 space-y-6">
-              {/* Delivery Options */}
-              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl">Delivery Options</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {deliveryOptions.map((option) => (
-                    <div
-                      key={option.id}
-                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                        selectedDelivery === option.id
-                          ? "bg-primary/10 border-2 border-primary"
-                          : "bg-gray-50 border border-gray-200"
-                      }`}
-                      onClick={() => setSelectedDelivery(option.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{option.icon}</span>
-                        <div>
-                          <p className="font-medium text-gray-800">{option.name}</p>
-                          <p className="text-xs text-gray-500">{option.description}</p>
-                        </div>
-                      </div>
-                      <span className="font-medium text-gray-800">
-                        {option.price === 0 ? "Free" : `₹${option.price.toFixed(2)}`}
-                      </span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              
 
               {/* Promo Code */}
               <Card className="border-0 shadow-sm bg-white/80 backdrop-blur">
@@ -364,10 +308,7 @@ export default function Cart() {
                       <span>Subtotal</span>
                       <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Delivery</span>
-                      <span className="font-medium">{deliveryFee === 0 ? "Free" : `₹${deliveryFee.toFixed(2)}`}</span>
-                    </div>
+                    
                     {promoDiscount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
