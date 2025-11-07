@@ -66,8 +66,6 @@ interface ShiprocketTrackingResponse {
       packages: number;
       current_status: string;
       delivered_to: string;
-      destination: string;
-      consignee_name: string;
       origin: string;
       courier_agent_details: string;
       edd: string;
@@ -106,16 +104,28 @@ class ShiprocketService {
   private async authenticate(forceRefresh: boolean = false): Promise<void> {
     console.log('Authenticating with Shiprocket...');
 
-    // Skip if we already have a valid token and not forcing refresh
-    if (this.token && Date.now() < this.tokenExpiry && !forceRefresh) {
+    // Check if token is about to expire (within 12 hours) and refresh it proactively
+    const tokenExpiresIn = this.tokenExpiry - Date.now();
+    const twelveHours = 12 * 60 * 60 * 1000;
+
+    // Skip if we have a valid token that won't expire soon and not forcing refresh
+    if (this.token && tokenExpiresIn > twelveHours && !forceRefresh) {
+      console.log(`Shiprocket token valid for ${Math.floor(tokenExpiresIn / (60 * 60 * 1000))} more hours`);
       return;
     }
 
-    // If using pre-existing token from env, don't try to re-authenticate
+    // If token is about to expire or expired, refresh it
+    if (this.token && tokenExpiresIn <= twelveHours) {
+      console.log('Shiprocket token expiring soon, refreshing...');
+      forceRefresh = true;
+    }
+
+    // If using pre-existing token from env, don't try to re-authenticate unless forcing refresh
     if (process.env.SHIPROCKET_TOKEN && !forceRefresh) {
       this.token = process.env.SHIPROCKET_TOKEN;
-      this.tokenExpiry = Date.now() + (365 * 24 * 60 * 60 * 1000);
-      console.log('Using pre-existing Shiprocket token, skipping authentication');
+      // Set expiry to 30 days for env tokens (they don't expire like API tokens)
+      this.tokenExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000);
+      console.log('Using pre-existing Shiprocket token from environment');
       return;
     }
 
@@ -165,10 +175,12 @@ class ShiprocketService {
       }
 
       this.token = data.token;
-      // Set token expiry to 9 days (Shiprocket tokens are valid for 10 days)
-      this.tokenExpiry = Date.now() + (9 * 24 * 60 * 60 * 1000);
+      // Set token expiry to 9.5 days (Shiprocket tokens are valid for 10 days)
+      // This gives us a buffer to refresh before actual expiry
+      this.tokenExpiry = Date.now() + (9.5 * 24 * 60 * 60 * 1000);
 
-      console.log('Shiprocket authentication successful');
+      const expiryDate = new Date(this.tokenExpiry);
+      console.log(`Shiprocket authentication successful. Token valid until: ${expiryDate.toISOString()}`);
     } catch (error) {
       console.error('Shiprocket authentication error:', error);
       this.token = null; // Clear invalid token
@@ -178,14 +190,13 @@ class ShiprocketService {
   }
 
 
-  private async makeRequest(endpoint: string, method: string = 'GET', data?: any) {
+  private async makeRequest(endpoint: string, method: string = 'GET', data?: any, retryCount: number = 0) {
     const url = `${this.config.baseUrl}${endpoint}`;
+    const maxRetries = 1;
 
     try {
-      // Validate token before making request
-      if (!this.token) {
-        throw new Error('Shiprocket token not available');
-      }
+      // Ensure we have a valid token before making request
+      await this.authenticate();
 
       const response = await fetch(url, {
         method,
@@ -217,6 +228,14 @@ class ShiprocketService {
 
         // Handle specific error cases
         if (response.status === 401) {
+          // Token expired - retry once with fresh token
+          if (retryCount < maxRetries) {
+            console.log('Token expired, refreshing and retrying request...');
+            this.token = null;
+            this.tokenExpiry = 0;
+            await this.authenticate(true);
+            return this.makeRequest(endpoint, method, data, retryCount + 1);
+          }
           throw new Error('Shiprocket authentication failed - token may be expired');
         } else if (response.status === 403) {
           throw new Error('Shiprocket access forbidden - check API permissions');
@@ -336,7 +355,10 @@ class ShiprocketService {
   }
 
   // Convert your order format to Shiprocket format
-  convertToShiprocketFormat(order: any, pickupLocation: string = "Primary"): ShiprocketOrder {
+  convertToShiprocketFormat(order: any, pickupLocation?: string): ShiprocketOrder {
+    // Use environment variable or default to "chennai" (matching your Shiprocket dashboard)
+    const defaultPickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || "chennai";
+    pickupLocation = pickupLocation || defaultPickupLocation;
     const items = order.items || [];
     const { firstName, lastName, email, phone } = order.customer || {};
     const { shippingAddress, totalAmount, paymentMethod, createdAt } = order;
@@ -467,9 +489,15 @@ class ShiprocketService {
           ? parseFloat(item.price.replace(/[₹,]/g, ''))
           : Number(item.price);
 
+        // Generate short SKU (max 50 chars)
+        const productIdPart = item.productId 
+          ? item.productId.toString().slice(0, 20)
+          : Date.now().toString().slice(-10);
+        const sku = `SKU-${productIdPart}-${index}`.substring(0, 50);
+
         return {
           name: (item.productName || item.name || 'Product').substring(0, 50),
-          sku: `SKU${item.productId || (Date.now() + index)}`,
+          sku: sku,
           units: Number(item.quantity) || 1,
           selling_price: price,
           discount: 0,

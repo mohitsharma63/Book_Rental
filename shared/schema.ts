@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, decimal, boolean, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, decimal, boolean, serial, doublePrecision } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -97,9 +97,9 @@ export const sliders = pgTable("sliders", {
 });
 
 export const paymentOrders = pgTable("payment_orders", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: serial("id").primaryKey(),
   orderId: text("order_id").notNull().unique(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").references(() => users.id).notNull(),
   paymentSessionId: text("payment_session_id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("INR"),
@@ -116,6 +116,8 @@ export const paymentOrders = pgTable("payment_orders", {
   transactionId: text("transaction_id"),
   gatewayResponse: text("gateway_response"), // Store full response from Cashfree
   cartItems: text("cart_items").notNull(), // JSON string of cart items
+  shiprocketOrderId: text("shiprocket_order_id"),
+  shiprocketShipmentId: text("shiprocket_shipment_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

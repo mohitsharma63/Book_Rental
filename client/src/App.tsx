@@ -75,7 +75,7 @@ function App() {
                       </RouteGuard>
                     </Route>
                     <Route path="/payment-success" component={PaymentSuccess} />
-                    <Route path="/track-order/:orderId" component={TrackOrder} />
+                    <Route path="/track-order" component={TrackOrder} />
                     <Route path="/return-request/:rentalId" component={ReturnRequest} />
                     <Route path="/contact" component={Contact} />
                     <Route path="/profile">
@@ -96,6 +96,7 @@ function App() {
                         <Admin />
                       </RouteGuard>
                     </Route>
+                    <Route path="/track-order" component={TrackOrder} />
 
                     {/* 404 Route */}
                     <Route component={NotFound} />

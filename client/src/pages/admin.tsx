@@ -10,7 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Book, Rental } from "@/lib/types";
-import { BookIcon, Users, Clock, AlertTriangle, Search, Filter, Plus, TrendingUp, MessageCircle, CheckCircle, X } from "lucide-react";
+import { BookIcon, Users, Clock, AlertTriangle, Search, Filter, Plus, TrendingUp, MessageCircle, CheckCircle, X, Truck, Package, AlertCircle } from "lucide-react";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -334,6 +334,46 @@ export default function Admin() {
     refetchOnWindowFocus: false,
   });
 
+  // Fetch analytics data
+  const { data: analyticsData = {}, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['analytics-data'],
+    queryFn: async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const res = await fetch('/api/admin/analytics', {
+          credentials: 'include',
+          headers: {
+            'x-user-id': user.id || '',
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) {
+          console.warn('Analytics API failed:', res.status, res.statusText);
+          return {
+            monthlyRevenue: 0,
+            revenueGrowth: 0,
+            popularGenre: { name: 'N/A', percentage: 0 },
+            avgRentalPeriod: 0,
+            rentalTrends: []
+          };
+        }
+        const data = await res.json();
+        return data;
+      } catch (error) {
+        console.warn('Analytics API error:', error);
+        return {
+          monthlyRevenue: 0,
+          revenueGrowth: 0,
+          popularGenre: { name: 'N/A', percentage: 0 },
+          avgRentalPeriod: 0,
+          rentalTrends: []
+        };
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const { data: paymentOrders = [], isLoading: paymentOrdersLoading } = useQuery({
     queryKey: ['payment-orders'],
     queryFn: async () => {
@@ -352,6 +392,40 @@ export default function Admin() {
     },
     retry: false,
     refetchOnWindowFocus: false,
+  });
+
+  // Fetch payment stats
+  const { data: currentPaymentStats = { total: 0, paid: 0, pending: 0, failed: 0 } } = useQuery({
+    queryKey: ['payment-stats'],
+    queryFn: async () => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const res = await fetch('/api/admin/payment-stats', {
+        credentials: 'include',
+        headers: {
+          'x-user-id': user.id || '',
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) throw new Error('Failed to fetch payment stats');
+      return res.json();
+    },
+  });
+
+  // Fetch delivery stats
+  const { data: deliveryStats = { total: 0, pending: 0, failed: 0, inTransit: 0, delivered: 0 } } = useQuery({
+    queryKey: ['delivery-stats'],
+    queryFn: async () => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const res = await fetch('/api/admin/delivery-stats', {
+        credentials: 'include',
+        headers: {
+          'x-user-id': user.id || '',
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) throw new Error('Failed to fetch delivery stats');
+      return res.json();
+    },
   });
 
   // Mutation for updating message status
@@ -1147,7 +1221,7 @@ export default function Admin() {
 
                 {/* User Details Dialog - This was moved outside the Card */}
               </div>
-              
+
               {/* Filter and Search Section */}
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="relative flex-1 max-w-md">
@@ -1314,7 +1388,7 @@ export default function Admin() {
                                         <p className="text-sm text-gray-600 mb-2">Book Title:</p>
                                         <p className="font-semibold text-gray-900">"{book.title}"</p>
                                       </div>
-                                      
+
                                       <div className={`p-4 rounded-lg border ${book.availableCopies > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                                         <div className="flex items-start gap-3">
                                           <div className={`mt-0.5 ${book.availableCopies > 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -1432,7 +1506,7 @@ export default function Admin() {
                             className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                           />
                         </PaginationItem>
-                        
+
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                           // Show first page, last page, current page, and pages around current
                           if (
@@ -1460,7 +1534,7 @@ export default function Admin() {
                           }
                           return null;
                         })}
-                        
+
                         <PaginationItem>
                           <PaginationNext 
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
@@ -1693,6 +1767,16 @@ export default function Admin() {
         );
 
       case "analytics":
+        if (analyticsLoading) {
+          return (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="text-lg font-medium">Loading analytics...</div>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold">Analytics & Reports</h3>
@@ -1702,29 +1786,37 @@ export default function Admin() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold" data-testid="text-revenue">₹12,456</p>
+                      <p className="text-2xl font-bold" data-testid="text-revenue">₹{analyticsData.monthlyRevenue?.toLocaleString() || 0}</p>
                       <p className="text-purple-100 text-sm">Monthly Revenue</p>
                     </div>
                     <div className="p-3 bg-white/20 rounded-lg">
                       <TrendingUp className="h-6 w-6" />
                     </div>
                   </div>
-                  <p className="text-sm text-green-200 mt-2">↑ 15% from last month</p>
+                  <p className={`text-sm mt-2 ${analyticsData.revenueGrowth >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                    {analyticsData.revenueGrowth >= 0 ? '↑' : '↓'} {Math.abs(analyticsData.revenueGrowth || 0).toFixed(1)}% from last month
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="p-6">
                   <h4 className="font-semibold mb-2">Popular Genre</h4>
-                  <p className="text-3xl font-bold text-primary" data-testid="text-popular-genre">Fiction</p>
-                  <p className="text-sm text-muted-foreground">45% of all rentals</p>
+                  <p className="text-3xl font-bold text-primary" data-testid="text-popular-genre">
+                    {analyticsData.popularGenre?.name || 'N/A'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {analyticsData.popularGenre?.percentage || 0}% of all rentals
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="p-6">
                   <h4 className="font-semibold mb-2">Average Rental Period</h4>
-                  <p className="text-3xl font-bold text-primary" data-testid="text-avg-rental">8.5 days</p>
+                  <p className="text-3xl font-bold text-primary" data-testid="text-avg-rental">
+                    {analyticsData.avgRentalPeriod?.toFixed(1) || 0} days
+                  </p>
                   <p className="text-sm text-muted-foreground">Per book rental</p>
                 </CardContent>
               </Card>
@@ -1733,70 +1825,65 @@ export default function Admin() {
             <Card>
               <CardContent className="p-6">
                 <h4 className="font-semibold mb-4">Rental Trends</h4>
-                <div className="h-64">
-                  <ChartContainer
-                    config={{
-                      rentals: {
-                        label: "Rentals",
-                        color: "#3b82f6",
-                      },
-                      returns: {
-                        label: "Returns",
-                        color: "#10b981",
-                      },
-                    }}
-                    className="h-full w-full"
-                  >
-                    <LineChart
-                      data={[
-                        { month: "Jan", rentals: 65, returns: 58 },
-                        { month: "Feb", rentals: 78, returns: 62 },
-                        { month: "Mar", rentals: 90, returns: 75 },
-                        { month: "Apr", rentals: 85, returns: 88 },
-                        { month: "May", rentals: 95, returns: 82 },
-                        { month: "Jun", rentals: 110, returns: 95 },
-                        { month: "Jul", rentals: 125, returns: 108 },
-                        { month: "Aug", rentals: 118, returns: 115 },
-                        { month: "Sep", rentals: 135, returns: 122 },
-                        { month: "Oct", rentals: 142, returns: 138 },
-                        { month: "Nov", rentals: 155, returns: 145 },
-                        { month: "Dec", rentals: 168, returns: 152 },
-                      ]}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="rentals"
-                        stroke="var(--color-rentals)"
-                        strokeWidth={3}
-                        dot={{ fill: "var(--color-rentals)", strokeWidth: 2, r: 4 }}
-                        activeDot={{ r: 6, stroke: "var(--color-rentals)", strokeWidth: 2 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="returns"
-                        stroke="var(--color-returns)"
-                        strokeWidth={3}
-                        dot={{ fill: "var(--color-returns)", strokeWidth: 2, r: 4 }}
-                        activeDot={{ r: 6, stroke: "var(--color-returns)", strokeWidth: 2 }}
-                      />
-                    </LineChart>
-                  </ChartContainer>
-                </div>
-                <div className="flex justify-center space-x-6 mt-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">New Rentals</span>
+                {analyticsData.rentalTrends && analyticsData.rentalTrends.length > 0 ? (
+                  <>
+                    <div className="h-64">
+                      <ChartContainer
+                        config={{
+                          rentals: {
+                            label: "Rentals",
+                            color: "#3b82f6",
+                          },
+                          returns: {
+                            label: "Returns",
+                            color: "#10b981",
+                          },
+                        }}
+                        className="h-full w-full"
+                      >
+                        <LineChart
+                          data={analyticsData.rentalTrends}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Line
+                            type="monotone"
+                            dataKey="rentals"
+                            stroke="var(--color-rentals)"
+                            strokeWidth={3}
+                            dot={{ fill: "var(--color-rentals)", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "var(--color-rentals)", strokeWidth: 2 }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="returns"
+                            stroke="var(--color-returns)"
+                            strokeWidth={3}
+                            dot={{ fill: "var(--color-returns)", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "var(--color-returns)", strokeWidth: 2 }}
+                          />
+                        </LineChart>
+                      </ChartContainer>
+                    </div>
+                    <div className="flex justify-center space-x-6 mt-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm text-gray-600">New Rentals</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-sm text-gray-600">Book Returns</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-muted-foreground">
+                    No rental trend data available
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600">Book Returns</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1967,7 +2054,7 @@ export default function Admin() {
                           const book = books.find(b => b.id === rental.bookId);
                           const user = users.find(u => u.id === rental.userId);
                           const isOverdue = rental.status === "overdue" || (rental.dueDate && new Date(rental.dueDate) < new Date());
-                          
+
                           return (
                             <TableRow key={rental.id} data-testid={`row-order-${rental.id}`} className="">
                               <TableCell className="font-medium">
@@ -2088,7 +2175,7 @@ export default function Admin() {
                                               ></div>
                                             </div>
                                           </div>
-                                          
+
                                           {/* Progress Steps */}
                                           <div className="flex justify-between items-center mt-6">
                                             <div className="flex flex-col items-center space-y-2">
@@ -2153,7 +2240,7 @@ export default function Admin() {
                                                 {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Processing'}
                                               </Button>
                                             )}
-                                            
+
                                             {/* Shipped Button */}
                                             {['pending', 'active', 'processing'].includes(rental.status) && (
                                               <Button
@@ -2165,7 +2252,7 @@ export default function Admin() {
                                                 {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Shipped'}
                                               </Button>
                                             )}
-                                            
+
                                             {/* Delivered Button */}
                                             {['pending', 'active', 'processing', 'shipped'].includes(rental.status) && (
                                               <Button
@@ -2177,7 +2264,7 @@ export default function Admin() {
                                                 {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Delivered'}
                                               </Button>
                                             )}
-                                            
+
                                             {/* Complete Button for delivered orders */}
                                             {rental.status === 'delivered' && (
                                               <Button
@@ -2189,7 +2276,7 @@ export default function Admin() {
                                                 {updateOrderStatusMutation.isPending ? 'Updating...' : 'Mark as Completed'}
                                               </Button>
                                             )}
-                                            
+
                                             {/* Cancel Button - only for non-completed orders */}
                                             {!['completed', 'cancelled', 'delivered'].includes(rental.status) && (
                                               <Button
@@ -2229,7 +2316,7 @@ export default function Admin() {
                                       </div>
                                     </DialogContent>
                                   </Dialog>
-                                  
+
                                   {rental.status === "overdue" ? (
                                     <Button 
                                       variant="ghost" 
@@ -2284,7 +2371,7 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 {/* Pagination info */}
                 {filteredRentals.length > 0 && (
                   <div className="flex items-center justify-between mt-4 pt-4 border-t">
@@ -2329,7 +2416,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">45</p>
+                      <p className="text-2xl font-bold">{deliveryStats.total}</p>
                       <p className="text-blue-100 text-sm">Total Deliveries</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2343,7 +2430,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">12</p>
+                      <p className="text-2xl font-bold">{deliveryStats.pending}</p>
                       <p className="text-orange-100 text-sm">Pending</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2357,7 +2444,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">8</p>
+                      <p className="text-2xl font-bold">{deliveryStats.inTransit}</p>
                       <p className="text-purple-100 text-sm">In Transit</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2371,7 +2458,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">23</p>
+                      <p className="text-2xl font-bold">{deliveryStats.delivered}</p>
                       <p className="text-green-100 text-sm">Delivered</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2385,7 +2472,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">2</p>
+                      <p className="text-2xl font-bold">{deliveryStats.failed}</p>
                       <p className="text-red-100 text-sm">Failed</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2691,7 +2778,7 @@ export default function Admin() {
                   Showing {paymentStats.filteredCount} of {paymentStats.total} orders
                 </p>
               </div>
-              
+
               {/* Enhanced Filter Section */}
               <div className="flex flex-wrap items-center gap-3">
                 <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
@@ -2769,7 +2856,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{paymentStats.total}</p>
+                      <p className="text-2xl font-bold">{currentPaymentStats.total}</p>
                       <p className="text-blue-100 text-sm">Total Orders</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2783,7 +2870,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{paymentStats.pending}</p>
+                      <p className="text-2xl font-bold">{currentPaymentStats.pending}</p>
                       <p className="text-yellow-100 text-sm">Pending</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2797,7 +2884,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{paymentStats.paid}</p>
+                      <p className="text-2xl font-bold">{currentPaymentStats.paid}</p>
                       <p className="text-green-100 text-sm">Completed</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2811,7 +2898,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">{paymentStats.failed}</p>
+                      <p className="text-2xl font-bold">{currentPaymentStats.failed}</p>
                       <p className="text-red-100 text-sm">Failed</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2825,7 +2912,7 @@ export default function Admin() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold">₹{paymentStats.totalAmount.toFixed(0)}</p>
+                      <p className="text-2xl font-bold">₹{(currentPaymentStats.totalAmount || 0).toFixed(0)}</p>
                       <p className="text-purple-100 text-sm">Total Revenue</p>
                     </div>
                     <div className="p-2 bg-white/20 rounded-lg">
@@ -2885,7 +2972,7 @@ export default function Admin() {
                                 <div>
                                   <div className="font-medium">{order.customerName}</div>
                                   <div className="text-sm text-muted-foreground">{order.customerEmail}</div>
-                                  <div className="text-xs text-muted-foreground">{order.customerPhone}</div>
+                                  <div className="text-sm text-muted-foreground">{order.customerPhone}</div>
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -2894,8 +2981,7 @@ export default function Admin() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="font-medium">
-                                ₹{parseFloat(order.amount || '0').toFixed(2)}
-                                <div className="text-xs text-muted-foreground">{order.currency}</div>
+                                ₹{parseFloat(order.amount || '0').toFixed(2)} {order.currency}
                               </TableCell>
                               <TableCell>
                                 <Badge className={
@@ -3078,7 +3164,7 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 {filteredPaymentOrders.length > 0 && (
                   <div className="flex items-center justify-between mt-4 pt-4 border-t">
                     <div className="text-sm text-muted-foreground">

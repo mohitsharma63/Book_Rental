@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface CartItem {
@@ -45,6 +46,27 @@ export default function CheckoutPage() {
   });
   const [userProfile, setUserProfile] = useState(null);
   const [profileDataLoaded, setProfileDataLoaded] = useState(false);
+  const [availableCities, setAvailableCities] = useState<Array<{ city: string; state: string }>>([]);
+  const [availablePinCodes, setAvailablePinCodes] = useState<string[]>([]);
+
+  // Added to get user info from localStorage
+  const user = localStorage.getItem("user");
+  const parsedUser = user ? JSON.parse(user) : null;
+
+
+  useEffect(() => {
+    // Fetch available cities
+    const fetchCities = async () => {
+      try {
+        const response = await fetch('/api/locations/cities');
+        const cities = await response.json();
+        setAvailableCities(cities);
+      } catch (error) {
+        console.error("Failed to fetch cities:", error);
+      }
+    };
+    fetchCities();
+  }, []);
 
   useEffect(() => {
     const initCheckout = async () => {
@@ -59,8 +81,7 @@ export default function CheckoutPage() {
       }
 
       // Check if user is logged in when accessing checkout
-      const user = localStorage.getItem("user");
-      if (!user) {
+      if (!parsedUser) {
         toast({
           title: "Login Required",
           description: "Please log in to proceed with checkout",
@@ -72,16 +93,15 @@ export default function CheckoutPage() {
 
       // Parse user data and set profile
       try {
-        const userData = JSON.parse(user);
-        setUserProfile(userData);
+        setUserProfile(parsedUser);
 
         // Auto-fill form data if profile has information and not already loaded
-        if (userData && !profileDataLoaded) {
+        if (parsedUser && !profileDataLoaded) {
           // Parse address to extract city, state, zipCode from profile
           let city = "";
           let state = "";
           let zipCode = "";
-          let streetAddress = userData.address || "";
+          let streetAddress = parsedUser.address || "";
 
           // Try to extract city, state, zipCode from full address if they exist
           if (streetAddress) {
@@ -116,14 +136,14 @@ export default function CheckoutPage() {
 
           // Auto-fill form data with profile information
           setFormData({
-            email: userData.email || "",
-            firstName: userData.firstName || "",
-            lastName: userData.lastName || "",
+            email: parsedUser.email || "",
+            firstName: parsedUser.firstName || "",
+            lastName: parsedUser.lastName || "",
             address: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
-            phone: userData.phone || "",
+            phone: parsedUser.phone || "",
             paymentMethod: "cashfree",
             shipping: 0, // Default shipping
           });
@@ -131,7 +151,7 @@ export default function CheckoutPage() {
           setProfileDataLoaded(true);
 
           // Show notification that data was auto-filled
-          if (userData.firstName || userData.lastName || userData.email || userData.phone || userData.address) {
+          if (parsedUser.firstName || parsedUser.lastName || parsedUser.email || parsedUser.phone || parsedUser.address) {
             toast({
               title: "Profile Data Loaded",
               description: "Your contact information and shipping address have been filled automatically.",
@@ -245,6 +265,46 @@ export default function CheckoutPage() {
   const shipping = formData.shipping; // Use shipping from formData
   const total = subtotal + shipping;
 
+  const handleCityChange = async (cityName: string) => {
+    try {
+      // Fetch city details to get state and PIN codes
+      const response = await fetch(`/api/locations/city/${encodeURIComponent(cityName)}`);
+      const data = await response.json();
+
+      if (data.state && data.pinCodes) {
+        setFormData(prev => ({
+          ...prev,
+          city: cityName,
+          state: data.state,
+          zipCode: '' // Clear ZIP code when city changes
+        }));
+        setAvailablePinCodes(data.pinCodes);
+
+        toast({
+          title: "City Selected",
+          description: `${cityName}, ${data.state} - Select a PIN code`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch city details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load city details",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePinCodeChange = async (pinCode: string) => {
+    setFormData(prev => ({
+      ...prev,
+      zipCode: pinCode
+    }));
+
+    // Fetch delivery charge
+    await fetchDeliveryCharge(pinCode);
+  };
+
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
@@ -253,9 +313,24 @@ export default function CheckoutPage() {
       [name]: value
     }));
 
-    // Fetch delivery charge when pincode is entered (6 digits)
+    // Fetch delivery charge when pincode is entered manually (6 digits)
     if (name === 'zipCode' && value.length === 6) {
       await fetchDeliveryCharge(value);
+
+      // Try to auto-detect city and state from PIN code
+      try {
+        const response = await fetch(`/api/locations/pincode/${value}`);
+        const data = await response.json();
+        if (data.city && data.state) {
+          setFormData(prev => ({
+            ...prev,
+            city: data.city,
+            state: data.state
+          }));
+        }
+      } catch (error) {
+        // Ignore error, user can manually select city
+      }
     }
   };
 
@@ -263,31 +338,35 @@ export default function CheckoutPage() {
     try {
       setDeliveryChargeLoading(true);
 
-      const response = await fetch('/api/calculate-delivery-charge', {
+      // Calculate total weight (assuming 0.5kg per book)
+      const totalWeight = cartItems.reduce((total, item) =>
+        total + (0.5 * item.quantity), 0
+      );
+
+      const response = await fetch('/api/shiprocket/check-serviceability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pincode,
-          cartItems: cartItems.map(item => ({
-            id: item.id,
-            price: item.price,
-            quantity: item.quantity
-          }))
+          deliveryPincode: pincode,
+          weight: totalWeight,
+          cod: formData.paymentMethod === 'cod' ? 1 : 0
         })
       });
 
       const data = await response.json();
 
       if (data.serviceable) {
+        const deliveryCharge = data.freight_charge || 0;
+
         setFormData(prev => ({
           ...prev,
-          shipping: data.deliveryCharge || 0
+          shipping: deliveryCharge
         }));
 
-        if (data.deliveryCharge > 0) {
+        if (deliveryCharge > 0) {
           toast({
             title: "Delivery Charge Updated",
-            description: `₹${data.deliveryCharge} delivery charge applied for pincode ${pincode}`,
+            description: `₹${deliveryCharge} delivery charge applied for pincode ${pincode}`,
           });
         } else {
           toast({
@@ -301,11 +380,16 @@ export default function CheckoutPage() {
           description: `Sorry, delivery is not available for pincode ${pincode}`,
           variant: "destructive"
         });
-        setFormData(prev => ({ ...prev, shipping: 0 })); // Reset shipping if not serviceable
+        setFormData(prev => ({ ...prev, shipping: 0 }));
       }
     } catch (error) {
       console.error("Error fetching delivery charge:", error);
-      setFormData(prev => ({ ...prev, shipping: 0 })); // Reset shipping on error
+      toast({
+        title: "Error",
+        description: "Failed to fetch delivery charge. Please try again.",
+        variant: "destructive"
+      });
+      setFormData(prev => ({ ...prev, shipping: 0 }));
     } finally {
       setDeliveryChargeLoading(false);
     }
@@ -364,7 +448,15 @@ export default function CheckoutPage() {
       // Create Cashfree order
       const response = await fetch('/api/payments/cashfree/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-info': JSON.stringify({
+            id: user.id,
+            email: user.email,
+            role: user.role || 'user',
+            isAdmin: user.isAdmin || false
+          })
+        },
         body: JSON.stringify({
           amount: total,
           orderId: orderId,
@@ -561,37 +653,39 @@ export default function CheckoutPage() {
         // For Cashfree, the order will be created after payment verification
         return;
       } else {
-        // For COD, create order directly
-        const orderData = {
-          amount: total,
-          currency: 'INR',
-          userId: user.id, // Ensure userId is included for COD orders
-          customer_details: {
-            customer_id: String(user.id),
-            customer_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
-            customer_email: formData.email.trim(),
-            customer_phone: formData.phone?.trim() || '9999999999',
-          },
-          shipping_details: {
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.zipCode,
-          },
-          delivery_charge: shipping, // Include calculated delivery charge
-          cartItems: cartItems
-        };
-
-        const response = await fetch('/api/create-order', {
+        // Create order with COD
+        const orderResponse = await fetch('/api/create-order', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-info': JSON.stringify(user),
+            'x-user-info': JSON.stringify({
+              id: user.id,
+              email: user.email,
+              role: user.role || 'user',
+              isAdmin: user.isAdmin || false
+            })
           },
-          body: JSON.stringify(orderData),
+          body: JSON.stringify({
+            amount: total,
+            currency: 'INR',
+            customer_details: {
+              customer_id: String(user.id),
+              customer_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+              customer_email: formData.email.trim(),
+              customer_phone: formData.phone?.trim() || '9999999999',
+            },
+            shipping_details: {
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              pincode: formData.zipCode,
+            },
+            delivery_charge: shipping, // Include calculated delivery charge
+            cartItems: cartItems
+          }),
         });
 
-        if (response.ok) {
+        if (orderResponse.ok) {
           const newOrderId = `ORD-${Date.now()}`;
           setOrderId(newOrderId);
           setOrderPlaced(true);
@@ -771,13 +865,18 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="city">City *</Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                      />
+                      <Select value={formData.city} onValueChange={handleCityChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select city" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCities.map((cityData) => (
+                            <SelectItem key={cityData.city} value={cityData.city}>
+                              {cityData.city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="state">State *</Label>
@@ -785,24 +884,42 @@ export default function CheckoutPage() {
                         id="state"
                         name="state"
                         value={formData.state}
-                        onChange={handleInputChange}
-                        required
+                        readOnly
+                        className="bg-gray-50"
+                        placeholder="Auto-filled from city"
                       />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="zipCode">ZIP Code *</Label>
-                    <Input
-                      id="zipCode"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleInputChange}
-                      maxLength={6}
-                      placeholder="Enter 6-digit pincode"
-                      required
-                    />
+                    {availablePinCodes.length > 0 ? (
+                      <Select value={formData.zipCode} onValueChange={handlePinCodeChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select PIN code" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availablePinCodes.map((pin) => (
+                            <SelectItem key={pin} value={pin}>
+                              {pin}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="zipCode"
+                        name="zipCode"
+                        value={formData.zipCode}
+                        onChange={handleInputChange}
+                        maxLength={6}
+                        placeholder="Select a city first or enter 6-digit pincode"
+                        required
+                      />
+                    )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Delivery charge will be calculated based on pincode
+                      {availablePinCodes.length > 0
+                        ? 'Select from available PIN codes for selected city'
+                        : 'Delivery charge will be calculated based on pincode'}
                     </p>
                   </div>
                 </CardContent>
@@ -818,7 +935,13 @@ export default function CheckoutPage() {
                 <CardContent>
                   <RadioGroup
                     value={formData.paymentMethod}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                    onValueChange={async (value) => {
+                      setFormData(prev => ({ ...prev, paymentMethod: value }));
+                      // Recalculate delivery charge if pincode is already entered
+                      if (formData.zipCode && formData.zipCode.length === 6) {
+                        await fetchDeliveryCharge(formData.zipCode);
+                      }
+                    }}
                     className="space-y-3"
                   >
                     <Label

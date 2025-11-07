@@ -53,6 +53,19 @@ async function getCurrentUserFromRequest(req: any): Promise<any> {
   }
 }
 
+// Dummy authenticateToken and storage.getAllOrders for now
+// Replace these with actual implementations
+const authenticateToken = (req: any, res: any, next: any) => {
+  // Mock authentication: Assume user is always present in headers for admin routes
+  if (req.headers['x-user-id']) {
+    req.user = { id: req.headers['x-user-id'] };
+  } else {
+    req.user = null; // Ensure req.user is null if no auth token
+  }
+  next();
+};
+
+
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // OTP routes
@@ -281,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transformedData.pages = val;
         }
       }
-      
+
       // String fields - only include if provided
       ['title', 'author', 'isbn', 'category', 'description', 'imageUrl', 'publisher', 'language', 'condition', 'format'].forEach(field => {
         if (req.body[field] !== undefined) {
@@ -800,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/payment-orders", async (req, res) => {
     try {
       const { userId } = req.query;
-      
+
       if (userId) {
         // Filter payment orders by user ID
         const allPaymentOrders = await storage.getAllPaymentOrders();
@@ -837,6 +850,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location API endpoints
+  app.get("/api/locations/cities", async (req, res) => {
+    try {
+      const { indianCities } = await import('./indian-locations');
+      const cities = indianCities.map(c => ({ 
+        city: c.city, 
+        state: c.state 
+      })).sort((a, b) => a.city.localeCompare(b.city));
+      res.json(cities);
+    } catch (error) {
+      console.error("Get cities error:", error);
+      res.status(500).json({ error: "Failed to fetch cities" });
+    }
+  });
+
+  app.get("/api/locations/states", async (req, res) => {
+    try {
+      const { indianStates } = await import('./indian-locations');
+      res.json(indianStates);
+    } catch (error) {
+      console.error("Get states error:", error);
+      res.status(500).json({ error: "Failed to fetch states" });
+    }
+  });
+
+  app.get("/api/locations/city/:cityName", async (req, res) => {
+    try {
+      const { getStateByCity, getPinCodesByCity } = await import('./indian-locations');
+      const cityName = req.params.cityName;
+      const state = getStateByCity(cityName);
+      const pinCodes = getPinCodesByCity(cityName);
+
+      if (!state) {
+        return res.status(404).json({ error: "City not found" });
+      }
+
+      res.json({ city: cityName, state, pinCodes });
+    } catch (error) {
+      console.error("Get city details error:", error);
+      res.status(500).json({ error: "Failed to fetch city details" });
+    }
+  });
+
+  app.get("/api/locations/pincode/:pinCode", async (req, res) => {
+    try {
+      const { getCityByPinCode } = await import('./indian-locations');
+      const pinCode = req.params.pinCode;
+      const location = getCityByPinCode(pinCode);
+
+      if (!location) {
+        return res.status(404).json({ error: "PIN code not found" });
+      }
+
+      res.json(location);
+    } catch (error) {
+      console.error("Get location by PIN code error:", error);
+      res.status(500).json({ error: "Failed to fetch location" });
+    }
+  });
+
   // Delivery routes
   app.post("/api/deliveries", async (req, res) => {
     try {
@@ -860,34 +933,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/deliveries/order/:orderId", async (req, res) => {
-    try {
-      const { orderId } = req.params;
-     
+    res.status(501).json({ error: "Delivery tracking not yet implemented" });
   });
 
   app.get("/api/deliveries/:id/tracking", async (req, res) => {
-   
+    res.status(501).json({ error: "Delivery tracking not yet implemented" });
   });
 
   app.put("/api/deliveries/:id/status", async (req, res) => {
-    
+    res.status(501).json({ error: "Delivery status updates not yet implemented" });
   });
 
   // Return routes
   app.post("/api/returns", async (req, res) => {
-   
+    res.status(501).json({ error: "Return requests not yet implemented" });
   });
 
   app.get("/api/returns", async (req, res) => {
-   
+    res.status(501).json({ error: "Return requests not yet implemented" });
   });
 
   app.get("/api/returns/:id", async (req, res) => {
-   
+    res.status(501).json({ error: "Return requests not yet implemented" });
   });
 
   app.put("/api/returns/:id/status", async (req, res) => {
-   
+    res.status(501).json({ error: "Return status updates not yet implemented" });
   });
 
   // Cashfree Payment Routes
@@ -1104,11 +1175,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               for (const item of orderData.items) {
                 if (item.bookId) {
                   try {
+                    const startDate = payment.createdAt || new Date();
+                    const rentalDays = item.rentalDays || 7;
+                    const endDate = new Date(startDate.getTime() + rentalDays * 24 * 60 * 60 * 1000);
+                    const dueDate = new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week after end
+
                     const rentalData = {
                       userId: payment.userId.toString(),
                       bookId: item.bookId,
-                      startDate: new Date(),
-                      endDate: new Date(Date.now() + (item.rentalDays || 7) * 24 * 60 * 60 * 1000), // Default 7 days
+                      startDate: startDate,
+                      endDate: endDate,
+                      dueDate: dueDate,
                       status: 'active' as const,
                       totalAmount: item.price
                     };
@@ -1143,25 +1220,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
 
-  // COD Order creation endpoint
+
+  // Shiprocket tracking endpoint
+  app.get("/api/shiprocket/track/:orderId", async (req, res) => {
+    try {
+      const { orderId } = req.params;
+
+      if (!orderId) {
+        return res.status(400).json({ error: "Order ID is required" });
+      }
+
+      // Import ShiprocketService
+      const ShiprocketService = (await import('./shiprocket-service')).default;
+      const shiprocketService = new ShiprocketService();
+
+      console.log("Tracking Shiprocket order:", orderId);
+
+      const trackingData = await shiprocketService.trackOrder(orderId);
+
+      res.json(trackingData);
+
+    } catch (error) {
+      console.error("Shiprocket tracking error:", error);
+      res.status(500).json({
+        error: "Failed to fetch tracking data",
+        details: (error as Error).message
+      });
+    }
+  });
+
+  // Shiprocket serviceability check endpoint
+  app.post("/api/shiprocket/check-serviceability", async (req, res) => {
+    try {
+      const { deliveryPincode, weight, cod } = req.body;
+
+      if (!deliveryPincode || !weight) {
+        return res.status(400).json({
+          error: "Delivery pincode and weight are required"
+        });
+      }
+
+      // Import ShiprocketService
+      const ShiprocketService = (await import('./shiprocket-service')).default;
+      const shiprocketService = new ShiprocketService();
+
+      // Default pickup pincode (you should set this in environment variables)
+      const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || "400001";
+
+      console.log("Checking Shiprocket serviceability:", {
+        pickup: pickupPincode,
+        delivery: deliveryPincode,
+        weight,
+        cod
+      });
+
+      const serviceabilityData = await shiprocketService.getServiceability(
+        pickupPincode,
+        deliveryPincode,
+        weight,
+        cod === 1 || cod === true
+      );
+
+      console.log("Shiprocket serviceability response:", serviceabilityData);
+
+      // Check if serviceable
+      if (serviceabilityData.data && serviceabilityData.data.available_courier_companies) {
+        const couriers = serviceabilityData.data.available_courier_companies;
+
+        if (couriers.length > 0) {
+          // Get the cheapest courier option
+          const cheapestCourier = couriers.reduce((min, courier) => 
+            courier.rate < min.rate ? courier : min
+          );
+
+          return res.json({
+            serviceable: true,
+            freight_charge: cheapestCourier.rate || 0,
+            courier_name: cheapestCourier.courier_name,
+            etd: cheapestCourier.etd,
+            all_couriers: couriers.map(c => ({
+              name: c.courier_name,
+              rate: c.rate,
+              etd: c.etd
+            }))
+          });
+        }
+      }
+
+      // Not serviceable
+      res.json({
+        serviceable: false,
+        message: "Delivery not available for this pincode"
+      });
+
+    } catch (error) {
+      console.error("Shiprocket serviceability check error:", error);
+      res.status(500).json({
+        error: "Failed to check serviceability",
+        details: (error as Error).message,
+        serviceable: false
+      });
+    }
+  });
+
+  // COD Order creation endpoint with Shiprocket integration
   app.post("/api/create-order", async (req, res) => {
     try {
-      const { amount, currency, customer_details, shipping_details, cartItems, userId } = req.body;
+      const { amount, currency, customer_details, shipping_details, cartItems, userId, paymentMethod } = req.body;
 
-      console.log("Creating COD order with data:", {
+      console.log("Creating order with data:", {
         amount,
         currency,
         customer: customer_details?.customer_name,
         itemsCount: cartItems?.length,
-        userId: userId || customer_details?.customer_id
+        userId: userId || customer_details?.customer_id,
+        paymentMethod: paymentMethod || 'cod'
       });
 
       // Validate required fields
       if (!amount || !customer_details || !cartItems || !Array.isArray(cartItems)) {
         return res.status(400).json({
           error: "Missing required fields: amount, customer_details, and cartItems are required"
+        });
+      }
+
+      // Validate shipping details
+      if (!shipping_details?.address || !shipping_details?.city || !shipping_details?.state || !shipping_details?.pincode) {
+        return res.status(400).json({
+          error: "Complete shipping address is required (address, city, state, pincode)"
         });
       }
 
@@ -1184,75 +1371,360 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Generate unique order ID
-      const orderId = `COD-${Date.now()}-${userIdToUse}`;
+      // Generate unique order ID (max 50 chars for Shiprocket)
+      const timestamp = Date.now().toString().slice(-10); // Last 10 digits
+      const userIdShort = user.id.toString().slice(0, 8); // First 8 chars of user ID
+      const orderId = `CF-${timestamp}-${userIdShort}`;
 
-      // Create payment order record for COD
+      // Create payment order record for admin panel
       const paymentOrderData = {
         orderId: orderId,
-        userId: userIdToUse.toString(), // Make sure userId is a string to match schema
+        userId: userIdToUse.toString(),
         customerName: customer_details.customer_name || `${userDetails.firstName || ''} ${userDetails.lastName || ''}`.trim(),
         customerEmail: customer_details.customer_email || userDetails.email,
         customerPhone: customer_details.customer_phone || userDetails.phone || '9999999999',
         amount: amount,
         currency: currency || 'INR',
-        status: 'pending' as const,
-        paymentMethod: 'cod',
-        shippingAddress: shipping_details?.address || userDetails.address || 'Address not provided',
-        shippingCity: shipping_details?.city || 'City not provided',
-        shippingState: shipping_details?.state || 'State not provided',
-        shippingPincode: shipping_details?.pincode || '000000',
-        shippingLandmark: shipping_details?.landmark || null,
+        status: 'processing' as const,
+        paymentMethod: paymentMethod || 'cod',
+        shippingAddress: shipping_details.address,
+        shippingCity: shipping_details.city,
+        shippingState: shipping_details.state,
+        shippingPincode: shipping_details.pincode,
+        shippingLandmark: shipping_details.landmark || null,
         cartItems: JSON.stringify(cartItems.map(item => ({
           bookId: item.id,
           bookTitle: item.title,
           bookImage: item.imageUrl,
           quantity: item.quantity,
           price: item.price,
-          rentalDays: (item.rentalDuration || 4) * 7 // Convert weeks to days
+          rentalDays: (item.rentalDuration || 4) * 7
         })))
       };
 
       const paymentOrder = await storage.createPaymentOrder(paymentOrderData);
+      console.log("✅ Order saved in database for admin panel:", orderId);
+
+      // Create Shiprocket order
+      let shiprocketSuccess = false;
+      let shiprocketOrderId = null;
+      let shiprocketShipmentId = null;
+
+      try {
+        const ShiprocketService = (await import('./shiprocket-service')).default;
+        const shiprocketService = new ShiprocketService();
+
+        // Prepare order data for Shiprocket
+        const shiprocketOrderData = {
+          id: orderId,
+          customer: {
+            firstName: customer_details.customer_name?.split(' ')[0] || 'Customer',
+            lastName: customer_details.customer_name?.split(' ').slice(1).join(' ') || 'Name',
+            email: customer_details.customer_email || userDetails.email,
+            phone: customer_details.customer_phone || userDetails.phone || '9999999999'
+          },
+          shippingAddress: `${shipping_details.address}, ${shipping_details.city}, ${shipping_details.state} ${shipping_details.pincode}`,
+          totalAmount: amount,
+          paymentMethod: paymentMethod || 'Cash on Delivery',
+          items: cartItems.map(item => ({
+            productId: item.id,
+            productName: item.title,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          createdAt: new Date()
+        };
+
+        console.log("📦 Creating Shiprocket order...");
+        const shiprocketOrder = shiprocketService.convertToShiprocketFormat(shiprocketOrderData);
+        const shiprocketResponse = await shiprocketService.createOrder(shiprocketOrder);
+
+        console.log("📦 Shiprocket API response:", shiprocketResponse);
+
+        // Check if response contains error message
+        if (shiprocketResponse.message && shiprocketResponse.message.includes('Wrong Pickup location')) {
+          console.log('❌ Available pickup locations:', JSON.stringify(shiprocketResponse.data, null, 2));
+          throw new Error(`Shiprocket Error: ${shiprocketResponse.message}. Please configure pickup location in Shiprocket dashboard.`);
+        }
+
+        // Check if order_id exists in response
+        if (!shiprocketResponse.order_id) {
+          throw new Error(`Shiprocket Error: ${shiprocketResponse.message || 'Failed to create order'}`);
+        }
+
+        console.log("✅ Shiprocket order created successfully with ID:", shiprocketResponse.order_id);
+        shiprocketSuccess = true;
+        shiprocketOrderId = shiprocketResponse.order_id;
+        shiprocketShipmentId = shiprocketResponse.shipment_id;
+
+        // Update payment order with Shiprocket details
+        await storage.updatePaymentOrder(orderId, {
+          shiprocketOrderId: shiprocketResponse.order_id.toString(),
+          shiprocketShipmentId: shiprocketResponse.shipment_id?.toString() || null,
+          status: 'shipped' as const
+        });
+        console.log("✅ Admin order updated with Shiprocket details");
+
+      } catch (shiprocketError) {
+        console.error("❌ Shiprocket order creation failed:", shiprocketError);
+        const errorMessage = (shiprocketError as Error).message;
+
+        // Update order status to indicate Shiprocket failed
+        await storage.updatePaymentOrder(orderId, {
+          status: 'processing' as const,
+          notes: `Shiprocket: ${errorMessage}`
+        });
+
+        console.log("⚠️ Order saved without Shiprocket integration. Admin can manually create shipment.");
+      }
 
       // Create rental records for each book in the cart
       for (const item of cartItems) {
-        if (item.id) {
+        // Extract actual book ID - cart items may have composite IDs like "cart-uuid-bookId-timestamp"
+        // We need to parse the actual bookId from the cart item structure
+        let actualBookId = item.bookId || item.id;
+
+        // If the id looks like a cart item ID (contains "cart-"), try to extract book ID from item data
+        if (actualBookId && actualBookId.toString().includes('cart-')) {
+          // Check if there's a separate bookId field
+          actualBookId = item.bookId;
+
+          // If still looks like cart ID, skip this item with a warning
+          if (!actualBookId || actualBookId.toString().includes('cart-')) {
+            console.error("❌ Invalid book ID in cart item:", item);
+            continue;
+          }
+        }
+
+        if (actualBookId) {
           try {
+            // Verify the book exists before creating rental
+            const bookExists = await storage.getBook(actualBookId.toString());
+            if (!bookExists) {
+              console.error("❌ Book not found for ID:", actualBookId);
+              continue;
+            }
+
+            const startDate = new Date();
+            const rentalDays = (item.rentalDuration || 4) * 7; // weeks to days
+            const endDate = new Date(Date.now() + rentalDays * 24 * 60 * 60 * 1000);
+            const dueDate = new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week grace period after rental end
+
             const rentalData = {
               userId: userIdToUse.toString(),
-              bookId: item.id,
-              startDate: new Date(),
-              endDate: new Date(Date.now() + (item.rentalDuration || 4) * 7 * 24 * 60 * 60 * 1000), // Convert weeks to milliseconds
-              status: 'pending' as const, // COD orders start as pending
-              totalAmount: parseFloat(item.price?.toString() || "0") * item.quantity
+              bookId: actualBookId.toString(),
+              startDate: startDate,
+              endDate: endDate,
+              dueDate: dueDate,
+              status: shiprocketSuccess ? 'active' as const : 'pending' as const,
+              totalAmount: parseFloat(item.price?.toString() || "0") * (item.quantity || 1)
             };
 
             await storage.createRental(rentalData);
-            console.log("Rental created for COD order:", item.id);
+            console.log("✅ Rental created for book:", actualBookId);
           } catch (rentalError) {
-            console.error("Failed to create rental for book:", item.id, rentalError);
+            console.error("❌ Failed to create rental for book:", actualBookId, rentalError);
           }
         }
       }
 
-      console.log("COD order created successfully:", orderId);
+      console.log("✅ Order created successfully:", orderId);
 
       res.json({
         success: true,
         orderId: orderId,
-        paymentMethod: 'cod',
-        message: "COD order created successfully"
+        paymentMethod: paymentMethod || 'cod',
+        shiprocketIntegrated: shiprocketSuccess,
+        shiprocketOrderId: shiprocketOrderId,
+        shiprocketShipmentId: shiprocketShipmentId,
+        message: shiprocketSuccess 
+          ? "Order created and sent to Shiprocket successfully" 
+          : "Order created but Shiprocket integration failed. Order visible in admin panel."
       });
 
     } catch (error) {
-      console.error("COD order creation error:", error);
+      console.error("❌ Order creation error:", error);
       res.status(500).json({
-        error: "Failed to create COD order",
+        error: "Failed to create order",
         details: (error as Error).message
       });
     }
   });
+
+  // Admin delivery stats endpoint
+  app.get('/api/admin/delivery-stats', authenticateToken, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Fetch payment orders from database
+      const allOrders = await storage.getAllPaymentOrders();
+
+      const stats = {
+        total: allOrders.length,
+        pending: allOrders.filter(o => o.shiprocketStatus === 'pending' || o.shiprocketStatus === 'processing').length,
+        failed: allOrders.filter(o => o.shiprocketStatus === 'failed' || o.shiprocketStatus === 'cancelled').length,
+        inTransit: allOrders.filter(o => o.shiprocketStatus === 'shipped' || o.shiprocketStatus === 'in_transit').length,
+        delivered: allOrders.filter(o => o.shiprocketStatus === 'delivered' || o.shiprocketStatus === 'completed').length,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching delivery stats:', error);
+      res.status(500).json({ error: 'Failed to fetch delivery stats' });
+    }
+  });
+
+  // Admin analytics endpoint
+  app.get('/api/admin/analytics', authenticateToken, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Get all data
+      const allOrders = await storage.getAllPaymentOrders();
+      const allBooks = await storage.getAllBooks();
+      const allRentals = await storage.getAllRentals();
+
+      // Calculate monthly revenue
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+      const currentMonthRevenue = allOrders
+        .filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+        })
+        .reduce((sum, order) => sum + parseFloat(order.amount || '0'), 0);
+
+      const lastMonthRevenue = allOrders
+        .filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate.getMonth() === lastMonth && orderDate.getFullYear() === lastMonthYear;
+        })
+        .reduce((sum, order) => sum + parseFloat(order.amount || '0'), 0);
+
+      const revenueGrowth = lastMonthRevenue > 0 
+        ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : 0;
+
+      // Calculate popular genre
+      const categoryCounts: { [key: string]: number } = {};
+      allRentals.forEach(rental => {
+        const book = allBooks.find(b => b.id === rental.bookId);
+        if (book && book.category) {
+          categoryCounts[book.category] = (categoryCounts[book.category] || 0) + 1;
+        }
+      });
+
+      const totalRentals = allRentals.length;
+      let popularGenre = { name: 'N/A', percentage: 0 };
+      if (totalRentals > 0) {
+        const [topCategory, count] = Object.entries(categoryCounts).sort(([,a], [,b]) => b - a)[0] || ['N/A', 0];
+        popularGenre = {
+          name: topCategory,
+          percentage: Math.round((count / totalRentals) * 100)
+        };
+      }
+
+      // Calculate average rental period
+      const completedRentals = allRentals.filter(r => r.status === 'completed' && r.rentalDate && r.dueDate);
+      const avgRentalPeriod = completedRentals.length > 0
+        ? completedRentals.reduce((sum, rental) => {
+            const start = new Date(rental.rentalDate).getTime();
+            const end = new Date(rental.dueDate).getTime();
+            const days = (end - start) / (1000 * 60 * 60 * 24);
+            return sum + days;
+          }, 0) / completedRentals.length
+        : 0;
+
+      // Calculate rental trends for last 12 months
+      const rentalTrends = [];
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      for (let i = 11; i >= 0; i--) {
+        const targetDate = new Date(currentYear, currentMonth - i, 1);
+        const targetMonth = targetDate.getMonth();
+        const targetYear = targetDate.getFullYear();
+
+        const rentalsInMonth = allRentals.filter(rental => {
+          const rentalDate = new Date(rental.rentalDate || rental.createdAt);
+          return rentalDate.getMonth() === targetMonth && rentalDate.getFullYear() === targetYear;
+        }).length;
+
+        const returnsInMonth = allRentals.filter(rental => {
+          if (!rental.returnedDate) return false;
+          const returnDate = new Date(rental.returnedDate);
+          return returnDate.getMonth() === targetMonth && returnDate.getFullYear() === targetYear;
+        }).length;
+
+        rentalTrends.push({
+          month: monthNames[targetMonth],
+          rentals: rentalsInMonth,
+          returns: returnsInMonth
+        });
+      }
+
+      res.json({
+        monthlyRevenue: currentMonthRevenue,
+        revenueGrowth,
+        popularGenre,
+        avgRentalPeriod,
+        rentalTrends
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch analytics' });
+    }
+  });
+
+  // Admin payment stats endpoint
+  app.get('/api/admin/payment-stats', authenticateToken, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const paymentOrders = await storage.getAllPaymentOrders();
+      const total = paymentOrders.length;
+      const totalAmount = paymentOrders.reduce((sum, order) => sum + parseFloat(order.amount?.toString() || '0'), 0);
+      const paid = paymentOrders.filter(order => ['paid', 'success', 'completed'].includes(order.status)).length;
+      const pending = paymentOrders.filter(order => ['pending', 'created', 'processing'].includes(order.status)).length;
+      const failed = paymentOrders.filter(order => ['failed', 'cancelled'].includes(order.status)).length;
+
+      res.json({
+        total,
+        paid,
+        pending,
+        failed,
+        totalAmount
+      });
+    } catch (error) {
+      console.error('Error fetching payment stats:', error);
+      res.status(500).json({ error: 'Failed to fetch payment stats' });
+    }
+  });
+
 
   app.post("/api/admin/sync-cashfree-orders", async (req, res) => {
     try {
@@ -1284,11 +1756,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
 
                 if (!hasExistingRental) {
+                  const startDate = payment.createdAt || new Date();
+                  const rentalDays = item.rentalDays || 7;
+                  const endDate = new Date(startDate.getTime() + rentalDays * 24 * 60 * 60 * 1000);
+                  const dueDate = new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week after end
+
                   const rentalData = {
                     userId: payment.userId.toString(),
                     bookId: item.bookId,
-                    startDate: payment.createdAt || new Date(),
-                    endDate: new Date((payment.createdAt || new Date()).getTime() + (item.rentalDays || 7) * 24 * 60 * 60 * 1000),
+                    startDate: startDate,
+                    endDate: endDate,
+                    dueDate: dueDate,
                     status: 'active' as const,
                     totalAmount: item.price
                   };

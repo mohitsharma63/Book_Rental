@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,7 @@ import {
   RotateCcw
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link } from "wouter";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -187,6 +188,44 @@ export default function Profile() {
     enabled: !!user?.id,
   });
 
+  // Fetch all books for dynamic image and data display
+  const { data: books = [], isLoading: booksLoading } = useQuery({
+    queryKey: ['all-books'],
+    queryFn: async () => {
+      const res = await fetch('/api/books'); // Assuming you have an endpoint to fetch all books
+      if (!res.ok) throw new Error('Failed to fetch books');
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+
+  // Fetch Shiprocket tracking data for orders
+  const { data: trackingData = {} } = useQuery({
+    queryKey: ['/api/shiprocket/tracking', paymentOrders.map(o => o.shiprocketOrderId).filter(Boolean)],
+    queryFn: async () => {
+      const trackingMap: Record<string, any> = {};
+
+      for (const order of paymentOrders) {
+        if (order.shiprocketOrderId) {
+          try {
+            const response = await fetch(`/api/shiprocket/track/${order.shiprocketOrderId}`);
+            if (response.ok) {
+              const data = await response.json();
+              trackingMap[order.shiprocketOrderId] = data;
+            }
+          } catch (error) {
+            console.error('Failed to fetch tracking for order:', order.shiprocketOrderId);
+          }
+        }
+      }
+
+      return trackingMap;
+    },
+    enabled: paymentOrders.length > 0 && paymentOrders.some(o => o.shiprocketOrderId),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   // Filter and sort payment orders
   const filteredPaymentOrders = useMemo(() => {
     let filtered = paymentOrders.filter(order => {
@@ -214,7 +253,7 @@ export default function Profile() {
 
 
   // Show loading if user is not available or data is loading
-  if (!user || userLoading || !currentUserId) {
+  if (!user || userLoading || !currentUserId || booksLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -239,80 +278,96 @@ export default function Profile() {
     );
   }
 
+  const getShiprocketStatus = (orderId: string, order: any) => {
+    if (!order.shiprocketOrderId) {
+      return {
+        status: order.status,
+        trackingNumber: null,
+        courierName: null,
+        estimatedDelivery: null,
+        currentLocation: null,
+      };
+    }
+
+    const tracking = trackingData[order.shiprocketOrderId];
+    if (!tracking?.tracking_data?.shipment_track?.[0]) {
+      return {
+        status: order.status,
+        trackingNumber: order.shiprocketOrderId,
+        courierName: null,
+        estimatedDelivery: null,
+        currentLocation: null,
+      };
+    }
+
+    const shipment = tracking.tracking_data.shipment_track[0];
+    return {
+      status: shipment.current_status || order.status,
+      trackingNumber: shipment.awb_code || order.shiprocketOrderId,
+      courierName: shipment.courier_name,
+      estimatedDelivery: shipment.edd,
+      currentLocation: shipment.origin,
+      deliveredDate: shipment.delivered_date,
+    };
+  };
+
+  const getOrderProgress = (status: string) => {
+    const normalizedStatus = status.toLowerCase();
+
+    // Shiprocket status mapping
+    if (normalizedStatus.includes('delivered')) return 100;
+    if (normalizedStatus.includes('out for delivery')) return 90;
+    if (normalizedStatus.includes('in transit') || normalizedStatus.includes('shipped')) return 75;
+    if (normalizedStatus.includes('picked') || normalizedStatus.includes('pickup')) return 60;
+    if (normalizedStatus.includes('processing') || normalizedStatus.includes('manifested')) return 50;
+    if (normalizedStatus.includes('pending') || normalizedStatus.includes('created')) return 25;
+    if (normalizedStatus.includes('cancelled')) return 0;
+
+    return 25;
+  };
+
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "delivered":
-      case "completed":
+    const normalizedStatus = status.toLowerCase();
+
+    if (normalizedStatus.includes('delivered')) return 'bg-green-500';
+    if (normalizedStatus.includes('out for delivery')) return 'bg-green-400';
+    if (normalizedStatus.includes('in transit') || normalizedStatus.includes('shipped')) return 'bg-purple-500';
+    if (normalizedStatus.includes('picked') || normalizedStatus.includes('pickup')) return 'bg-blue-500';
+    if (normalizedStatus.includes('processing') || normalizedStatus.includes('manifested')) return 'bg-blue-400';
+    if (normalizedStatus.includes('pending') || normalizedStatus.includes('created')) return 'bg-yellow-500';
+    if (normalizedStatus.includes('cancelled')) return 'bg-red-500';
+
+    return 'bg-gray-500';
+  };
+
+  const getStatusColorBadge = (status: string) => {
+    const normalizedStatus = status.toLowerCase();
+    switch (true) {
+      case normalizedStatus.includes("delivered"):
+      case normalizedStatus.includes("completed"):
         return "bg-green-100 text-green-800";
-      case "active":
-        return "bg-blue-100 text-blue-800";
-      case "returned":
-        return "bg-gray-100 text-gray-800";
-      case "processing":
-        return "bg-yellow-100 text-yellow-800";
-      case "shipped":
+      case normalizedStatus.includes("shipped"):
+      case normalizedStatus.includes("in transit"):
+      case normalizedStatus.includes("out for delivery"):
         return "bg-purple-100 text-purple-800";
-      case "paid":
+      case normalizedStatus.includes("processing"):
+      case normalizedStatus.includes("manifested"):
+      case normalizedStatus.includes("picked"):
+      case normalizedStatus.includes("pickup"):
         return "bg-blue-100 text-blue-800";
-      case "pending":
+      case normalizedStatus.includes("pending"):
+      case normalizedStatus.includes("created"):
         return "bg-orange-100 text-orange-800";
-      case "failed":
+      case normalizedStatus.includes("cancelled"):
+      case normalizedStatus.includes("failed"):
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getOrderProgress = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "processing":
-        return 25;
-      case "shipped":
-        return 75;
-      case "delivered":
-      case "completed":
-      case "paid":
-        return 100;
-      case "returned":
-        return 100;
-      default:
-        return 0;
-    }
-  };
 
-  const handleViewDetails = (order: any) => {
-    // Transform payment order to match the expected order format for the dialog
-    let transformedOrder = order;
 
-    // If this is a payment order, transform it to match the rental format
-    if (order.orderId && order.cartItems) {
-      let cartItems = [];
-      try {
-        cartItems = JSON.parse(order.cartItems || '[]');
-      } catch (e) {
-        cartItems = [];
-      }
-
-      transformedOrder = {
-        id: order.orderId,
-        date: order.createdAt,
-        status: order.status,
-        totalAmount: `₹${order.amount}`,
-        deliveryDate: new Date(order.createdAt).toLocaleDateString(),
-        returnDate: null,
-        books: cartItems.map((item: any) => ({
-          title: item.bookTitle || item.title || 'Unknown Book',
-          author: item.author || 'Unknown Author',
-          image: item.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=200',
-          rentalPeriod: item.rentalPeriod || `${item.rentalDuration || 4} weeks`,
-          price: `₹${item.price || 0}`
-        }))
-      };
-    }
-
-    setSelectedOrder(transformedOrder);
-    setShowOrderDialog(true);
-  };
 
   const handleTrackOrder = (order: any) => {
     setSelectedOrder(order);
@@ -697,99 +752,115 @@ Generated on: ${currentDate}
               ) : filteredPaymentOrders.length > 0 ? (
                 <div className="space-y-4">
                   {filteredPaymentOrders.map((order) => {
-                    let cartItems = [];
-                    try {
-                      cartItems = JSON.parse(order.cartItems || '[]');
-                    } catch (e) {
-                      cartItems = [];
-                    }
+                    const items = typeof order.cartItems === 'string'
+                      ? JSON.parse(order.cartItems)
+                      : order.cartItems;
+
+                    const shiprocketStatus = getShiprocketStatus(order.orderId, order);
+                    const displayStatus = shiprocketStatus.status;
+                    const progress = getOrderProgress(displayStatus);
 
                     return (
-                      <Card key={order.id} className="p-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-semibold">Order #{order.orderId}</h4>
-                              <Badge variant={
-                                order.status === 'paid' || order.status === 'completed' ? 'default' :
-                                order.status === 'pending' ? 'secondary' : 'destructive'
-                              }>
-                                {order.status}
+                      <Card key={order.id} className="overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg">Order #{order.orderId}</CardTitle>
+                              <CardDescription>
+                                Order Date: {new Date(order.createdAt).toLocaleDateString()}
+                              </CardDescription>
+                              <CardDescription>
+                                Amount: ₹{order.amount}
+                              </CardDescription>
+                              <div className="mt-2">
+                                <span className="text-sm text-gray-600">Books: {items?.length || 0} item(s)</span>
+                                {items && items.length > 0 && (
+                                  <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
+                                    {items.map((item: any, idx: number) => (
+                                      <div key={idx} className="flex-shrink-0">
+                                        <img
+                                          src={item.bookImage || item.imageUrl || 'https://via.placeholder.com/60x80?text=Book'}
+                                          alt={item.bookTitle || 'Book'}
+                                          className="w-12 h-16 object-cover rounded border-2 border-white shadow-sm"
+                                          onError={(e) => {
+                                            e.currentTarget.src = 'https://via.placeholder.com/60x80?text=Book';
+                                          }}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {shiprocketStatus.trackingNumber && (
+                                <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                                  <Truck className="h-4 w-4" />
+                                  <span>AWB: {shiprocketStatus.trackingNumber}</span>
+                                </div>
+                              )}
+                              {shiprocketStatus.courierName && (
+                                <div className="text-sm text-gray-600">
+                                  Courier: {shiprocketStatus.courierName}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right space-y-2">
+                              <Badge className={getStatusColorBadge(displayStatus)}>
+                                {displayStatus.toUpperCase()}
                               </Badge>
-                              {order.paymentMethod && (
-                                <Badge variant="outline">
-                                  {order.paymentMethod.toUpperCase()}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="space-y-1 text-sm text-muted-foreground">
-                              <p>Order Date: {new Date(order.createdAt).toLocaleDateString()}</p>
-                              <p>Amount: ₹{order.amount}</p>
-                              <p>Books: {cartItems.length} item(s)</p>
-                              {cartItems.length > 0 && (
-                                <p>Books: {cartItems.map(item => item.bookTitle || item.title).join(', ')}</p>
-                              )}
+                              <div>
+                                <Link href={`/track-order?orderId=${order.orderId}`}>
+                                  <Button variant="outline" size="sm" className="w-full">
+                                    <Truck className="h-4 w-4 mr-2" />
+                                    Track Order
+                                  </Button>
+                                </Link>
+                              </div>
                             </div>
                           </div>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <div>
+                              <div className="flex justify-between text-sm mb-2">
+                                <span className="font-medium">Order Progress</span>
+                                <span className="text-gray-600">{progress}% Complete</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                <div
+                                  className={`h-2.5 rounded-full transition-all duration-500 ${getStatusColor(displayStatus)}`}
+                                  style={{ width: `${progress}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                                <span>Processing</span>
+                                <span>Shipped</span>
+                                <span>Delivered</span>
+                              </div>
+                            </div>
 
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewDetails(order)}
-                            >
-                              View Details
-                            </Button>
-                            {order.status === 'paid' || order.status === 'shipped' || order.status === 'processing' ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleTrackOrder(order)}
-                              >
-                                Track Order
-                              </Button>
-                            ) : null}
+                            {shiprocketStatus.currentLocation && (
+                              <div className="text-sm text-gray-600 flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                <span>Current Location: {shiprocketStatus.currentLocation}</span>
+                              </div>
+                            )}
+
+                            <div className="flex gap-2">
+                              <Link href={`/track-order?orderId=${order.orderId}`}>
+                                <Button variant="outline" size="sm" className="w-full">
+                                  Track Order
+                                </Button>
+                              </Link>
+                             
+                            </div>
                           </div>
-                        </div>
-                        {/* Order Progress Bar */}
-                        <div className="mt-4 space-2">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-muted-foreground">Order Progress</span>
-                            <span className="font-medium text-primary">
-                              {order.status === 'pending' ? '25% Complete' :
-                               order.status === 'processing' ? '25% Complete' :
-                               order.status === 'shipped' ? '75% Complete' :
-                               order.status === 'delivered' || order.status === 'completed' ? '100% Complete' : '0% Complete'}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div
-                              className="bg-primary h-1.5 rounded-full transition-all duration-500"
-                              style={{
-                                width: order.status === 'pending' ? '25%' :
-                                       order.status === 'processing' ? '25%' :
-                                       order.status === 'shipped' ? '75%' :
-                                       order.status === 'delivered' || order.status === 'completed' ? '100%' : '0%'
-                              }}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span className={order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed' ? 'text-primary font-medium' : ''}>
-                              Processing
-                            </span>
-                            <span className={order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed' ? 'text-primary font-medium' : ''}>
-                              Shipped
-                            </span>
-                            <span className={order.status === 'delivered' || order.status === 'completed' ? 'text-green-600 font-medium' : ''}>
-                              Delivered
-                            </span>
-                          </div>
-                        </div>
+                        </CardContent>
                       </Card>
                     );
                   })}
                 </div>
               ) : (
+                <Link href="/catalog">
                 <Card className="p-12 text-center">
                   <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No orders found</h3>
@@ -800,6 +871,7 @@ Generated on: ${currentDate}
                   </p>
                   <Button>Browse Books</Button>
                 </Card>
+                </Link>
               )}
             </TabsContent>
 
@@ -858,7 +930,7 @@ Generated on: ${currentDate}
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status:</span>
-                        <Badge className={getStatusColor(selectedOrder.status)}>
+                        <Badge className={getStatusColorBadge(selectedOrder.status)}>
                           {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                         </Badge>
                       </div>
@@ -943,23 +1015,43 @@ Generated on: ${currentDate}
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {selectedOrder.books.map((book: any, index: number) => (
-                        <div key={index} className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
-                          <img
-                            src={book.image}
-                            alt={book.title}
-                            className="w-16 h-20 object-cover rounded shadow-sm"
-                          />
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-lg">{book.title}</h4>
-                            <p className="text-gray-600 mb-1">by {book.author}</p>
-                            <p className="text-sm text-gray-500">Rental Period: {book.rentalPeriod}</p>
+                      {selectedOrder.books.map((book: any, index: number) => {
+                        // For payment orders, use bookTitle and bookImage from cart items
+                        const title = book.bookTitle || book.title || 'Unknown Book';
+                        const author = book.author || 'Unknown Author';
+                        const rentalPeriod = book.rentalPeriod || `${book.rentalDays || 28} days`;
+                        const price = book.price ? `₹${book.price}` : (book.price || '₹0');
+                        const quantity = book.quantity || 1;
+                        
+                        // Handle both base64 data URLs and regular image URLs
+                        const imageUrl = book.bookImage || book.imageUrl || book.image || 'https://via.placeholder.com/150x200?text=No+Image';
+                        
+                        return (
+                          <div key={index} className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+                            <div className="w-16 h-20 flex-shrink-0">
+                              <img
+                                src={imageUrl}
+                                alt={title}
+                                className="w-full h-full object-cover rounded shadow-sm"
+                                onError={(e) => {
+                                  e.currentTarget.src = 'https://via.placeholder.com/150x200?text=No+Image';
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-lg truncate">{title}</h4>
+                              <p className="text-gray-600 mb-1 truncate">by {author}</p>
+                              <p className="text-sm text-gray-500">Rental Period: {rentalPeriod}</p>
+                              {quantity > 1 && (
+                                <p className="text-sm text-gray-500">Quantity: {quantity}</p>
+                              )}
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="font-semibold text-xl">{price}</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-xl">{book.price}</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>

@@ -1,22 +1,28 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Package, MapPin, Clock, CheckCircle, Truck, Home, Phone, Mail, ArrowLeft } from "lucide-react";
+import { Package, MapPin, Clock, CheckCircle, Truck, Phone, Mail, ArrowLeft, Calendar } from "lucide-react";
 
 export default function TrackOrder() {
-  const { orderId } = useParams();
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.split('?')[1]);
+  const orderId = searchParams.get('orderId');
+  
   const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [deliveryTracking, setDeliveryTracking] = useState<any[]>([]);
+  const [trackingData, setTrackingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
       fetchOrderDetails();
+    } else {
+      setError("No order ID provided");
+      setLoading(false);
     }
   }, [orderId]);
 
@@ -24,47 +30,60 @@ export default function TrackOrder() {
     try {
       setLoading(true);
       
-      // Fetch delivery details
-      const deliveryResponse = await fetch(`/api/deliveries/order/${orderId}`);
-      if (deliveryResponse.ok) {
-        const delivery = await deliveryResponse.json();
-        setOrderDetails(delivery);
-        
-        // Fetch tracking information
-        const trackingResponse = await fetch(`/api/deliveries/${delivery.id}/tracking`);
-        if (trackingResponse.ok) {
-          const tracking = await trackingResponse.json();
-          setDeliveryTracking(tracking);
+      // Fetch payment order details
+      const orderResponse = await fetch(`/api/payment-orders/${orderId}`);
+      if (!orderResponse.ok) {
+        throw new Error("Order not found");
+      }
+      const order = await orderResponse.json();
+      setOrderDetails(order);
+      
+      // Fetch Shiprocket tracking if available
+      if (order.shiprocketOrderId) {
+        try {
+          const trackingResponse = await fetch(`/api/shiprocket/track/${order.shiprocketOrderId}`);
+          if (trackingResponse.ok) {
+            const tracking = await trackingResponse.json();
+            setTrackingData(tracking);
+          }
+        } catch (trackingError) {
+          console.log("Tracking data not available yet");
         }
-      } else {
-        setError("Order not found or delivery details unavailable");
       }
     } catch (error) {
       console.error("Error fetching order details:", error);
-      setError("Failed to fetch order details");
+      setError((error as Error).message || "Failed to fetch order details");
     } finally {
       setLoading(false);
     }
   };
 
   const getStatusProgress = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending": return 20;
-      case "picked_up": return 40;
-      case "in_transit": return 70;
-      case "delivered": return 100;
-      default: return 0;
-    }
+    const normalizedStatus = status.toLowerCase();
+    if (normalizedStatus.includes('delivered')) return 100;
+    if (normalizedStatus.includes('out for delivery')) return 90;
+    if (normalizedStatus.includes('in transit') || normalizedStatus.includes('shipped')) return 75;
+    if (normalizedStatus.includes('picked') || normalizedStatus.includes('pickup')) return 60;
+    if (normalizedStatus.includes('processing') || normalizedStatus.includes('manifested')) return 50;
+    if (normalizedStatus.includes('pending') || normalizedStatus.includes('created')) return 25;
+    return 25;
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending": return Package;
-      case "picked_up": return Truck;
-      case "in_transit": return MapPin;
-      case "delivered": return CheckCircle;
-      default: return Clock;
-    }
+    const normalizedStatus = status.toLowerCase();
+    if (normalizedStatus.includes('delivered')) return CheckCircle;
+    if (normalizedStatus.includes('shipped') || normalizedStatus.includes('transit')) return Truck;
+    if (normalizedStatus.includes('picked') || normalizedStatus.includes('pickup')) return Package;
+    return Clock;
+  };
+
+  const getStatusColor = (status: string) => {
+    const normalizedStatus = status.toLowerCase();
+    if (normalizedStatus.includes('delivered')) return 'bg-green-100 text-green-800';
+    if (normalizedStatus.includes('shipped') || normalizedStatus.includes('transit')) return 'bg-purple-100 text-purple-800';
+    if (normalizedStatus.includes('picked') || normalizedStatus.includes('processing')) return 'bg-blue-100 text-blue-800';
+    if (normalizedStatus.includes('pending') || normalizedStatus.includes('created')) return 'bg-orange-100 text-orange-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
   if (loading) {
@@ -103,8 +122,10 @@ export default function TrackOrder() {
     );
   }
 
-  const StatusIcon = getStatusIcon(orderDetails.status);
-  const progress = getStatusProgress(orderDetails.status);
+  const shipmentData = trackingData?.tracking_data?.shipment_track?.[0];
+  const currentStatus = shipmentData?.current_status || orderDetails.status;
+  const StatusIcon = getStatusIcon(currentStatus);
+  const progress = getStatusProgress(currentStatus);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
@@ -135,13 +156,8 @@ export default function TrackOrder() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <Badge className={
-                      orderDetails.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                      orderDetails.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
-                      orderDetails.status === 'picked_up' ? 'bg-purple-100 text-purple-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }>
-                      {orderDetails.status.replace('_', ' ').charAt(0).toUpperCase() + orderDetails.status.replace('_', ' ').slice(1)}
+                    <Badge className={getStatusColor(currentStatus)}>
+                      {currentStatus.replace(/_/g, ' ').toUpperCase()}
                     </Badge>
                     <span className="text-sm text-gray-600">{progress}% Complete</span>
                   </div>
@@ -161,8 +177,8 @@ export default function TrackOrder() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {deliveryTracking.length > 0 ? (
-                    deliveryTracking.map((track, index) => (
+                  {shipmentData?.shipment_track_activities && shipmentData.shipment_track_activities.length > 0 ? (
+                    shipmentData.shipment_track_activities.map((activity: any, index: number) => (
                       <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
                         <div className="flex-shrink-0">
                           <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
@@ -171,17 +187,16 @@ export default function TrackOrder() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-medium">{track.description}</h4>
+                            <h4 className="font-medium">{activity.activity}</h4>
                             <span className="text-sm text-gray-500">
-                              {new Date(track.timestamp).toLocaleString()}
+                              {new Date(activity.date).toLocaleString()}
                             </span>
                           </div>
-                          {track.location && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              {track.location}
-                            </p>
-                          )}
+                          <p className="text-sm text-gray-600 mt-1">
+                            <MapPin className="h-4 w-4 inline mr-1" />
+                            {activity.location}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">{activity.status}</p>
                         </div>
                       </div>
                     ))
@@ -204,31 +219,40 @@ export default function TrackOrder() {
                 <CardTitle>Delivery Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-sm text-gray-700 mb-1">Tracking Number</h4>
-                  <p className="font-mono text-sm">{orderDetails.trackingNumber}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-gray-700 mb-1">Delivery Partner</h4>
-                  <p className="text-sm">{orderDetails.deliveryPartner || 'BookWise Delivery'}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-gray-700 mb-1">Estimated Delivery</h4>
-                  <p className="text-sm">
-                    {orderDetails.estimatedDeliveryDate 
-                      ? new Date(orderDetails.estimatedDeliveryDate).toLocaleDateString()
-                      : 'To be updated'
-                    }
-                  </p>
-                </div>
-                {orderDetails.actualDeliveryDate && (
+                {shipmentData?.awb_code && (
                   <div>
-                    <h4 className="font-medium text-sm text-gray-700 mb-1">Delivered On</h4>
-                    <p className="text-sm text-green-600 font-medium">
-                      {new Date(orderDetails.actualDeliveryDate).toLocaleDateString()}
+                    <h4 className="font-medium text-sm text-gray-700 mb-1">AWB Number</h4>
+                    <p className="font-mono text-sm">{shipmentData.awb_code}</p>
+                  </div>
+                )}
+                {shipmentData?.courier_name && (
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-700 mb-1">Courier Partner</h4>
+                    <p className="text-sm">{shipmentData.courier_name}</p>
+                  </div>
+                )}
+                {shipmentData?.edd && (
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-700 mb-1">Estimated Delivery</h4>
+                    <p className="text-sm flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(shipmentData.edd).toLocaleDateString()}
                     </p>
                   </div>
                 )}
+                {shipmentData?.delivered_date && (
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-700 mb-1">Delivered On</h4>
+                    <p className="text-sm text-green-600 font-medium flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      {new Date(shipmentData.delivered_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-medium text-sm text-gray-700 mb-1">Order Amount</h4>
+                  <p className="text-lg font-semibold text-primary">₹{orderDetails.amount}</p>
+                </div>
               </CardContent>
             </Card>
 
@@ -239,15 +263,20 @@ export default function TrackOrder() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="text-sm">{orderDetails.deliveryAddress}</p>
+                  <p className="text-sm font-medium">{orderDetails.customerName}</p>
+                  <p className="text-sm">{orderDetails.shippingAddress}</p>
                   <p className="text-sm">
-                    {orderDetails.deliveryCity}, {orderDetails.deliveryState} - {orderDetails.deliveryPincode}
+                    {orderDetails.shippingCity}, {orderDetails.shippingState} - {orderDetails.shippingPincode}
                   </p>
-                  {orderDetails.deliveryLandmark && (
+                  {orderDetails.shippingLandmark && (
                     <p className="text-sm text-gray-600">
-                      Landmark: {orderDetails.deliveryLandmark}
+                      Landmark: {orderDetails.shippingLandmark}
                     </p>
                   )}
+                  <p className="text-sm text-gray-600 flex items-center mt-2">
+                    <Phone className="h-4 w-4 mr-1" />
+                    {orderDetails.customerPhone}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -260,11 +289,11 @@ export default function TrackOrder() {
               <CardContent className="space-y-3">
                 <Button variant="outline" className="w-full justify-start">
                   <Phone className="h-4 w-4 mr-2" />
-                  Call Support: +91-XXX-XXX-XXXX
+                  Call Support
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
                   <Mail className="h-4 w-4 mr-2" />
-                  Email: support@bookwise.com
+                  Email Support
                 </Button>
                 <Link href="/contact">
                   <Button variant="outline" className="w-full">
