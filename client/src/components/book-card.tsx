@@ -259,7 +259,7 @@ const decrementQuantity = () => {
           onChange={(e) => {
             e.stopPropagation();
             const val = parseInt(e.target.value);
-            if (!isNaN(val) && val >= 1 && val <= book.availableCopies) {
+            if (!isNaN(val) && val >= 1) {
               setQuantity(val);
             } else if (e.target.value === '') {
               setQuantity(1);
@@ -269,15 +269,12 @@ const decrementQuantity = () => {
             const val = parseInt(e.target.value);
             if (isNaN(val) || val < 1) {
               setQuantity(1);
-            } else if (val > book.availableCopies) {
-              setQuantity(book.availableCopies);
             }
           }}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
           className="w-12 text-center text-sm font-medium py-1.5 border-x border-gray-300 focus:outline-none focus:bg-gray-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           min="1"
-          max={book.availableCopies}
         />
         <Button
           variant="ghost"
@@ -285,9 +282,9 @@ const decrementQuantity = () => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setQuantity(prev => Math.min( prev + 1));
+            setQuantity(prev => prev + 1);
           }}
-          className="h-8 w-8 rounded-none "
+          className="h-8 w-8 rounded-none"
         >
           <Plus className="h-3 w-3" />
         </Button>
@@ -321,4 +318,4 @@ const decrementQuantity = () => {
         </CardContent>
       </Card>
   );
-}
+} 

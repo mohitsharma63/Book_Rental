@@ -195,7 +195,7 @@ export default function BookDetail() {
 
   // Modified handleRentClick to use quantity
   const handleRentClick = () => {
-    if (!book || book.availableCopies === 0) return;
+    if (!book) return; // Removed check for book.availableCopies === 0
 
     const selectedPeriod = rentalPeriods.find(p => p.weeks === selectedRentalPeriod);
     const cartItem = {
@@ -208,7 +208,7 @@ export default function BookDetail() {
       rentalDuration: parseInt(selectedRentalPeriod),
       rentalPeriodLabel: selectedPeriod?.label || "1 Month",
       quantity: quantity, // Use the selected quantity
-      available: book.availableCopies > 0
+      available: book.availableCopies > 0 // This flag might still be relevant for display, but not for purchase logic now
     };
     addToCart(cartItem);
     toast({
@@ -223,15 +223,13 @@ export default function BookDetail() {
     });
   };
 
-  // Helper to update quantity, ensuring it doesn't exceed available copies
+  // Helper to update quantity - unlimited quantity allowed
   const updateQuantity = (newQuantity: number) => {
-    if (book && newQuantity > 0 && newQuantity <= book.availableCopies) {
+    if (newQuantity > 0) {
       setQuantity(newQuantity);
     } else if (newQuantity === 0) {
-      setQuantity(0); // Allow setting to 0 if needed, though cart logic might handle it
-    } else if (book && newQuantity > book.availableCopies) {
-      setQuantity(book.availableCopies); // Cap at available copies
-    }
+      setQuantity(0);
+    } 
   };
 
 
@@ -332,13 +330,7 @@ export default function BookDetail() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Availability</span>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span className="text-sm font-medium">{book.availableCopies} of {book.totalCopies} available</span>
-                    </div>
-                  </div>
+                  
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Condition</span>
@@ -419,10 +411,7 @@ export default function BookDetail() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Available Copies:</span>
-                    <span>{book.availableCopies} of {book.totalCopies}</span>
-                  </div>
+                 
                   {book.pages && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Pages:</span>
@@ -490,28 +479,24 @@ export default function BookDetail() {
                     onChange={(e) => updateQuantity(parseInt(e.target.value) || 1)} 
                     className="w-16 text-center p-2 border-x border-border focus:outline-none" 
                     min="1"
-                    max={book.availableCopies}
                   />
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => updateQuantity(quantity + 1)} 
-                    disabled={quantity >= book.availableCopies}
                     className="rounded-l-none"
                   >
                     +
                   </Button>
                 </div>
-                <span className="ml-4 text-sm text-muted-foreground">
-                  (Available: {book.availableCopies})
-                </span>
+                
               </div>
 
               <div className="flex gap-4">
                 <Button 
                   size="lg" 
                   className="flex-1"
-                  disabled={book.availableCopies === 0}
+                  disabled={book.availableCopies === 0} // This button is still disabled if no copies are available
                   onClick={handleRentClick}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
