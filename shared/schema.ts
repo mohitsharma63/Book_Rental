@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, decimal, boolean, serial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 
@@ -194,6 +194,21 @@ export const cashfreePaymentsRelations = relations(cashfreePayments, ({ many }) 
   // Add relations if needed in the future
 }));
 
+// Pincode Delivery Charges
+export const pincodeDeliveryCharges = pgTable("pincode_delivery_charges", {
+  id: serial("id").primaryKey(),
+  pincode: varchar("pincode", { length: 10 }).notNull().unique(),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 100 }),
+  deliveryCharge: integer("delivery_charge").notNull().default(99),
+  deliveryDays: integer("delivery_days").notNull().default(5),
+  isServiceable: boolean("is_serviceable").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPincodeDeliveryChargeSchema = createInsertSchema(pincodeDeliveryCharges);
+export const selectPincodeDeliveryChargeSchema = createSelectSchema(pincodeDeliveryCharges);
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -215,6 +230,8 @@ export type PaymentOrder = typeof paymentOrders.$inferSelect;
 export type InsertPaymentOrder = typeof paymentOrders.$inferInsert;
 export type CashfreePayment = typeof cashfreePayments.$inferSelect;
 export type InsertCashfreePayment = typeof cashfreePayments.$inferInsert;
+export type PincodeDeliveryCharge = typeof pincodeDeliveryCharges.$inferSelect;
+export type InsertPincodeDeliveryCharge = typeof pincodeDeliveryCharges.$inferInsert;
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);

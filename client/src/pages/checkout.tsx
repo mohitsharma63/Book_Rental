@@ -28,6 +28,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [deliveryChargeLoading, setDeliveryChargeLoading] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -40,115 +41,126 @@ export default function CheckoutPage() {
     zipCode: "",
     phone: "",
     paymentMethod: "cashfree",
+    shipping: 0, // Initialize shipping to 0
   });
   const [userProfile, setUserProfile] = useState(null);
   const [profileDataLoaded, setProfileDataLoaded] = useState(false);
 
   useEffect(() => {
-    // Check URL parameters for payment processing
-    const searchParams = new URLSearchParams(location.search);
-    const paymentStatus = searchParams.get('payment');
-    const orderIdParam = searchParams.get('orderId');
+    const initCheckout = async () => {
+      // Check URL parameters for payment processing
+      const searchParams = new URLSearchParams(location.search);
+      const paymentStatus = searchParams.get('payment');
+      const orderIdParam = searchParams.get('orderId');
 
-    if (paymentStatus === 'processing' && orderIdParam) {
-      verifyPayment(orderIdParam);
-      return;
-    }
+      if (paymentStatus === 'processing' && orderIdParam) {
+        verifyPayment(orderIdParam);
+        return;
+      }
 
-    // Check if user is logged in when accessing checkout
-    const user = localStorage.getItem("user");
-    if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to proceed with checkout",
-        variant: "destructive",
-      });
-      window.location.href = "/auth/login";
-      return;
-    }
+      // Check if user is logged in when accessing checkout
+      const user = localStorage.getItem("user");
+      if (!user) {
+        toast({
+          title: "Login Required",
+          description: "Please log in to proceed with checkout",
+          variant: "destructive",
+        });
+        window.location.href = "/auth/login";
+        return;
+      }
 
-    // Parse user data and set profile
-    try {
-      const userData = JSON.parse(user);
-      setUserProfile(userData);
+      // Parse user data and set profile
+      try {
+        const userData = JSON.parse(user);
+        setUserProfile(userData);
 
-      // Auto-fill form data if profile has information and not already loaded
-      if (userData && !profileDataLoaded) {
-        // Parse address to extract city, state, zipCode from profile
-        let city = "";
-        let state = "";
-        let zipCode = "";
-        let streetAddress = userData.address || "";
+        // Auto-fill form data if profile has information and not already loaded
+        if (userData && !profileDataLoaded) {
+          // Parse address to extract city, state, zipCode from profile
+          let city = "";
+          let state = "";
+          let zipCode = "";
+          let streetAddress = userData.address || "";
 
-        // Try to extract city, state, zipCode from full address if they exist
-        if (streetAddress) {
-          const addressParts = streetAddress.split(',').map(part => part.trim());
-          if (addressParts.length >= 3) {
-            // Last part might contain state and pin code
-            const lastPart = addressParts[addressParts.length - 1];
-            const pinCodeMatch = lastPart.match(/\d{6}$/);
-            if (pinCodeMatch) {
-              zipCode = pinCodeMatch[0];
-              state = lastPart.replace(/\d{6}$/, '').trim();
-            } else {
-              state = lastPart;
+          // Try to extract city, state, zipCode from full address if they exist
+          if (streetAddress) {
+            const addressParts = streetAddress.split(',').map(part => part.trim());
+            if (addressParts.length >= 3) {
+              // Last part might contain state and pin code
+              const lastPart = addressParts[addressParts.length - 1];
+              const pinCodeMatch = lastPart.match(/\d{6}$/);
+              if (pinCodeMatch) {
+                zipCode = pinCodeMatch[0];
+                state = lastPart.replace(/\d{6}$/, '').trim();
+              } else {
+                state = lastPart;
+              }
+
+              // Second last part might be city
+              if (addressParts.length >= 2) {
+                city = addressParts[addressParts.length - 2];
+              }
+
+              // Remove city and state from full address to get street address
+              streetAddress = addressParts.slice(0, -2).join(', ');
+            } else if (addressParts.length === 2) {
+              // If only 2 parts, assume first is address and second is city
+              city = addressParts[1];
+              streetAddress = addressParts[0];
+            } else if (addressParts.length === 1) {
+              // If only 1 part, use it as street address
+              streetAddress = addressParts[0];
             }
+          }
 
-            // Second last part might be city
-            if (addressParts.length >= 2) {
-              city = addressParts[addressParts.length - 2];
-            }
+          // Auto-fill form data with profile information
+          setFormData({
+            email: userData.email || "",
+            firstName: userData.firstName || "",
+            lastName: userData.lastName || "",
+            address: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            phone: userData.phone || "",
+            paymentMethod: "cashfree",
+            shipping: 0, // Default shipping
+          });
 
-            // Remove city and state from full address to get street address
-            streetAddress = addressParts.slice(0, -2).join(', ');
-          } else if (addressParts.length === 2) {
-            // If only 2 parts, assume first is address and second is city
-            city = addressParts[1];
-            streetAddress = addressParts[0];
-          } else if (addressParts.length === 1) {
-            // If only 1 part, use it as street address
-            streetAddress = addressParts[0];
+          setProfileDataLoaded(true);
+
+          // Show notification that data was auto-filled
+          if (userData.firstName || userData.lastName || userData.email || userData.phone || userData.address) {
+            toast({
+              title: "Profile Data Loaded",
+              description: "Your contact information and shipping address have been filled automatically.",
+            });
+          }
+
+          // Fetch delivery charge if zipCode is available
+          if (zipCode) {
+            await fetchDeliveryCharge(zipCode);
           }
         }
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
 
-        // Auto-fill form data with profile information
-        setFormData({
-          email: userData.email || "",
-          firstName: userData.firstName || "",
-          lastName: userData.lastName || "",
-          address: streetAddress,
-          city: city,
-          state: state,
-          zipCode: zipCode,
-          phone: userData.phone || "",
-          paymentMethod: "cashfree",
-        });
-
-        setProfileDataLoaded(true);
-
-        // Show notification that data was auto-filled
-        if (userData.firstName || userData.lastName || userData.email || userData.phone || userData.address) {
-          toast({
-            title: "Profile Data Loaded",
-            description: "Your contact information and shipping address have been filled automatically.",
-          });
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          setCartItems(parsedCart);
+        } catch (error) {
+          console.error("Error parsing cart data:", error);
+          setCartItems([]);
         }
       }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-    }
+      setLoading(false);
+    };
 
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        setCartItems(parsedCart);
-      } catch (error) {
-        console.error("Error parsing cart data:", error);
-        setCartItems([]);
-      }
-    }
-    setLoading(false);
+    initCheckout();
   }, [profileDataLoaded, location]);
 
   const verifyPayment = async (orderIdParam: string) => {
@@ -230,15 +242,73 @@ export default function CheckoutPage() {
   };
 
   const subtotal = calculateSubtotal();
-  const shipping = subtotal > 599 ? 0 : 99;
+  const shipping = formData.shipping; // Use shipping from formData
   const total = subtotal + shipping;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Fetch delivery charge when pincode is entered (6 digits)
+    if (name === 'zipCode' && value.length === 6) {
+      await fetchDeliveryCharge(value);
+    }
+  };
+
+  const fetchDeliveryCharge = async (pincode: string) => {
+    try {
+      setDeliveryChargeLoading(true);
+
+      const response = await fetch('/api/calculate-delivery-charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pincode,
+          cartItems: cartItems.map(item => ({
+            id: item.id,
+            price: item.price,
+            quantity: item.quantity
+          }))
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.serviceable) {
+        setFormData(prev => ({
+          ...prev,
+          shipping: data.deliveryCharge || 0
+        }));
+
+        if (data.deliveryCharge > 0) {
+          toast({
+            title: "Delivery Charge Updated",
+            description: `₹${data.deliveryCharge} delivery charge applied for pincode ${pincode}`,
+          });
+        } else {
+          toast({
+            title: "Free Delivery",
+            description: `Free delivery available for pincode ${pincode}`,
+          });
+        }
+      } else {
+        toast({
+          title: "Delivery Not Available",
+          description: `Sorry, delivery is not available for pincode ${pincode}`,
+          variant: "destructive"
+        });
+        setFormData(prev => ({ ...prev, shipping: 0 })); // Reset shipping if not serviceable
+      }
+    } catch (error) {
+      console.error("Error fetching delivery charge:", error);
+      setFormData(prev => ({ ...prev, shipping: 0 })); // Reset shipping on error
+    } finally {
+      setDeliveryChargeLoading(false);
+    }
   };
 
   const processCashfreePayment = async () => {
@@ -468,6 +538,16 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Validate pincode is exactly 6 digits
+    if (!/^\d{6}$/.test(formData.zipCode)) {
+      toast({
+        title: "Invalid ZIP Code",
+        description: "Please enter a valid 6-digit ZIP code",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -498,6 +578,7 @@ export default function CheckoutPage() {
             state: formData.state,
             pincode: formData.zipCode,
           },
+          delivery_charge: shipping, // Include calculated delivery charge
           cartItems: cartItems
         };
 
@@ -716,8 +797,13 @@ export default function CheckoutPage() {
                       name="zipCode"
                       value={formData.zipCode}
                       onChange={handleInputChange}
+                      maxLength={6}
+                      placeholder="Enter 6-digit pincode"
                       required
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Delivery charge will be calculated based on pincode
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -735,19 +821,19 @@ export default function CheckoutPage() {
                     onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
                     className="space-y-3"
                   >
-                    <Label 
-                      htmlFor="cashfree" 
+                    <Label
+                      htmlFor="cashfree"
                       className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                        formData.paymentMethod === 'cashfree' 
-                          ? 'border-green-600 bg-green-50' 
+                        formData.paymentMethod === 'cashfree'
+                          ? 'border-green-600 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300 '
                       }`}
                     >
                       <div className="relative flex items-center justify-center mt-1">
                         <RadioGroupItem value="cashfree" id="cashfree" className="sr-only" />
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          formData.paymentMethod === 'cashfree' 
-                            ? 'border-green-600 bg-green-600' 
+                          formData.paymentMethod === 'cashfree'
+                            ? 'border-green-600 bg-green-600'
                             : 'border-gray-300'
                         }`}>
                           {formData.paymentMethod === 'cashfree' && (
@@ -763,20 +849,20 @@ export default function CheckoutPage() {
                         <p className="text-sm text-gray-600">Credit/Debit Card, UPI, Net Banking</p>
                       </div>
                     </Label>
-                    
-                    <Label 
-                      htmlFor="cod" 
+
+                    <Label
+                      htmlFor="cod"
                       className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                        formData.paymentMethod === 'cod' 
-                          ? 'border-green-600 bg-green-50' 
+                        formData.paymentMethod === 'cod'
+                          ? 'border-green-600 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300 '
                       }`}
                     >
                       <div className="relative flex items-center justify-center mt-1">
                         <RadioGroupItem value="cod" id="cod" className="sr-only" />
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          formData.paymentMethod === 'cod' 
-                            ? 'border-green-600 bg-green-600' 
+                          formData.paymentMethod === 'cod'
+                            ? 'border-green-600 bg-green-600'
                             : 'border-gray-300'
                         }`}>
                           {formData.paymentMethod === 'cod' && (
@@ -840,7 +926,15 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Shipping</span>
-                    <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+                    <span>
+                      {deliveryChargeLoading ? (
+                        <span className="text-sm">Calculating...</span>
+                      ) : shipping === 0 ? (
+                        'Free'
+                      ) : (
+                        `₹${shipping}`
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
                     <span>Total</span>
@@ -852,10 +946,10 @@ export default function CheckoutPage() {
                   type="submit"
                   className="w-full mt-6 bg-red-600 hover:bg-red-700"
                   size="lg"
-                  disabled={loading}
+                  disabled={loading || deliveryChargeLoading} // Disable button if loading or calculating delivery
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {loading ? 'Processing...' :
+                  {loading ? 'Processing...' : deliveryChargeLoading ? 'Calculating...' :
                     formData.paymentMethod === 'cashfree' ?
                       `Pay Online - ₹${total.toLocaleString()}` :
                       `Place Order - ₹${total.toLocaleString()}`}
