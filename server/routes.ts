@@ -946,19 +946,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Return routes
   app.post("/api/returns", async (req, res) => {
-    res.status(501).json({ error: "Return requests not yet implemented" });
+    try {
+      const { rentalId, userId, bookId, returnReason, returnMethod, pickupAddress, customerNotes } = req.body;
+
+      if (!rentalId || !userId || !bookId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Get the rental
+      const rental = await storage.getRental(rentalId.toString());
+      if (!rental) {
+        return res.status(404).json({ error: "Rental not found" });
+      }
+
+      // Verify rental belongs to user
+      if (rental.userId !== userId.toString()) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Check if rental is already returned
+      if (rental.status === 'completed' || rental.status === 'returned') {
+        return res.status(400).json({ error: "Rental already returned" });
+      }
+
+      // Update rental status
+      await storage.updateRental(rentalId.toString(), {
+        status: 'return_requested',
+        returnDate: new Date(),
+        notes: JSON.stringify({
+          returnReason,
+          returnMethod,
+          pickupAddress: returnMethod === 'pickup' ? pickupAddress : null,
+          customerNotes
+        })
+      });
+
+      // Get book details to update available copies
+      const book = await storage.getBook(bookId);
+      if (book) {
+        await storage.updateBook(bookId, {
+          availableCopies: (book.availableCopies || 0) + 1
+        });
+      }
+
+      res.json({
+        message: "Return request submitted successfully",
+        rentalId,
+        status: "return_requested"
+      });
+    } catch (error) {
+      console.error("Return request error:", error);
+      res.status(500).json({ error: "Failed to submit return request" });
+    }
   });
 
   app.get("/api/returns", async (req, res) => {
-    res.status(501).json({ error: "Return requests not yet implemented" });
+    try {
+      const { userId } = req.query;
+
+      // Get all rentals with return_requested status
+      const allRentals = await storage.getAllRentals();
+      let returns = allRentals.filter(r => 
+        r.status === 'return_requested' || 
+        r.status === 'completed' || 
+        r.status === 'returned'
+      );
+
+      if (userId) {
+        returns = returns.filter(r => r.userId === userId);
+      }
+
+      res.json(returns);
+    } catch (error) {
+      console.error("Get returns error:", error);
+      res.status(500).json({ error: "Failed to fetch returns" });
+    }
   });
 
   app.get("/api/returns/:id", async (req, res) => {
-    res.status(501).json({ error: "Return requests not yet implemented" });
+    try {
+      const rental = await storage.getRental(req.params.id);
+      if (!rental) {
+        return res.status(404).json({ error: "Return request not found" });
+      }
+      res.json(rental);
+    } catch (error) {
+      console.error("Get return error:", error);
+      res.status(500).json({ error: "Failed to fetch return request" });
+    }
   });
 
   app.put("/api/returns/:id/status", async (req, res) => {
-    res.status(501).json({ error: "Return status updates not yet implemented" });
+    try {
+      const { status, adminNotes } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: "Status is required" });
+      }
+
+      const rental = await storage.getRental(req.params.id);
+      if (!rental) {
+        return res.status(404).json({ error: "Return request not found" });
+      }
+
+      await storage.updateRental(req.params.id, {
+        status,
+        adminNotes: adminNotes || null,
+        returnDate: status === 'completed' ? new Date() : rental.returnDate
+      });
+
+      res.json({
+        message: "Return status updated successfully",
+        status
+      });
+    } catch (error) {
+      console.error("Update return status error:", error);
+      res.status(500).json({ error: "Failed to update return status" });
+    }
+  });
+
+  // Check and update overdue rentals
+  app.post("/api/rentals/check-overdue", async (req, res) => {
+    try {
+      const allRentals = await storage.getAllRentals();
+      const now = new Date();
+      let updatedCount = 0;
+
+      for (const rental of allRentals) {
+        if (rental.status === 'active' && rental.dueDate) {
+          const dueDate = new Date(rental.dueDate);
+          if (now > dueDate) {
+            await storage.updateRental(rental.id, {
+              status: 'overdue'
+            });
+            updatedCount++;
+          }
+        }
+      }
+
+      res.json({
+        message: "Overdue check completed",
+        updatedCount
+      });
+    } catch (error) {
+      console.error("Check overdue error:", error);
+      res.status(500).json({ error: "Failed to check overdue rentals" });
+    }
   });
 
   // Cashfree Payment Routes

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +55,7 @@ export default function ReturnRequest() {
       setError(null);
 
       const returnData = {
-        rentalId: parseInt(rentalId as string),
+        rentalId: rentalId,
         userId: user.id,
         bookId: rental.bookId,
         returnReason,
@@ -77,7 +76,7 @@ export default function ReturnRequest() {
         setSuccess(true);
         setTimeout(() => {
           setLocation("/profile");
-        }, 3000);
+        }, 2000);
       } else {
         const errorData = await response.json();
         setError(errorData.error || "Failed to submit return request");
